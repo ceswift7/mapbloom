@@ -1,0 +1,1868 @@
+<script>
+(function(){
+const REGIONS=["Africa","Americas","Asia","Europe","Oceania"];
+const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const easeOut=x=>1-Math.pow(1-x,2.6);
+const $=id=>document.getElementById(id);
+const ord=n=>{const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])};
+const fmtT=(ms,d=1)=>{ms=Math.max(0,ms);const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,t=Math.floor(ms/100)%10;return `${m}:${String(s).padStart(2,"0")}${d?"."+t:""}`};
+const el=(tag,props={},...kids)=>{const e=document.createElement(tag);for(const k in props){if(props[k]==null)continue;if(k==="class")e.className=props[k];else if(k==="html")e.innerHTML=props[k];else if(k.startsWith("on"))e[k]=props[k];else e.setAttribute(k,props[k])}kids.flat(Infinity).forEach(c=>{if(c==null||c===false)return;e.append(c.nodeType?c:document.createTextNode(String(c)))});return e};
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+
+/* effect switches (all on by default; the dev menu flips them to isolate what costs frames) */
+const FX={ts:1,wc:true,bloomFx:true,tiles:true,clip:true,cull:true,lod:"auto"};
+let introOwn=null;      // while the opening replays a returning player’s map: only these saved countries are shown so far
+const introSet=new Set();   // countries painted only for the opening sequence (never saved)
+let introState="idle";
+/* ---------- state ---------- */
+const S={mode:"wander",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
+  sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
+  found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
+  learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
+  daily:{last:null,streak:0,results:{}}};
+const KEY="mapbloom",RKEY="mapbloom-records-v4";
+try{
+  let raw=localStorage.getItem(KEY);
+  if(!raw){raw=localStorage.getItem("tidewash")||localStorage.getItem("slowatlas");if(raw)localStorage.setItem(KEY,raw)} // carry progress over from the old names
+  const s=JSON.parse(raw||"{}");
+  (s.found||[]).forEach(id=>S.found.add(id));
+  (s.shown||[]).forEach(id=>S.shown.add(id));
+  (s.learned||[]).forEach(id=>S.learned.add(id));
+  if(s.returnQ) S.returnQ=s.returnQ;
+  if(s.weak) S.weak=s.weak;
+  if(s.ach) S.ach=s.ach;
+  if(s.counts) S.counts=Object.assign(S.counts,s.counts);
+  if(s.daily) S.daily=Object.assign(S.daily,s.daily);
+  if(typeof s.bestStreak==="number") S.bestStreak=s.bestStreak;
+  if(typeof s.sound==="boolean") S.sound=s.sound;
+  if(typeof s.sfx==="boolean") S.sfx=s.sfx;
+  if(typeof s.music==="boolean") S.music=s.music;
+  if(typeof s.vol==="number") S.vol=clamp(s.vol,0,1);
+  if(["country","flag","capital","silhouette"].includes(s.quiz)) S.quiz=s.quiz;
+  if(s.view&&Array.isArray(s.view.r)) S.view=s.view;
+  if(typeof s.hints==="boolean") S.hints=s.hints;
+  if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
+  if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
+  if(["km","mi"].includes(s.unit)) S.unit=s.unit;
+}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
+let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
+const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
+const bestOf=r=>(REC[r]&&REC[r].best)||Infinity;
+const rkey=(r,v)=>{v=v||S.rv;return v==="country"?r:r+"|"+v};   // race records are kept per region and per variant
+
+/* speed-race run state (kept apart so a race never changes your painted map) */
+const R={phase:"idle",region:"World",queue:[],cur:null,found:new Set(),t0:0,pen:0,skips:0,wrong:0,times:{},tTarget:0,streak:0,total:0,riser:false};
+const D={active:false,ids:[],idx:0,marks:[]};          // daily challenge
+const inReg=(id,r)=>FACTS[id].r===r||FACTS[id].x===r;                     // a country may sit in two continents (Russia)
+const regName=f=>f.x?f.r+" and "+f.x:(f.r==="Americas"?"the Americas":f.r);
+let SESS=null;   // clean-slate session (daily / practice): the saved map is hidden and only this set is painted
+const cf=()=>S.mode==="speed"?R.found:(SESS||S.found);
+
+/* ---------- geometry ---------- */
+const rawF=topojson.feature(WORLD,WORLD.objects.countries).features;rawF.forEach((f,i)=>f._i=i);
+let features=rawF.slice();
+{ // the 50m map has a few extra shapes sharing an id (Ashmore & Cartier with Australia): keep the largest
+  const big={};features.forEach(f=>{if(FACTS[f.id]){const a=d3.geoArea(f);if(!big[f.id]||a>big[f.id].a)big[f.id]={f,a}}});
+  features=features.filter(f=>!FACTS[f.id]||big[f.id].f===f);
+  // a country with no shape at all (e.g. Tuvalu) gets a small drawn disc at its coordinates
+  Object.keys(FACTS).forEach(id=>{if(!big[id]){const [lat,lon]=FACTS[id].ll;features.push({type:"Feature",id,properties:{name:FACTS[id].n,synth:1},geometry:d3.geoCircle().center([lon,lat]).radius(.28)()})}});
+}
+const playable=features.filter(f=>FACTS[f.id]);
+const byId={};playable.forEach(f=>byId[f.id]=f);
+// level of detail: a light 110m map while the whole globe is in view, the detailed 50m one when zoomed in.
+// Each feature also remembers where it is, so shapes on the far side are skipped while drawing.
+{
+  const loById={};topojson.feature(WORLD_LO,WORLD_LO.objects.countries).features.forEach(f=>{if(f.id!=null&&!(f.id in loById))loById[f.id]=f});
+  features.forEach(f=>{
+    f._lo=f.id!=null&&loById[f.id]?loById[f.id]:(FACTS[f.id]?f:null);
+    const c=d3.geoCentroid(f);f._c=c;
+    const b=d3.geoBounds(f);let r=Math.PI;
+    if(isFinite(c[0])&&isFinite(b[0][0])&&b[0][0]<=b[1][0])r=Math.max(...[[b[0][0],b[0][1]],[b[1][0],b[0][1]],[b[0][0],b[1][1]],[b[1][0],b[1][1]]].map(q=>d3.geoDistance(c,q)));
+    f._r=r;
+  });
+}
+// a mid level of detail, simplified in the browser once the first frame is up
+function buildMid(){
+  try{
+    if(!topojson.presimplify)return;
+    const pre=topojson.presimplify(WORLD,topojson.sphericalTriangleArea),simp=topojson.simplify(pre,topojson.quantile(pre,.15));
+    const mf=topojson.feature(simp,simp.objects.countries).features;
+    features.forEach(f=>{if(f._i!=null&&mf[f._i])f._mid=mf[f._i]});
+    render();
+  }catch(e){}
+}
+const nameId={};
+[...S.found].forEach(id=>{if(!FACTS[id])S.found.delete(id)});[...S.shown].forEach(id=>{if(!FACTS[id])S.shown.delete(id)});[...S.learned].forEach(id=>{if(!FACTS[id])S.learned.delete(id)});
+Object.keys(S.weak).forEach(id=>{if(!FACTS[id])delete S.weak[id]});S.returnQ=S.returnQ.filter(q=>FACTS[q.id]);playable.forEach(f=>nameId[FACTS[f.id].n]=f.id);
+
+const svg=d3.select("#globe");
+const defs=svg.append("defs");
+const rg=defs.append("radialGradient").attr("id","sea").attr("cx","42%").attr("cy","36%").attr("r","72%");
+rg.append("stop").attr("offset","0%").style("stop-color","var(--sea-in)");
+rg.append("stop").attr("offset","70%").style("stop-color","var(--sea-mid)");
+rg.append("stop").attr("offset","100%").style("stop-color","var(--sea-out)");
+/* watercolor: ragged bleed + darker pooled rim + pigment settling into paper grain */
+defs.node().insertAdjacentHTML("beforeend",`
+<filter id="wc" color-interpolation-filters="sRGB" x="-2%" y="-2%" width="104%" height="104%">
+  <feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="1" seed="5" result="warp"/>
+  <feDisplacementMap in="SourceGraphic" in2="warp" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="1.6" result="soft"/>
+  <feColorMatrix in="soft" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 0" result="soft2"/>
+  <feComposite in="d" in2="soft2" operator="out" result="ring"/>
+  <feColorMatrix in="ring" type="matrix" values=".45 0 0 0 0  0 .45 0 0 0  0 0 .45 0 0  0 0 0 2.4 0" result="rim"/>
+  <feMerge><feMergeNode in="d"/><feMergeNode in="rim"/></feMerge></filter>`);
+
+const gShadow=svg.append("ellipse").attr("fill","#5a4527").style("filter","blur(12px)").style("pointer-events","none");
+const gLift=svg.append("circle").attr("id","lift").style("filter","blur(16px)").style("pointer-events","none");
+const sphere=svg.append("path").attr("fill","url(#sea)").attr("class","sphere");
+const grat=svg.append("path").attr("class","graticule");
+const gCountries=svg.append("g").attr("id","land");
+const gPaint=svg.append("g").attr("id","paint").attr("filter","url(#wc)");
+const edge=svg.append("path").attr("class","sphere-edge").attr("fill","none").attr("stroke-width",1.1).style("pointer-events","none");
+const gFx=svg.append("g").style("pointer-events","none");
+
+const projection=d3.geoOrthographic().clipAngle(90).precision(.4).rotate([-20,-20]);
+const path=d3.geoPath(projection);
+const projC=d3.geoOrthographic().clipAngle(90).precision(.5),pathC=d3.geoPath(projC).digits(1);   // countries only: clipped to the viewport so zoomed-in frames stay light
+const graticule=d3.geoGraticule10();
+
+const paths=gCountries.selectAll("path").data(features).join("path")
+  .attr("class",d=>"country"+(FACTS[d.id]?"":" nopl"))
+  .attr("data-id",d=>d.id).attr("data-rr",d=>FACTS[d.id]?FACTS[d.id].r:null).attr("data-rx",d=>(FACTS[d.id]&&FACTS[d.id].x)||null);
+const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
+
+let W=0,H=0,baseScale=1,zoomK=1,stageTop=0,lodLvl=0;
+function size(){
+  const r=document.getElementById("stage").getBoundingClientRect();
+  W=r.width;H=r.height;stageTop=r.top;
+  const mobile=W<720;
+  if(S.mode==="wander"){promptBottom=Math.max(50,document.querySelector("header").getBoundingClientRect().bottom-r.top+(mobile?4:10))}
+  else{const fp=document.querySelector(S.mode==="speed"?".speed-prompt":".find-prompt").getBoundingClientRect();
+  promptBottom=Math.max(150,fp.bottom-r.top+(mobile?4:10))}
+  const avail=H-promptBottom-8;
+  baseScale=Math.max(110,Math.min(W*.45, avail*.48));
+  svg.attr("viewBox",`0 0 ${W} ${H}`);
+  cyVal=layoutCy();
+  if(lensOpen){layoutLens();fitLens();drawLens()}
+  {const wc=document.getElementById("wc");if(wc){wc.setAttribute("filterUnits","userSpaceOnUse");wc.setAttribute("x",-10);wc.setAttribute("y",-stageTop-10);wc.setAttribute("width",W+20);wc.setAttribute("height",innerHeight+20)}}   // bound the paint filter to the screen, however big the painted area gets
+  render(true);
+}
+let cyVal=0,promptBottom=0;
+function layoutCy(){
+  const mob=W<720;let bottom=H-6;
+  if(mob&&document.getElementById("card").classList.contains("on"))bottom=H-document.getElementById("card").offsetHeight-14;
+  return Math.max(promptBottom+40,(promptBottom+bottom)/2);
+}
+function cy(){return cyVal}
+function relayout(){
+  const target=layoutCy();if(Math.abs(target-cyVal)<1)return;
+  if(reduced||!cyVal){cyVal=target;render();return}
+  const from=cyVal;d3.select("#stage").transition("cy").duration(600).ease(d3.easeCubicInOut).tween("cy",()=>t=>{cyVal=from+(target-from)*t;render()});
+}
+/* where to look after a find: small countries are centred, but a big one that is already (partly) on screen stays put,
+   so tapping Russia in Europe mode doesn't drag the view away from Europe */
+function onScreen(p,m=24){const q=projection(p),c=projection.invert([W/2,cy()]);return !!(q&&c&&d3.geoDistance(p,c)<1.45&&q[0]>m&&q[0]<W-m&&q[1]>promptBottom&&q[1]<H-m)}
+function nearestVisiblePoint(feat){
+  const c=projection.invert([W/2,cy()]);if(!c)return null;let best=null,bd=9;
+  const walk=a=>{if(typeof a[0]==="number"){if(onScreen(a,8)){const d=d3.geoDistance(a,c);if(d<bd){bd=d;best=a}}}else a.forEach(walk)};
+  walk(feat.geometry.coordinates);return best;
+}
+function focusFor(id,ll){
+  const f=FACTS[id];
+  if(f.a<350000)return {fly:LL(id),pt:ll||LL(id)};
+  if(ll&&onScreen(ll))return {fly:null,pt:ll};
+  const feat=byId[id],p=feat&&nearestVisiblePoint(feat);
+  if(p)return {fly:null,pt:p};
+  return {fly:LL(id),pt:LL(id)};
+}
+/* every caller may ask for a render; at most one actually runs per animation frame (the rest are folded into the next frame) */
+let lastRenderStamp=-99,renderDeferred=false;
+function render(force){
+  const now=performance.now();
+  if(!force&&!document.hidden&&now-lastRenderStamp<6){if(!renderDeferred){renderDeferred=true;requestAnimationFrame(()=>{renderDeferred=false;render()})}return}
+  lastRenderStamp=now;renderNow();
+}
+/* big multi-part countries (Canada, Indonesia, Russia...) only project the parts that can be seen */
+function makeParts(g){
+  return g.geometry.coordinates.map(poly=>{
+    const ft={type:"Feature",geometry:{type:"Polygon",coordinates:poly}},c=d3.geoCentroid(ft),b=d3.geoBounds(ft);let r=Math.PI;
+    if(isFinite(c[0])&&isFinite(b[0][0])&&b[0][0]<=b[1][0])r=Math.max(...[[b[0][0],b[0][1]],[b[1][0],b[0][1]],[b[0][0],b[1][1]],[b[1][0],b[1][1]]].map(q=>d3.geoDistance(c,q)));
+    return {f:ft,c,r};
+  });
+}
+function drawFeature(g,cen,lim){
+  if(g.geometry.type!=="MultiPolygon"||g.geometry.coordinates.length<5||!FX.cull||!cen)return pathC(g)||"";
+  const parts=g._pp||(g._pp=makeParts(g));let out="";
+  for(let i=0;i<parts.length;i++){const p=parts[i];if(p.r>=2.5||d3.geoDistance(p.c,cen)-p.r<lim)out+=pathC(p.f)||""}
+  return out;
+}
+function renderNow(){
+  const s=baseScale*zoomK;
+  projection.scale(s).translate([W/2,cy()]);
+  const sp=path({type:"Sphere"});
+  sphere.attr("d",sp);
+  edge.attr("d",sp);
+  grat.attr("d",path(graticule));
+  const cen0=projection.invert([W/2,cy()]);
+  projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-24,-stageTop-24],[W+24,innerHeight-stageTop+24]]:null);
+  if(!animating){   // no geometry swaps in the middle of a fly-to; one full-quality render lands when it ends
+    if(zoomK>=6)lodLvl=2;else if(zoomK<5.2&&lodLvl===2)lodLvl=1;
+    if(lodLvl<2){if(zoomK>=1.7)lodLvl=1;else if(zoomK<1.5)lodLvl=0}
+  }
+  const lvl=typeof FX.lod==="number"?FX.lod:(moving&&lodLvl===2?1:lodLvl);
+  const lim=Math.min(1.5708,Math.asin(Math.min(1,Math.hypot(W/2,Math.max(cy(),H-cy()))/s)))+.04;
+  paths.each(function(d){
+    const vis=!FX.cull||!cen0||!d._c||d3.geoDistance(d._c,cen0)-d._r<lim,g=lvl===2?d:lvl===1?(d._mid||d._lo):d._lo;
+    if(vis&&g){this.setAttribute("d",drawFeature(g,cen0,lim));this.__e=false}
+    else if(!this.__e){this.setAttribute("d","");this.__e=true}
+  });
+  gLift.attr("cx",W/2).attr("cy",cy()+s*.035).attr("r",s*1.0);
+  gShadow.attr("cx",W/2).attr("cy",cy()+s*1.1).attr("rx",s*.72).attr("ry",s*.06).attr("opacity",zoomK>1.3||S.mode==="speed"?0:.16);
+  const cen=projection.invert([W/2,cy()]);
+  positionIslands(cen);
+  if(blooms.length)blooms.forEach(b=>{if(b.v===MV)placeBloom(b)});
+  positionLabels();
+  syncGrain(s);
+}
+let gl=[0,0,0];
+function syncGrain(s){const x=W/2,y=stageTop+cy();if(Math.abs(x-gl[0])+Math.abs(y-gl[1])+Math.abs(s-gl[2])<1)return;gl=[x,y,s];const st=document.documentElement.style;st.setProperty("--gx",x+"px");st.setProperty("--gy",y+"px");st.setProperty("--gr",s+"px")}
+const jit=id=>.88+((+id*37)%9)/100;  // each wash settles a little differently
+function paintSel(sel,landG,paintG){
+  const F=cf(),speed=S.mode==="speed";
+  sel.each(function(d){
+    const f=FACTS[d.id];const e=d3.select(this);
+    const found=(introOwn?introOwn.has(d.id):F.has(d.id))||introSet.has(d.id), shown=!speed&&!SESS&&!introOwn&&!found&&S.shown.has(d.id), painted=(found||shown)&&f;
+    e.classed("found",found).classed("shown",shown).attr("data-r",painted?f.r:null);
+    if(painted){
+      if(!FX.tiles){e.style("fill",null).style("fill-opacity",null)}
+      else if(!artDone[artKey(d.id)]&&artBudget--<=0){paintMore=true;e.style("fill",null).style("fill-opacity",null)}   // a big save is painted in slices so loading never stalls
+      else{const key=ensureArt(d.id);if(!found)ensureWash(key);e.style("fill",`url(#${found?"af":"aw"}-${key})`).style("fill-opacity",found?jit(d.id):.5)}
+    }
+    else e.style("fill",null).style("fill-opacity",null);
+    const parent=(painted?paintG:landG).node();
+    if(this.parentNode!==parent)parent.appendChild(this);
+  });
+}
+let artBudget=0,paintMore=false;
+function paint(){artBudget=14;paintMore=false;paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
+function clearMissed(){d3.selectAll(".missed").classed("missed",false)}
+/* ======================================================================
+   ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
+   each island is big enough to tap. Tiny countries outside a group get a beacon.
+   ====================================================================== */
+const gBeacon=svg.append("g"),gPills=svg.append("g");
+const LENS_OF={Caribbean:"Caribbean",Polynesia:"Pacific",Micronesia:"Pacific",Melanesia:"Pacific"};
+const lensOf=id=>LENS_OF[FACTS[id].grp]||null;
+const GR={};
+playable.forEach(f=>{const g=lensOf(f.id);if(g)(GR[g]=GR[g]||{name:g,ids:[]}).ids.push(f.id)});
+Object.values(GR).forEach(g=>{g.pts=g.ids.map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]]);g.c=d3.geoCentroid({type:"MultiPoint",coordinates:g.pts});g.label=g.name});
+const BEACON=playable.map(f=>f.id).filter(id=>!lensOf(id)&&(FACTS[id].a<9000||FACTS[id].grp));
+
+const lensEl=$("lens"),lensWrap=$("lensWrap"),lsvg=d3.select("#lensSvg");
+const lView=lsvg.append("g");
+const lLand=lView.append("g"),lPaint=lView.append("g").attr("filter","url(#wc)"),lFx=lView.append("g").style("pointer-events","none"),lMarks=lsvg.append("g");
+let LT=d3.zoomIdentity;
+const lzoom=d3.zoom().scaleExtent([1,6]).clickDistance(4).on("zoom",e=>{LT=e.transform;lView.attr("transform",LT.toString());positionLensMarks();positionLabels()});
+lsvg.call(lzoom).on("dblclick.zoom",null);
+function positionLensMarks(){lMarks.selectAll("circle").attr("cx",d=>LT.applyX(d.x)).attr("cy",d=>LT.applyY(d.y))}
+const lproj=d3.geoAzimuthalEquidistant().precision(.5),lpath=d3.geoPath(lproj);
+let lensOpen=false,lensG=null,LW=0,LH=0,lpaths=null;
+const LV={projection:lproj,path:lpath,gPaint:lPaint,gFx:lFx,get W(){return LW},get H(){return LH}};
+const lensLabels=el("div",{style:"position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden"});lensEl.append(lensLabels);
+
+const BR=innerWidth<720?19:22;     // badge radius
+const pillList=Object.values(GR).map((g,gi)=>{
+  const e=gPills.append("g").attr("class","pill").attr("tabindex",0).attr("role","button").attr("aria-label","Open the "+g.name+" islands");
+  e.append("title").text(g.name+" islands");
+  const cid="bubclip-"+gi;defs.append("clipPath").attr("id",cid).append("circle").attr("r",BR-1.4);
+  const body=e.append("g").attr("class","bub-body");
+  body.append("circle").attr("class","bub-shadow").attr("r",BR+.5).attr("cy",2.2);
+  const inner=body.append("g").attr("clip-path",`url(#${cid})`);
+  inner.append("circle").attr("class","bub-sea").attr("r",BR);
+  // a tiny map of the group: nearby coastline (low-res, drawn once) with each island as a dot at its true position
+  const mp=d3.geoAzimuthalEquidistant().rotate([-g.c[0],-g.c[1]]).fitExtent([[-BR+5,-BR+5],[BR-5,BR-5]],{type:"MultiPoint",coordinates:g.pts});
+  if(mp.scale()>2600)mp.scale(2600).translate([0,0]);
+  const mpath=d3.geoPath(mp).digits(1),rad=Math.max(...g.pts.map(p=>d3.geoDistance(g.c,p)))+.55;
+  const near=features.filter(ft=>ft._lo&&!g.ids.includes(ft.id)&&ft._c&&isFinite(ft._c[0])&&d3.geoDistance(ft._c,g.c)-(ft._r||0)<rad&&ft.id!=="010");
+  inner.append("g").selectAll("path").data(near).join("path").attr("class","bub-land").attr("d",ft=>mpath(ft._lo)||"");
+  const ipath=d3.geoPath(mp).digits(2);   // the islands themselves, as real outlines (a small stroke keeps the tiniest ones visible)
+  g.dots=inner.append("g").selectAll("path").data(g.ids).join("path").attr("class","bub-isle").attr("d",id=>ipath(byId[id])||"");
+  body.append("circle").attr("class","bub-ring").attr("r",BR-.5);
+  g.cnt=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle");
+  e.on("click",ev=>{ev.stopPropagation();pillTap(g)}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();pillTap(g)}});
+  g.el=e;return g;
+});const beaconList=BEACON.map(id=>{
+  const ge=gBeacon.append("g").attr("data-id",id);
+  const c=ge.append("circle").attr("class","beacon").attr("r",5.5);
+  ge.append("circle").attr("class","beaconhit").attr("r",10.5).attr("data-id",id)
+    .on("click",()=>tap(id,LL(id))).on("pointermove",ev=>onMove(ev,{id})).on("pointerleave",clearHover);
+  return {id,g:ge,c,diam:2*Math.sqrt(FACTS[id].a/Math.PI)/6371};
+});
+function positionIslands(cen){
+  const s=baseScale*zoomK;
+  pillList.forEach(g=>{
+    const p=projection(g.c),vis=cen&&d3.geoDistance(g.c,cen)<1.42&&p;
+    if(!p)return;
+    g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`).classed("hide",!vis||(lensOpen&&lensG===g));
+  });
+  beaconList.forEach(b=>{
+    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16;
+    b.g.attr("display",vis?null:"none");if(vis)b.g.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);
+  });
+}
+function updatePills(){
+  const F=cf();
+  pillList.forEach(g=>{const n=g.ids.filter(id=>F.has(id)).length;g.cnt.text(`${n}/${g.ids.length}`);g.el.classed("done",n===g.ids.length);g.dots.classed("found",id=>F.has(id)).style("fill",id=>F.has(id)?artColor(id):null).style("stroke",id=>F.has(id)?artColor(id):null)});
+  beaconList.forEach(b=>{const on=F.has(b.id);b.c.classed("found",on).style("fill",on?`url(#af-${ensureArt(b.id)})`:null)});
+}
+function pillTap(g){
+  const p=projection(g.c);sndTick();
+  if(S.mode==="find"&&S.target&&!S.done&&lensOf(S.target)===g.name){
+    swell($("hint"),`Warm. It’s in here. Tap the island you think it is.`);g.el.classed("warm",true);setTimeout(()=>g.el.classed("warm",false),2400);
+  }
+  openLens(g.name,{x:p[0],y:p[1]});
+}
+
+function layoutLens(){
+  const mob=W<720;
+  LW=Math.round(Math.min(W-(mob?16:48),680));
+  const top=Math.round(Math.max(promptBottom+6,mob?120:130)),avail=H-top-(mob?10:14);
+  LH=Math.round(clamp(avail,240,mob?470:500));
+  Object.assign(lensEl.style,{left:Math.round((W-LW)/2)+"px",top:top+"px",width:LW+"px",height:LH+"px"});
+  lsvg.attr("viewBox",`0 0 ${LW} ${LH}`);
+  lzoom.extent([[0,0],[LW,LH]]).translateExtent([[-LW*.3,-LH*.3],[LW*1.3,LH*1.3]]);
+}
+function fitLens(){
+  const g=lensG;lproj.rotate([-g.c[0],-g.c[1]]).scale(1).translate([0,0]);
+  lproj.fitExtent([[60,66],[LW-60,LH-104]],{type:"MultiPoint",coordinates:g.pts});
+  if(lproj.scale()>5200)lproj.scale(5200).translate([LW/2,(LH-38)/2]);
+}
+function drawLens(){
+  if(!lpaths){
+    lpaths=lLand.selectAll("path").data(features).join("path").attr("class",d=>"country"+(FACTS[d.id]?"":" nopl")).attr("data-id",d=>d.id);
+    lpaths.on("click",(e,d)=>{if(lensG&&FACTS[d.id]&&lensG.ids.includes(d.id))lensTap(d.id)});
+  }
+  lpaths.classed("ctx",d=>!(FACTS[d.id]&&lensG.ids.includes(d.id)));
+  lpaths.attr("d",lpath);
+  const sh=lensG.ids.map(id=>{
+    const q=lproj(LL(id)),b=lpath.bounds(byId[id]),w=isFinite(b[0][0])?Math.max(b[1][0]-b[0][0],b[1][1]-b[0][1]):0;
+    return {id,x:q[0],y:q[1],r:clamp(w/2+5,10,24)};
+  });
+  lMarks.selectAll("circle").data(sh,d=>d.id).join("circle").attr("class","mark").attr("data-id",d=>d.id)
+    .attr("r",d=>d.r).on("click",(e,d)=>lensTap(d.id));
+  positionLensMarks();
+  paintSel(lpaths,lLand,lPaint);lensMarkState();
+}
+function lensMarkState(){if(!lensOpen)return;const F=cf();lMarks.selectAll("circle").classed("done",d=>F.has(d.id)).style("fill",d=>F.has(d.id)?artColor(d.id):null);$("lensCount").textContent=`${lensG.ids.filter(id=>F.has(id)).length} of ${lensG.ids.length}`}
+function lensTap(id){
+  const ll=LL(id);
+  if(S.mode==="wander"){lensCaption(id);sndTick();return}
+  if(S.mode==="speed")return speedGuess(id,ll);
+  guess(id,ll);
+}
+function lensCaption(id){
+  const f=FACTS[id],cap=$("lensCap");cap.innerHTML="";
+  const imgEl=FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"";
+  cap.append(imgEl,el("div",{},el("b",{},f.n),el("small",{},[f.cap,areaTxt(f.a)].filter(Boolean).join(" · "))),
+    el("button",{class:"btn",onclick:()=>{showCard(id);setExplore(true,id)}},"Explore"));
+  cap.classList.add("on");
+}
+function openLens(name,origin){
+  const g=GR[name];if(!g)return;
+  lensG=g;lensOpen=true;stopDrift();
+  layoutLens();fitLens();
+  LT=d3.zoomIdentity;lsvg.property("__zoom",d3.zoomIdentity);lView.attr("transform",null);
+  drawLens();
+  $("lensTitle").textContent=g.name;lensMarkState();
+  $("lensCap").classList.remove("on");lensLabels.innerHTML="";
+  const ox=origin?origin.x-parseFloat(lensEl.style.left):LW/2,oy=origin?origin.y-parseFloat(lensEl.style.top):LH/2;
+  lensEl.style.setProperty("--ox",ox+"px");lensEl.style.setProperty("--oy",oy+"px");
+  void lensEl.offsetWidth;
+  lensWrap.classList.add("on");lensWrap.setAttribute("aria-hidden","false");
+  sndPage();render();
+}
+function closeLens(){
+  if(!lensOpen)return;
+  lensOpen=false;lensG=null;
+  lensWrap.classList.remove("on");lensWrap.setAttribute("aria-hidden","true");$("lensCap").classList.remove("on");
+  for(let i=live.length-1;i>=0;i--)if(live[i].v===LV){live[i].el.remove();live.splice(i,1)}
+  scheduleDrift();render();
+}
+$("lensClose").onclick=closeLens;$("lensScrim").onclick=closeLens;
+
+/* ---------- interaction: drag to turn, wheel/pinch to zoom ---------- */
+let lastT=d3.zoomIdentity, idleTimer=null, drifting=!reduced;
+let movT=null,moving=false,rq=false;
+function requestRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;render()})}
+function markMoving(){if(!moving){moving=true;svg.classed("moving",true);setBusy()}clearTimeout(movT);movT=setTimeout(()=>{moving=false;svg.classed("moving",false);setBusy();render();saveViewSoon()},170)}
+const zoom=d3.zoom().scaleExtent([.8,8]).clickDistance(5)
+  .on("start",()=>{stopDrift()})
+  .on("zoom",e=>{
+    const t=e.transform;
+    if(t.k!==lastT.k){zoomK=t.k}
+    else{
+      const k=75/(baseScale*zoomK);
+      const r=projection.rotate();
+      brushKick(Math.hypot(t.x-lastT.x,t.y-lastT.y));
+      projection.rotate([r[0]+(t.x-lastT.x)*k, Math.max(-85,Math.min(85,r[1]-(t.y-lastT.y)*k)), r[2]]);
+    }
+    lastT=t;markMoving();requestRender();
+  })
+  .on("end",()=>{scheduleDrift()});
+svg.call(zoom).on("dblclick.zoom",null);
+
+svg.on("keydown",e=>{
+  const r=projection.rotate();const step=8/zoomK;
+  const m={ArrowLeft:[step,0],ArrowRight:[-step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
+  if(m){e.preventDefault();stopDrift();brushKick(18);projection.rotate([r[0]+m[0],Math.max(-85,Math.min(85,r[1]+m[1])),0]);markMoving();requestRender();scheduleDrift();}
+  if(e.key==="+"||e.key==="="){svg.transition().duration(250).call(zoom.scaleBy,1.3)}
+  if(e.key==="-"){svg.transition().duration(250).call(zoom.scaleBy,1/1.3)}
+});
+
+function stopDrift(){drifting=false;clearTimeout(idleTimer)}
+function scheduleDrift(){clearTimeout(idleTimer);if(reduced||S.mode==="speed")return;idleTimer=setTimeout(()=>{drifting=true},9000)}
+let lastTs=0;
+d3.timer(ts=>{
+  const dt=ts-lastTs;lastTs=ts;
+  brushTick();
+  if(R.phase==="run")$("sTime").textContent=fmtT(performance.now()-R.t0+R.pen);
+  if(D.active&&D.t0!=null){const dt2=D.tEnd!=null?D.tEnd:performance.now()-D.t0;$("dClock").textContent=fmtT(dt2);$("dClock").classList.toggle("gold",dt2<60000)}
+  if(drifting&&!animating&&dt<100&&zoomK<=1.03&&!lensOpen&&S.mode!=="speed"){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
+});
+svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",scheduleDrift);
+
+/* ---------- rotate-to ---------- */
+let animating=false;
+function flyTo(lonlat,ms=1400,k){
+  const [lon,lat]=lonlat;
+  const r0=projection.rotate(), r1=[-lon,-Math.max(-60,Math.min(60,lat)),0];
+  while(r1[0]-r0[0]>180)r1[0]-=360;while(r1[0]-r0[0]<-180)r1[0]+=360;
+  const k0=zoomK,k1=k||zoomK;ms*=FX.ts||1;
+  if(reduced){projection.rotate(r1);zoomK=k1;syncZoom();render();return Promise.resolve()}
+  animating=true;setBusy();sndFly(ms/1000);
+  return new Promise(res=>{
+    d3.transition().duration(ms).ease(d3.easeCubicInOut).tween("fly",()=>{
+      const ir=d3.interpolate(r0,r1), ik=d3.interpolate(k0,k1);
+      return t=>{projection.rotate(ir(t));zoomK=ik(t);render()};
+    }).on("end",()=>{animating=false;syncZoom();render();setBusy();res()});
+  });
+}
+/* while something is flying or blooming, translucent blurred panels become plain ones (re-blurring over a moving map every frame is costly) */
+function setBusy(){document.getElementById("app").classList.toggle("busy",animating||blooms.length>0||moving)}
+/* build a country’s painting tiles ahead of time (when it becomes the target) so the click itself does no canvas work */
+function warmArt(id){
+  if(!id||!FACTS[id])return;
+  const run=()=>{const k=ensureArt(id);ensureWash(k);ensureMotif(k)};
+  if(window.requestIdleCallback)requestIdleCallback(run,{timeout:700});else setTimeout(run,80);
+}
+function syncZoom(){lastT=d3.zoomIdentity.scale(zoomK);svg.property("__zoom",lastT)}
+
+/* ---------- labels ---------- */
+const labelsEl=document.getElementById("labels");
+const live=[];
+function floatLabel(text,lonlat,ms=2600,v){v=v||MV;
+  const e=document.createElement("div");e.className="label";e.textContent=text;(v===LV?lensLabels:labelsEl).appendChild(e);
+  const item={el:e,lonlat,v};live.push(item);positionLabels();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add("on")));
+  if(ms) setTimeout(()=>{e.classList.remove("on");setTimeout(()=>{e.remove();const i=live.indexOf(item);if(i>-1)live.splice(i,1)},800)},ms);
+  return item;
+}
+function positionLabels(){
+  const c=projection.invert([W/2,cy()]);
+  live.forEach(({el:e,lonlat,v})=>{
+    if(v===LV){const q=lproj(lonlat);e.style.left=LT.applyX(q[0])+"px";e.style.top=LT.applyY(q[1])+"px";e.style.visibility="visible";return}
+    const p=projection(lonlat);const vis=c&&d3.geoDistance(lonlat,c)<Math.PI/2;
+    e.style.left=p[0]+"px";e.style.top=p[1]+"px";e.style.visibility=vis?"visible":"hidden";
+  });
+}
+let hoverLabel=null;
+function onMove(e,d){
+  const f=FACTS[d.id];if(!f)return;
+  if(S.mode==="speed")return clearHover();
+  if(S.mode==="find"&&!cf().has(d.id)&&!(S.done&&S.target===d.id))return clearHover();
+  if(e.pointerType==="touch")return;
+  const ll=projection.invert(d3.pointer(e,svg.node()));
+  if(!hoverLabel||hoverLabel.id!==d.id){clearHover();hoverLabel=floatLabel(f.n,ll,0);hoverLabel.id=d.id}
+  hoverLabel.lonlat=ll;positionLabels();
+}
+paths.on("pointermove",onMove).on("pointerleave",clearHover);
+function clearHover(){if(hoverLabel){const h=hoverLabel;h.el.classList.remove("on");setTimeout(()=>{h.el.remove();const i=live.indexOf(h);if(i>-1)live.splice(i,1)},500);hoverLabel=null}}
+
+/* ======================================================================
+   SOUND: everything is synthesised (no audio files). One warm reverb.
+   The calm drone sits on D major (D-A-D-F#); speed music is in D major too,
+   so switching modes is seamless: the beat fades in over the same drone.
+   ====================================================================== */
+let actx=null,master=null,dryBus=null,wetBus=null,noiseBuf=null,brushG=null,brushTarget=0;
+function makeIR(sec){
+  const len=Math.floor(actx.sampleRate*sec),b=actx.createBuffer(2,len,actx.sampleRate);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);let p=0;
+    for(let i=0;i<len;i++){const x=(Math.random()*2-1)*Math.pow(1-i/len,2.6);p=p*.55+x*.45;d[i]=p}}
+  return b;
+}
+function AC(kind){                                   // kind: "mus" for music/drone, otherwise sound effects
+  if(!S.sound)return null;
+  if(kind==="mus"?!S.music:!S.sfx)return null;
+  try{
+    if(!actx){
+      actx=new (window.AudioContext||window.webkitAudioContext)();
+      master=actx.createGain();master.gain.value=.9*S.vol;
+      const comp=actx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.01;comp.release.value=.25;
+      master.connect(comp).connect(actx.destination);
+      dryBus=actx.createGain();dryBus.connect(master);
+      const conv=actx.createConvolver();conv.buffer=makeIR(2.6);
+      wetBus=actx.createGain();wetBus.gain.value=.5;wetBus.connect(conv).connect(master);
+      noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);
+      const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+      const src=actx.createBufferSource();src.buffer=noiseBuf;src.loop=true;
+      const bp=actx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=1500;bp.Q.value=.6;
+      brushG=actx.createGain();brushG.gain.value=0;
+      src.connect(bp).connect(brushG);send(brushG,.15);src.start();
+    }
+    if(actx.state==="suspended")actx.resume();
+    applyVol();
+    return actx;
+  }catch(e){return null}
+}
+function applyVol(){if(actx&&master){master.gain.cancelScheduledValues(actx.currentTime);master.gain.setTargetAtTime(S.sound?.9*S.vol:0,actx.currentTime,.05)}}
+function send(node,wet){node.connect(dryBus);if(wet){const g=actx.createGain();g.gain.value=wet;node.connect(g).connect(wetBus)}}
+function env(g,t,peak,attack,dur){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+attack);g.gain.exponentialRampToValueAtTime(.0001,t+dur)}
+function pluck(f,t,vol,dur=1.5,wet=.4){            // soft marimba-like note
+  [[1,1,dur],[2,.3,dur*.5],[4.02,.14,.18]].forEach(([m,a,d])=>{
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
+    env(g,t,vol*a,.005,d);o.connect(g);send(g,wet);o.start(t);o.stop(t+d+.05);
+  });
+}
+function bell(f,t,vol,dur=2.4,wet=.6){               // glassy bell, inharmonic partials
+  [[1,1,1],[2.76,.35,.5],[5.4,.12,.25]].forEach(([m,a,d])=>{
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
+    env(g,t,vol*a,.008,dur*d);o.connect(g);send(g,wet);o.start(t);o.stop(t+dur*d+.05);
+  });
+}
+function blip(t,f0,f1,dur,vol,wet=.35){              // water drop
+  const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+  o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  env(g,t,vol,.004,dur);o.connect(g);send(g,wet);o.start(t);o.stop(t+dur+.05);
+}
+function noise(t,dur,{type="bandpass",f0=1000,f1=f0,q=1,vol=.03,attack=.02,wet=.3}={}){
+  const s=actx.createBufferSource();s.buffer=noiseBuf;
+  const f=actx.createBiquadFilter();f.type=type;f.Q.value=q;
+  f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
+  const g=actx.createGain();env(g,t,vol,attack,dur);
+  s.connect(f).connect(g);send(g,wet);s.loop=true;s.start(t,Math.random()*1.5);s.stop(t+dur+.05);
+}
+function crackle(t,dur,vol){                         // paper rustle
+  const s=actx.createBufferSource();s.buffer=noiseBuf;s.loop=true;
+  const hp=actx.createBiquadFilter();hp.type="highpass";hp.frequency.value=1800;
+  const g=actx.createGain();g.gain.setValueAtTime(0,t);
+  for(let x=0;x<dur;x+=.014)g.gain.setValueAtTime(Math.random()<.45?Math.random()*vol:0,t+x);
+  g.gain.setValueAtTime(0,t+dur);
+  s.connect(hp).connect(g);send(g,.18);s.start(t,Math.random()*1.5);s.stop(t+dur+.02);
+}
+const ROOT={Africa:293.66,Americas:392,Asia:329.63,Europe:261.63,Oceania:349.23};
+const PENT=[0,2,4,7,9,12,14,16,19];
+const note=(r,i)=>ROOT[r]*Math.pow(2,PENT[i]/12);
+
+function sndHit(region,first){
+  const c=AC();if(!c)return;const t=c.currentTime+.02,a=Math.floor(Math.random()*4);
+  const idx=first?[a,a+1,a+3,a+4]:[a,a+2,a+3];
+  idx.forEach((n,i)=>pluck(note(region,n),t+i*.1,.085-i*.01));
+  if(first)bell(note(region,8),t+.44,.035,2.8);
+}
+function unlockAudio(c){if(!c)return;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0)}catch(e){}}
+let audioQ=[],sndChipTm=null;
+function showSoundChip(){let b=document.getElementById("soundChip");if(!b){b=el("button",{id:"soundChip",class:"btn soundchip",onclick:()=>{AC();audioGesture()}},"Tap for sound");document.body.append(b)}b.hidden=false}
+function hideSoundChip(){clearTimeout(sndChipTm);const b=document.getElementById("soundChip");if(b)b.hidden=true}
+function audioFlush(){
+  if(!actx||actx.state!=="running")return;
+  const q=audioQ;audioQ=[];hideSoundChip();
+  q.forEach(o=>{if(performance.now()-o.t<4500)try{o.fn()}catch(e){}});
+}
+function audioReady(fn){
+  const c=AC();if(!c)return;
+  if(c.state==="running"){fn();return}
+  audioQ.push({fn,t:performance.now()});
+  if(!c.__sc){c.__sc=1;c.addEventListener("statechange",audioFlush)}
+  c.resume().then(audioFlush,()=>{});
+  clearTimeout(sndChipTm);sndChipTm=setTimeout(()=>{if(actx&&actx.state!=="running"&&audioQ.length)showSoundChip()},700);
+}
+function audioGesture(){
+  if(!S.sound)return;
+  if(!actx){if(introState==="wait"||introState==="ready")return;AC();return}
+  if(actx.state!=="running")actx.resume().then(audioFlush,()=>{});
+}function sndIntroDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1250,330,.22,.22);blip(t+.06,1900,620,.12,.08);bell(392,t+.02,.05,1.8);noise(t,.35,{type:"lowpass",f0:900,f1:300,q:.6,vol:.05,wet:.4})}
+function sndIntroFall(){const c=AC();if(!c)return;noise(c.currentTime,.43,{f0:2600,f1:700,q:.8,vol:.03,attack:.25,wet:.3})}
+function sndDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1100,380,.16,.07);blip(t+.07,1800,700,.1,.025)}
+function sndBloom(fast){
+  const c=AC();if(!c)return;const t=c.currentTime,k=fast?.45:1;
+  noise(t,2.2*k,{f0:350,f1:1700,q:.5,vol:.05,attack:.9*k,wet:.55});
+  noise(t+.1,1.8*k,{type:"lowpass",f0:600,f1:200,q:.4,vol:.05,attack:.5*k,wet:.4});
+  if(!fast)for(let i=0;i<4;i++)blip(t+.5+Math.random()*1.3,1500+Math.random()*1800,900,.09,.012,.6);
+}
+function sndMiss(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1})}
+function sndOcean(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,520,250,.2,.05,.45);noise(t,.3,{f0:500,f1:250,q:.8,vol:.012,wet:.5})}
+function sndShow(){const c=AC();if(!c)return;const t=c.currentTime;[784,659.25,523.25].forEach((f,i)=>bell(f,t+i*.16,.04,2.2))}
+function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,sec),{f0:260,f1:1100,q:.9,vol:.022,attack:sec*.45,wet:.5})}
+function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
+function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
+function sndFlourish(region){
+  const c=AC();if(!c)return;const t=c.currentTime+.05;
+  [0,1,2,3,4,6].forEach((n,i)=>pluck(note(region,n),t+i*.09,.06,1.8,.6));
+  bell(note(region,8),t+.6,.04,3.2);
+}
+function sndBadge(){const c=AC();if(!c)return;const t=c.currentTime;[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+i*.09,.035,2.4))}
+function sndPencil(sec){const c=AC();if(!c)return;const t=c.currentTime;noise(t,Math.max(.5,sec),{f0:2600,f1:4300,q:1.5,vol:.016,attack:.18,wet:.15})}
+function sndPage(){const c=AC();if(!c)return;crackle(c.currentTime,.28,.035);bell(587.33,c.currentTime+.05,.02,1.6)}
+function brushKick(mag){if(!brushG)return;brushTarget=Math.max(brushTarget,Math.min(.02,mag*.0014))}
+function brushTick(){
+  if(!brushG||!actx)return;
+  brushG.gain.setTargetAtTime(S.sound&&S.sfx?brushTarget:0,actx.currentTime,.05);brushTarget*=.82;
+  if(brushTarget<.0003)brushTarget=0;
+}
+/* ---- SPEED MUSIC: upbeat, in D major (I-vi-IV-V = D, Bm, G, A), 136 → 152 BPM, layers grow with progress ---- */
+const MUS={on:false,tm:null,t:0,step:0,bpm:136,lvl:1,bus:null};
+const BAR=[
+  {r:293.66,third:4,bass:146.83,lead:[739.99,880.00,739.99,659.25]},   // D : F# A F# E
+  {r:246.94,third:3,bass:123.47,lead:[587.33,739.99,587.33,493.88]},   // Bm: D F# D B
+  {r:196.00,third:4,bass:98.00, lead:[493.88,587.33,783.99,587.33]},   // G : B D G D
+  {r:220.00,third:4,bass:110.00,lead:[659.25,880.00,659.25,554.37]}    // A : E A E C#
+];
+const ARP=[0,2,4,2, 1,3,5,3, 0,2,4,2, 1,3,5,4];
+const BASSP={0:1,3:1,6:2,8:1,11:1,14:2};
+function mNoise(t,dur,type,f,q,vol){
+  const s=actx.createBufferSource();s.buffer=noiseBuf;s.loop=true;
+  const fl=actx.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;
+  const g=actx.createGain();env(g,t,vol,.002,dur);
+  s.connect(fl).connect(g).connect(MUS.bus);s.start(t,Math.random()*1.5);s.stop(t+dur+.03);
+}
+function mKick(t){
+  const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+  o.frequency.setValueAtTime(155,t);o.frequency.exponentialRampToValueAtTime(42,t+.13);
+  env(g,t,.8,.002,.26);o.connect(g).connect(MUS.bus);o.start(t);o.stop(t+.3);
+}
+function mBass(f,t,len){
+  const o=actx.createOscillator(),fl=actx.createBiquadFilter(),g=actx.createGain();
+  o.type="sawtooth";o.frequency.value=f;fl.type="lowpass";fl.Q.value=4;
+  fl.frequency.setValueAtTime(900,t);fl.frequency.exponentialRampToValueAtTime(260,t+len);
+  env(g,t,.26,.006,len);o.connect(fl).connect(g).connect(MUS.bus);o.start(t);o.stop(t+len+.03);
+}
+function mArp(f,t,open){
+  const o=actx.createOscillator(),fl=actx.createBiquadFilter(),g=actx.createGain();
+  o.type="sawtooth";o.frequency.value=f;fl.type="lowpass";fl.Q.value=3;
+  fl.frequency.setValueAtTime(open,t);fl.frequency.exponentialRampToValueAtTime(500,t+.16);
+  env(g,t,.05,.003,.17);o.connect(fl).connect(g).connect(MUS.bus);o.start(t);o.stop(t+.2);
+}
+function mLead(f,t,len){
+  [[1,"triangle",.1],[2,"sine",.035]].forEach(([m,ty,v])=>{
+    const o=actx.createOscillator(),g=actx.createGain();o.type=ty;o.frequency.value=f*m;
+    env(g,t,v,.004,len);o.connect(g).connect(MUS.bus);o.start(t);o.stop(t+len+.03);
+  });
+}
+function musStep(step,t){
+  const s=step%16,bar=Math.floor(step/16)%4,ch=BAR[bar],L=MUS.lvl,spb=60/MUS.bpm/4;
+  if(s%4===0)mKick(t);
+  if(s%4===2)mNoise(t,.07,"highpass",7500,.7,.1);
+  if(L>=4&&s%2===1)mNoise(t,.035,"highpass",9000,.7,.045);
+  if((s===4||s===12)&&L>=3){mNoise(t,.13,"bandpass",1700,.8,.24);mNoise(t+.012,.1,"bandpass",2400,.8,.12)}
+  if(bar===3&&s>=14&&L>=2)mNoise(t,.09,"bandpass",1900,.8,.14);
+  if(BASSP[s])mBass(ch.bass*BASSP[s],t,spb*(BASSP[s]===2?2:2.6));
+  if(L>=2){
+    const semis=[0,ch.third,7,12,12+ch.third,19],f=ch.r*Math.pow(2,semis[ARP[s]]/12);
+    mArp(f,t,900+L*350+(bar%2)*250);
+  }
+  if(L>=3){const li={0:0,3:1,8:2,11:3}[s];if(li!==undefined)mLead(ch.lead[li],t,spb*(s===3||s===11?2.4:3.4))}
+}
+function musTick(){
+  if(!MUS.on||!actx)return;
+  while(MUS.t<actx.currentTime+.14){musStep(MUS.step,MUS.t);MUS.t+=60/MUS.bpm/4;MUS.step++}
+}
+function startMusic(){
+  if(MUS.on)return;const c=AC("mus");if(!c)return;
+  MUS.on=true;MUS.step=0;MUS.t=c.currentTime+.06;
+  MUS.bus=c.createGain();MUS.bus.gain.setValueAtTime(0,c.currentTime);MUS.bus.gain.linearRampToValueAtTime(.9,c.currentTime+1.8);
+  send(MUS.bus,.14);musUpdate();
+  MUS.tm=setInterval(musTick,30);
+}
+function stopMusic(finish){
+  if(!MUS.on)return;MUS.on=false;clearInterval(MUS.tm);
+  const c=actx,bus=MUS.bus,t=c.currentTime;
+  bus.gain.cancelScheduledValues(t);bus.gain.setValueAtTime(bus.gain.value,t);bus.gain.linearRampToValueAtTime(0,t+(finish?.9:1.8));
+  setTimeout(()=>{try{bus.disconnect()}catch(e){}},2200);
+  if(finish&&AC()){[293.66,369.99,440,587.33].forEach((f,i)=>pluck(f,t+.04+i*.05,.09,2.6,.6));bell(1174.66,t+.2,.04,3.4);noise(t+.02,1.8,{type:"highpass",f0:6500,f1:3000,q:.6,vol:.05,attack:.01,wet:.5})}
+}
+function musUpdate(){
+  const tot=Math.max(1,R.total),p=R.found.size/tot;
+  MUS.lvl=p<.2?1:p<.45?2:p<.7?3:4;
+  if(MUS.on&&!R.riser&&tot-R.found.size<=8&&tot>12){
+    R.riser=true;const c=actx,t=c.currentTime;
+    noise(t,5,{type:"bandpass",f0:400,f1:7000,q:1.2,vol:.06,attack:4,wet:.4});
+  }
+}
+function sndSpeedHit(){
+  const c=AC();if(!c)return;
+  const sc=[587.33,659.25,739.99,880,987.77,1174.66,1318.51,1479.98],f=sc[R.streak%8];
+  const t=MUS.on?Math.max(MUS.t,c.currentTime+.01):c.currentTime+.01;
+  pluck(f,t,.1,.9,.45);pluck(f/2,t,.05,.5,.2);
+}
+function sndPenalty(){
+  const c=AC();if(!c)return;const t=c.currentTime;
+  [146.83,155.56].forEach(f=>{const o=actx.createOscillator(),fl=actx.createBiquadFilter(),g=actx.createGain();
+    o.type="sawtooth";o.frequency.value=f;fl.type="lowpass";fl.frequency.value=520;env(g,t,.06,.005,.28);o.connect(fl).connect(g);send(g,.2);o.start(t);o.stop(t+.32)});
+}
+function sndCount(go){
+  const c=AC();if(!c)return;const t=c.currentTime;
+  if(go){[293.66,369.99,440].forEach(f=>pluck(f*2,t,.07,1.4,.5));bell(1174.66,t,.04,2.2)}
+  else blip(t,880,860,.14,.07,.25);
+}
+
+/* ---------- helpers for hints ---------- */
+const DIRS=["north","north-east","east","south-east","south","south-west","west","north-west"];
+function bearing(a,b){
+  const r=Math.PI/180,[l1,p1]=[a[0]*r,a[1]*r],[l2,p2]=[b[0]*r,b[1]*r];
+  const y=Math.sin(l2-l1)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(l2-l1);
+  const deg=(Math.atan2(y,x)/r+360)%360;return DIRS[Math.round(deg/45)%8];
+}
+const LL=id=>[FACTS[id].ll[1],FACTS[id].ll[0]];
+function km(a,b){return d3.geoDistance(a,b)*6371}
+const isMi=()=>S.unit==="mi";
+function distTxt(k){const v=isMi()?k*.621371:k,r=v<1000?Math.round(v/25)*25:Math.round(v/50)*50;return fmt(r)+(isMi()?" miles":" km")}
+function areaTxt(a){return isMi()?fmt(a*.386102)+" sq mi":fmt(a)+" km²"}
+function densTxt(p,a){const d=isMi()?p/(a*.386102):p/a;return (d<10?d.toFixed(1):fmt(d))+(isMi()?" per sq mi":" per km²")}
+const vwOf=id=>lensOpen&&lensG&&lensG.ids.includes(id)?LV:MV;
+function article(n){return /^(United|Netherlands|Philippines|Bahamas|Gambia|Central African|Czech|Dominican|Solomon|Falkland|Democratic|Republic|Ivory)/.test(n)?"the "+n:n}
+function swell(e,txt){
+  e.textContent=txt;if(reduced)return;
+  e.animate([{opacity:0,transform:"translateY(5px)",filter:"blur(3px)"},{opacity:1,transform:"none",filter:"blur(0)"}],{duration:650,easing:"cubic-bezier(.2,.8,.2,1)"});
+}
+const shuffle=(a,rnd=Math.random)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function seeded(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  let a=h>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const hitTest=(id,ll,T)=>id===T;
+
+/* ======================================================================
+   ART PIECE: each country you find becomes a small painting. A drop lands,
+   pigment bleeds outward through its shape, and once the wash settles a
+   fine line motif (contours, waves, stipple, hatching or halftone) is drawn
+   over it. Every country gets its own pastel triad, always the same one.
+   ====================================================================== */
+const TRI={
+ Africa:[["#F3DDB0","#EFC08F","#E6CDB9"],["#F5E3B9","#EBC896","#DDBFA6"],["#F0D2A6","#E8AE92","#EDDCC0"],["#EEDAB0","#DCC795","#F0BFA6"]],
+ Americas:[["#D2E8D8","#ABD4BF","#E9F1D2"],["#C9E5D4","#A2CEC1","#E8EECD"],["#D8EAD2","#B8DAB3","#CDE6E4"],["#C2E1CE","#E7EECA","#A9D0D6"]],
+ Asia:[["#F6D0DA","#EBB5C8","#F8E4DA"],["#F2CADB","#D9BBE4","#F8DDD3"],["#F7D4D2","#EBBCC8","#E6D0EC"],["#F4C6D3","#F6DCC6","#D0BBE5"]],
+ Europe:[["#D0DBF4","#B7CAEC","#E6E0F4"],["#CBE0F2","#ACC6E8","#DDE7F5"],["#D6D3F2","#BBCAED","#EBE0F2"],["#C4DDEF","#D3CFF0","#E7EFF6"]],
+ Oceania:[["#F8D3BD","#F4BCAA","#CDE9DF"],["#F7D9C3","#EDB8AC","#C1E4DC"],["#F5CDB8","#CAE7DB","#F0DFC4"],["#F4C3B2","#C2E5E1","#F6E4C9"]]};
+const TRI_S={   // speed mode: luminous pastel-neon
+ Africa:[["#FFE79A","#FFC04D","#FFF3CC"],["#FFD98A","#FFAD66","#FFE9B8"]],
+ Americas:[["#9CF5CC","#4DE2A8","#D2FFE9"],["#8FF0DB","#62E6B2","#CFFFF1"]],
+ Asia:[["#FF9DBF","#FF6B9E","#FFD0E1"],["#FFA9D1","#E58BFF","#FFD6EC"]],
+ Europe:[["#9CCBFF","#5EA4FF","#D4E7FF"],["#9FD8FF","#7C9BFF","#DCEBFF"]],
+ Oceania:[["#D1A8FF","#B07CFF","#EBD9FF"],["#C7B2FF","#8FA0FF","#E4DDFF"]]};
+const mix=(a,b,t)=>d3.interpolateRgb(a,b)(t);
+const artDone={};
+const artKey=id=>id+(S.mode==="speed"?"s":"n");
+/* Each country's painting is drawn once into a small canvas (gradient wash, pooled pigment, granulation,
+   and a line motif) and used as an image tile, which the GPU can repeat far more cheaply than vector patterns. */
+const ART_N=192,artSpecs={},motifDone={};
+function artSpec(id,spd){
+  const f=FACTS[id],r=seeded("tw-art-"+id),bank=(spd?TRI_S:TRI)[f.r]||TRI.Europe,tri=bank[Math.floor(r()*bank.length)];
+  const ink=spd?"#EAF8FF":"#5b4a3a",ang=30+r()*120;
+  const pc=[tri[2],tri[1],"#ffffff",mix(tri[0],ink,.35)],po=[.85,.8,.42,.26];
+  const pools=pc.map((c,i)=>({cx:15+r()*70,cy:15+r()*70,rad:24+r()*32,c,o:po[i]}));
+  const m={kind:Math.floor(r()*5),cx:30+r()*40,cy:30+r()*40,rot:r()*Math.PI,sq:.65+r()*.4,dots:[],ph:[],hatch2:false,hcx:20+r()*60,hcy:20+r()*60};
+  for(let i=0;i<150;i++)m.dots.push([r()*100,r()*100,.35+r()*.85,.3+r()*.45]);
+  for(let i=0;i<13;i++)m.ph.push(r()*3);
+  m.hatch2=r()<.5;
+  return {tri,ang,pools,m,tint:mix(f.x?(()=>{const b2=(spd?TRI_S:TRI)[f.x]||TRI.Asia;return b2[Math.floor(seeded("tw-art2-"+id)()*b2.length)][1]})():tri[1],ink,spd?.15:(f.x?.2:.55)),gseed:"gr"+id};
+}
+function artCanvas(sp,motif,wash){
+  const N=sp.N||ART_N,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.scale(N/100,N/100);
+  if(wash){
+    const a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
+    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,sp.tri[0]);g.addColorStop(.55,sp.tri[1]);g.addColorStop(1,sp.tri[2]);
+    x.fillStyle=g;x.fillRect(0,0,100,100);
+    sp.pools.forEach(p=>{const col=d3.color(p.c),g2=x.createRadialGradient(p.cx,p.cy,0,p.cx,p.cy,p.rad);
+      g2.addColorStop(0,col.copy({opacity:p.o}).formatRgb());g2.addColorStop(1,col.copy({opacity:0}).formatRgb());x.fillStyle=g2;x.fillRect(0,0,100,100)});
+    x.fillStyle=d3.color(sp.tint).copy({opacity:.07}).formatRgb();
+    const rr=seeded(sp.gseed);for(let i=0;i<260;i++){x.beginPath();x.arc(rr()*100,rr()*100,.3+rr()*.55,0,6.2832);x.fill()}
+  }
+  if(motif){
+    const m=sp.m,tc=d3.color(sp.tint);
+    x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
+    if(m.kind===0){for(let i=1;i<=11;i++){const rx=i*7+m.ph[i%13]*.6;x.beginPath();x.ellipse(m.cx,m.cy,rx,rx*m.sq,m.rot,0,6.2832);x.stroke()}}
+    else if(m.kind===1){x.strokeStyle=tc.copy({opacity:.4}).formatRgb();for(let i=0;i<13;i++){const y=i*8+m.ph[i];x.beginPath();x.moveTo(-5,y);x.quadraticCurveTo(10,y-5,25,y);x.quadraticCurveTo(40,y+5,55,y);x.quadraticCurveTo(70,y-5,85,y);x.quadraticCurveTo(100,y+5,115,y);x.stroke()}}
+    else if(m.kind===2){m.dots.forEach(d=>{x.fillStyle=tc.copy({opacity:d[3]}).formatRgb();x.beginPath();x.arc(d[0],d[1],d[2],0,6.2832);x.fill()})}
+    else if(m.kind===3){x.lineWidth=.6;x.strokeStyle=tc.copy({opacity:.34}).formatRgb();for(let v=-60;v<110;v+=6.5){x.beginPath();x.moveTo(v,-5);x.lineTo(v+55,105);x.stroke()}
+      if(m.hatch2){x.strokeStyle=tc.copy({opacity:.17}).formatRgb();for(let v=-10;v<170;v+=11){x.beginPath();x.moveTo(v,-5);x.lineTo(v-55,105);x.stroke()}}}
+    else{x.fillStyle=tc.copy({opacity:.45}).formatRgb();for(let px=4;px<100;px+=8)for(let py=4;py<100;py+=8){const d=Math.hypot(px-m.hcx,py-m.hcy)/70,r=Math.max(.15,1.9*(1-Math.min(1,d)));x.beginPath();x.arc(px,py,r,0,6.2832);x.fill()}}
+  }
+  return c;
+}
+function defTile(pid,key,url,N){
+  defs.node().insertAdjacentHTML("beforeend",`<pattern id="${pid}-${key}" x="0" y="0" width="1" height="1" patternUnits="objectBoundingBox" viewBox="0 0 ${N} ${N}" preserveAspectRatio="xMidYMid slice"><image href="${url}" width="${N}" height="${N}"/></pattern>`);
+}
+function ensureArt(id){
+  const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
+  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?384:a>4e5?256:192;artSpecs[key]=sp;   // bigger countries get a finer tile
+  defTile("af",key,artCanvas(sp,true,true).toDataURL("image/jpeg",.9),sp.N);
+  return key;
+}
+const washDone={};
+function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/jpeg",.9),artSpecs[key].N)}
+function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>{const f=FACTS[id],b=(S.mode==="speed"?TRI_S:TRI)[f.r]||TRI.Europe;return b[Math.floor(seeded("tw-art-"+id)()*b.length)][1]};
+
+const blooms=[];let bloomSeq=0;
+function startReveal(id,ll,shown,done,fast,v,onPayoff){
+  v=v||MV;
+  const key=ensureArt(id);ensureWash(key);ensureMotif(key);
+  if(reduced){done();if(onPayoff)onPayoff();return}
+  const f=FACTS[id],src=byId[id],uid="b"+(++bloomSeq),col=`var(--c-${f.r}-d)`,TS=FX.ts||1;
+  const drop=v.gFx.append("circle").attr("class","drop").attr("fill",`var(--c-${f.r})`).attr("stroke",col).attr("stroke-width",1);
+  const T0=performance.now(),FALL=(fast?130:170)*TS;
+  const tm=d3.timer(()=>{
+    const k=Math.min(1,(performance.now()-T0)/FALL),p=v.projection(ll),e=k*k;
+    drop.attr("cx",p[0]).attr("cy",p[1]-(fast?36:60)*(1-e)).attr("r",6-2.5*e).attr("opacity",k<1?.95:0);
+    if(k>=1){tm.stop();drop.remove();impact()}
+  });
+  function impact(){
+    if(!fast)sndDrop();rings(ll,col,fast,v);
+    const seed=1+Math.floor(Math.random()*99),fx=FX.bloomFx;
+    defs.node().insertAdjacentHTML("beforeend",
+      `<filter id="f-${uid}" x="-40%" y="-40%" width="180%" height="180%"><feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="2" seed="${seed}"/><feDisplacementMap in="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.6"/></filter>`+
+      `<mask id="m-${uid}" maskUnits="userSpaceOnUse" x="-200" y="-200" width="${v.W+400}" height="${v.H+400}"><g ${fx?`filter="url(#f-${uid})"`:""}></g></mask>`);
+    const maskG=d3.select(`#m-${uid} g`);
+    const lobes=d3.range(5).map(i=>({
+      el:maskG.append("circle").attr("fill","#fff").node(),
+      ox:i?(Math.random()-.5)*.7:0,oy:i?(Math.random()-.5)*.7:0,delay:i?.08+Math.random()*.25:0,size:i?1.1+Math.random()*.4:1.5}));
+    const clone=v.gPaint.append("path").datum(src).attr("class","country bloom").attr("data-r",f.r).attr("mask",`url(#m-${uid})`).style("fill",`url(#aw-${key})`);
+    const b={uid,v,ll,src,lobes,clone,ov:null,t:0,fin:shown?.5:.94,dispEl:document.querySelector(`#f-${uid} feDisplacementMap`),turbEl:document.querySelector(`#f-${uid} feTurbulence`)};
+    blooms.push(b);setBusy();if(!fast||S.mode!=="speed")sndBloom(fast);
+    const t1=performance.now(),DUR=(fast?950:1700)*TS,MOT=(fast?380:900)*TS;
+    let moStarted=false,bloomDone=false,moDone=false;
+    const tick=()=>{if(v!==MV||!animating)placeBloom(b)};   // during a fly-to render() already places main-view blooms
+    const t2=d3.timer(()=>{
+      b.t=Math.min(1,(performance.now()-t1)/DUR);tick();
+      if(!moStarted&&b.t>=(fast?1:.4))startMotif();
+      if(b.t>=1){t2.stop();bloomDone=true;maybeFinish()}
+    });
+    function startMotif(){
+      moStarted=true;const t3s=performance.now();
+      b.ov=v.gPaint.append("path").datum(src).attr("class","country bloom motif").attr("data-r",f.r).style("fill",`url(#am-${key})`).style("fill-opacity",0).style("stroke","none");
+      placeBloom(b);
+      if(!fast){sndPencil(MOT/1000);if(onPayoff)onPayoff();glint(ll,v)}   // the star and the chime arrive about a second after the click
+      const t3=d3.timer(()=>{
+        const k=Math.min(1,(performance.now()-t3s)/MOT);
+        b.ov.style("fill-opacity",easeOut(k));tick();
+        if(k>=1){t3.stop();moDone=true;maybeFinish()}
+      });
+    }
+    function maybeFinish(){
+      if(!(bloomDone&&moDone))return;
+      blooms.splice(blooms.indexOf(b),1);done();
+      clone.remove();b.ov.remove();document.getElementById("m-"+uid)?.remove();document.getElementById("f-"+uid)?.remove();
+      setBusy();if(v===MV&&!animating)render();
+      if(fast)glint(ll,v);
+    }
+  }
+}function placeBloom(b){
+  const v=b.v,p=v.projection(b.ll),bb=v.path.bounds(b.src),d=v.path(b.src);
+  b.clone.attr("d",d);if(b.ov)b.ov.attr("d",d);
+  const m=document.getElementById("m-"+b.uid);if(!m)return;
+  m.setAttribute("width",v.W);m.setAttribute("height",v.H);
+  if(!isFinite(bb[0][0])||!p){b.lobes.forEach(l=>l.el.setAttribute("r",0));return}
+  const Rr=Math.max(Math.hypot(bb[0][0]-p[0],bb[0][1]-p[1]),Math.hypot(bb[1][0]-p[0],bb[0][1]-p[1]),Math.hypot(bb[0][0]-p[0],bb[1][1]-p[1]),Math.hypot(bb[1][0]-p[0],bb[1][1]-p[1]),4);
+  if(b.dispEl){b.dispEl.setAttribute("scale",clamp(Rr*.32,3,34));b.turbEl.setAttribute("baseFrequency",clamp(1.1/(Rr*2),.008,.16).toFixed(4))}
+  b.lobes.forEach(l=>{
+    const k=clamp((b.t-l.delay)/(1-l.delay),0,1);
+    l.el.setAttribute("cx",p[0]+l.ox*Rr*.5);l.el.setAttribute("cy",p[1]+l.oy*Rr*.5);
+    l.el.setAttribute("r",Rr*l.size*easeOut(k)+(k>0?1:0));
+  });
+  b.clone.style("fill-opacity",.97-(.97-b.fin)*easeOut(clamp(b.t*1.1,0,1)));
+}
+function rings(ll,col,fast,v){
+  if(reduced)return;v=v||MV;
+  (fast?[0]:[0,230]).forEach((delay,j)=>{
+    const c=v.gFx.append("circle").attr("class","pulse").attr("stroke",col);
+    const t0=performance.now(),L=fast?900:1700-j*250;
+    const t=d3.timer(()=>{
+      const k=(performance.now()-t0-delay)/L;
+      if(k<0){c.attr("opacity",0);return}
+      if(k>1){c.remove();t.stop();return}
+      const p=v.projection(ll),e=easeOut(k);
+      c.attr("cx",p[0]).attr("cy",p[1]).attr("r",5+e*(46-j*12)).attr("stroke-width",2.4*(1-k)+.4).attr("opacity",.75*Math.pow(1-k,1.5));
+    });
+  });
+}
+/* a tiny gold glint, like a signature, where the capital sits */
+function glint(ll,v){
+  if(reduced)return;
+  const g=v.gFx.append("path").attr("d","M0,-9 L2,-2 L9,0 L2,2 L0,9 L-2,2 L-9,0 L-2,-2 Z").attr("fill","#F2D27A").attr("stroke","#fff").attr("stroke-width",.6).attr("opacity",0);
+  const t0=performance.now();
+  const t=d3.timer(()=>{
+    const k=(performance.now()-t0)/1500;if(k>1){g.remove();t.stop();return}
+    const q=v.projection(ll),s=Math.sin(k*Math.PI);
+    g.attr("transform",`translate(${q[0]},${q[1]}) rotate(${k*70}) scale(${.4+s*.9})`).attr("opacity",s*.9);
+  });
+}
+
+/* ======================================================================
+   FIND MODE (name / flag / capital quiz, practice, daily challenge)
+   ====================================================================== */
+const quizOf=()=>D.active?"country":S.quiz;
+const regionPool=()=>playable.filter(f=>S.region==="World"||inReg(f.id,S.region)).map(f=>f.id);
+const weakIds=()=>Object.keys(S.weak).filter(id=>S.weak[id]>0&&FACTS[id]);
+function pool(){
+  let p=S.practice?weakIds():regionPool();
+  if(quizOf()==="capital")p=p.filter(id=>FACTS[id].cap);
+  return p;
+}
+function pickTarget(){
+  S.turn++;
+  const p=pool();
+  const due=!S.practice&&S.returnQ.find(q=>q.at<=S.turn&&p.includes(q.id));
+  if(due){S.returnQ=S.returnQ.filter(q=>q!==due);return due.id}
+  let cand=S.practice?p.filter(id=>!S.recent.includes(id)):p.filter(id=>!cf().has(id)&&!S.recent.includes(id));
+  if(!cand.length)cand=p.filter(id=>!S.recent.includes(id));
+  if(!cand.length)cand=p;
+  const w=cand.map(id=>Math.pow(Math.max(FACTS[id].a,2000),.25));
+  let t=Math.random()*d3.sum(w);for(let i=0;i<cand.length;i++){t-=w[i];if(t<=0)return cand[i]}
+  return cand[0];
+}
+const tn=()=>quizOf()==="country"?FACTS[S.target].n:"That country";
+function showPrompt(id){
+  const f=FACTS[id],q=quizOf(),img=$("qFlag"),tg=$("target");
+  img.hidden=q!=="flag";tg.classList.toggle("small",q!=="country");
+  if(q==="flag"){img.src=FLAGS[id]||"";img.alt="A flag to identify";$("ask").textContent="Find the country with this flag";swell(tg,"Whose flag is this?")}
+  else if(q==="capital"){$("ask").textContent="Find the country whose capital is";swell(tg,f.cap)}
+  else{$("ask").textContent="Find";swell(tg,f.n)}
+}
+function nextRound(){
+  hideCard();
+  clearMissed();
+  if(D.active&&D.idx>=D.ids.length){finishDaily();return}
+  if(S.practice&&!weakIds().length){S.practice=false;endSession();toast("🌿","All caught up","Your weak spots are cleared.")}
+  if(D.active&&D.t0==null)D.t0=performance.now();
+  $("dClock").classList.toggle("on",!!D.active);
+  S.target=D.active?D.ids[D.idx]:pickTarget();S.tries=0;S.done=false;warmArt(S.target);
+  if(lensOpen&&lensOf(S.target)!==lensG.name)closeLens();
+  S.recent.push(S.target);if(S.recent.length>6)S.recent.shift();
+  const f=FACTS[S.target];
+  if(quizOf()==="silhouette"){silBegin();$("showBtn").hidden=true;$("nextBtn").hidden=true;save();return}
+  silHide();
+  showPrompt(S.target);
+  let pre="";
+  if(D.active)pre=`Daily ${D.idx+1} of ${D.ids.length}. `;
+  else if(S.practice)pre=`Practice, ${weakIds().length} to revisit. `;
+  const lo=lensOf(S.target),isl=lo?` It’s a small one: look for the ${GR[lo].label} marker.`:(BEACON.includes(S.target)?` It’s tiny: look for its dotted ring.`:"");
+  swell($("hint"),S.hints?pre+(S.region==="World"||S.practice||D.active?`Somewhere in ${regName(f)}. Take your time.`:`Take your time. Turn the globe and tap it when you spot it.`)+isl:pre.trim());
+  $("showBtn").hidden=false;$("nextBtn").hidden=true;
+  save();
+  requestAnimationFrame(()=>{if(S.mode==="find"&&!silOn)size()});   // re-measure the prompt so the globe never sits under it
+}
+function guess(id,ll,other){
+  if(S.done||S.mode!=="find"||S.qIdle||!S.target)return;
+  if(other){swell($("hint"),typeof other==="string"?`That’s ${other}. It isn’t part of the game, so no penalty.`:"That’s outside this game. No penalty.");sndOcean();return}
+  const T=S.target,f=FACTS[T];
+  if(hitTest(id,ll,T))return success(false,id===T?ll:null);
+  S.tries++;S.streak=0;
+  if(id&&FACTS[id]){
+    const g=FACTS[id];
+    d3.selectAll(`[data-id="${id}"]`).classed("missed",!cf().has(id));
+    floatLabel(g.n,ll,2600,vwOf(id));
+    const d=km(LL(id),LL(T));
+    const near=g.b.includes(f.n);
+    swell($("hint"),!S.hints?`That’s ${article(g.n)}. Not quite.`:near?`That’s ${article(g.n)}. You’re right next door; ${tn()} borders it to the ${bearing(LL(id),LL(T))}.`
+      :`That’s ${article(g.n)}. ${tn()} is about ${distTxt(d)} to the ${bearing(LL(id),LL(T))}.`);
+    S.weak[T]=Math.min(10,(S.weak[T]||0)+2);
+    sndMiss();
+  }else{
+    const d=km(ll,LL(T));
+    swell($("hint"),S.hints?`That’s open water. ${tn()} is about ${distTxt(d)} to the ${bearing(ll,LL(T))}.`:"That’s open water.");
+    S.tries--;
+    sndOcean();
+  }
+  if(S.tries>=3)$("hint").textContent+=" You can also ask to be shown.";
+}
+const total=()=>playable.length;
+const foundN=()=>playable.filter(f=>cf().has(f.id)).length;
+function success(shown,ll){
+  const T=S.target,f=FACTS[T];S.done=true;
+  const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
+  const first=S.tries===0&&!shown;
+  if(shown){if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
+  else{
+    if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
+    if(S.tries>=2&&!D.active)S.returnQ.push({id:T,at:S.turn+6});
+    if(first){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);if(S.weak[T])S.weak[T]=Math.max(0,S.weak[T]-1)}
+    if(S.quiz==="flag"&&!D.active)S.counts.flag++;
+    if(S.quiz==="silhouette"&&!D.active)S.counts.sil=(S.counts.sil||0)+1;
+    if(S.quiz==="capital"&&!D.active)S.counts.capital++;
+  }
+  if(S.weak[T]===0)delete S.weak[T];
+  if(D.active){D.marks.push(shown?"🟥":first?"🟩":S.tries<=2?"🟨":"🟧");D.idx++;if(D.idx>=D.ids.length&&D.t0!=null)D.tEnd=performance.now()-D.t0}
+  updateProgress();save();
+  if(shown)sndShow();
+  const regTotal=playable.filter(x=>FACTS[x.id].r===f.r).length;
+  const after=foundN(),regAfter=regBefore+(shown?0:1);
+  const praise=["Found it.","There it is.","Lovely.","Exactly right.","Well spotted."];
+  let msg=shown?`Here it is. It’ll come back around in a few turns.`:
+    (first?praise[Math.floor(Math.random()*praise.length)]+" First try.":`${praise[Math.floor(Math.random()*praise.length)]} Painted in.`);
+  let big=null;
+  if(!shown&&!SESS){
+    const th=[.25,.5,.75,1].find(x=>before/total()<x&&after/total()>=x);
+    const dr=regB.find(([r,b,t])=>b+1===t);
+    if(dr){big=dr[0];msg+=` That’s all of ${dr[0]==="Americas"?"the Americas":dr[0]} painted.`}
+    else if(th){big=f.r;msg+=th===1?" The whole world is painted.":` A ${th===.25?"quarter":th===.5?"half":"three quarters"} of the world is painted.`}
+  }
+  swell($("hint"),msg);
+  if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
+  $("showBtn").hidden=true;$("nextBtn").hidden=false;
+  $("nextBtn").textContent=D.active&&D.idx>=D.ids.length?"See results":"Next place";
+  if(shown&&lensOf(T)&&!(lensOpen&&lensG.ids.includes(T)))openLens(lensOf(T));
+  const inLens=lensOpen&&lensG.ids.includes(T);
+  let fp=null;
+  if(inLens)floatLabel(f.n,LL(T),3200,LV);
+  else{
+    fp=focusFor(T,ll);
+    if(fp.fly)flyTo(fp.fly,1300,Math.min(5,Math.max(zoomK,f.a<30000?2.6:f.a<350000?1.7:1))).then(()=>{floatLabel(f.n,fp.fly,3200)});
+    else floatLabel(f.n,fp.pt,3200);
+  }
+  startReveal(T,ll||(fp&&fp.pt)||LL(T),shown,()=>paint(),false,inLens?LV:MV,()=>{if(!shown){sndHit(f.r,first);if(big)setTimeout(()=>sndFlourish(big),700)}});
+  if(inLens)lensCaption(T);else showCard(T);
+  setTimeout(checkAch,1800);
+  setTimeout(()=>$("nextBtn").focus({preventScroll:true}),50);
+}
+
+/* ---- clean-slate sessions + the Quiz start sheet ---- */
+function fadeRepaint(fn){
+  const pg=document.getElementById("paint");
+  if(reduced||!pg){fn();return}
+  pg.style.transition="opacity .35s ease";pg.style.opacity="0";
+  setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
+}
+function beginSession(){if(SESS)return;SESS=new Set();fadeRepaint(()=>{paint();updateProgress()})}
+function endSession(){if(!SESS)return;SESS=null;fadeRepaint(()=>{paint();updateProgress()})}
+function idleView(){
+  S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
+  hideCard();clearMissed();$("dClock").classList.remove("on");$("qFlag").hidden=true;$("target").classList.remove("small");
+  $("ask").textContent="Quiz";swell($("target"),"Ready?");swell($("hint"),"Choose how you would like to play.");
+  $("showBtn").hidden=true;$("nextBtn").hidden=false;$("nextBtn").textContent="Choose a game";
+  if(typeof silHide==="function")silHide();
+  updateProgress();
+}
+function quizIdle(){idleView();showQuizSheet()}
+function beginFree(){closeModal();D.active=false;S.qIdle=false;S.practice=false;D.active=false;endSession();nextRound()}
+function leaveDailyOk(){return !D.active||confirm("Leave today’s ten? Your progress in it will be lost.")}
+function showQuizSheet(){
+  const sh=$("sheet");sh.innerHTML="";
+  const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
+  sh.append(closeBtn(),el("h2",{},"Quiz"),
+    opt("Hints","Region, distance and direction clues after a miss.",toggle(S.hints,v=>{S.hints=v;save();sndTick()},"Hints")));
+  const q=el("div",{class:"row",style:"margin:0"});
+  [["country","Locate"],["flag","Flag"],["capital","Capital"],["silhouette","Silhouette"]].forEach(([k,l])=>q.append(el("button",{class:"chip","aria-pressed":String(S.quiz===k),onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}},l)));
+  const rc=el("div",{class:"row",style:"margin:0"});
+  ["World",...REGIONS].forEach(r=>rc.append(el("button",{class:"chip","aria-pressed":String(S.region===r),onclick:()=>{S.region=r;syncChips();updateProgress();sndTick();showQuizSheet()}},r)));
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
+    opt("Quiz style",S.quiz==="silhouette"?"A shape appears with the globe hidden. Type its name.":"What you are shown.",q),
+    opt("Region","",rc),
+    el("div",{class:"qfoot"},el("button",{class:"btn primary",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Today’s daily"),
+    el("p",{style:"margin:0;font-size:13.5px;color:var(--ink-soft)"},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries on a clean map, the same for everyone. Can you finish under a minute?"),
+    el("div",{class:"qfoot"},el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play"))));
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Practice weak spots"),
+    el("p",{style:"margin:0;font-size:13.5px;color:var(--ink-soft)"},wk?`${wk} countr${wk===1?"y":"ies"} to revisit, on a clean map.`:"Nothing here yet. Misses collect here."),
+    el("div",{class:"qfoot"},el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
+  sh.append(quizRecordsBlock());
+  sh.append(el("div",{class:"row",style:"margin-top:6px"},el("button",{class:"btn danger",onclick:()=>$("resetBtn").onclick()},"Reset progress"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore")));
+  openModal(true);setTimeout(()=>{const s=$("qFree");if(s)s.focus({preventScroll:true})},60);
+}function startPractice(){
+  closeModal();if(S.mode!=="find")setMode("find",true,true);
+  S.qIdle=false;D.active=false;S.practice=true;S.region="World";syncChips();beginSession();updateProgress();nextRound();
+}
+
+/* ---- daily challenge ---- */
+function startDaily(){
+  closeModal();if(D.active)return;
+  const day=todayStr();
+  if(S.daily.results[day]){showDailyResult(day);return}
+  const rnd=seeded("mapbloom-"+day);
+  D.ids=shuffle(playable.map(f=>f.id).sort(),rnd).slice(0,10);D.idx=0;D.marks=[];D.active=true;D.t0=null;D.tEnd=null;S.practice=false;S.qIdle=false;
+  if(S.mode!=="find")setMode("find",true,true);
+  beginSession();
+  S.region="World";document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.r==="World"));
+  updateProgress();nextRound();
+}
+function finishDaily(){
+  const day=todayStr(),marks=D.marks.slice();
+  D.active=false;endSession();
+  const firsts=marks.filter(m=>m==="🟩").length;
+  S.daily.results[day]={marks,firsts,time:D.tEnd};
+  S.daily.streak=S.daily.last===yesterdayStr()?S.daily.streak+1:S.daily.last===day?S.daily.streak:1;
+  S.daily.last=day;save();checkAch();
+  $("nextBtn").textContent="Next place";
+  showDailyResult(day);idleView();
+}
+function shareText(day){const r=S.daily.results[day];return `Mapbloom daily ${day}\n${r.marks.join("")}\n${r.firsts}/10 first try${r.time?" in "+fmtT(r.time):""} · ${S.daily.streak} day streak`}
+function showDailyResult(day){
+  const r=S.daily.results[day],sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"Today’s ten"),el("p",{},day+" · "+r.firsts+" of 10 on the first try"+(r.time?", "+fmtT(r.time)+(r.time<60000?" (under a minute!)":""):"")),
+    el("div",{class:"share"},shareText(day)),
+    el("p",{style:"margin-top:10px"},`Streak: ${S.daily.streak} day${S.daily.streak===1?"":"s"}. A new set of ten arrives tomorrow.`),
+    el("div",{class:"row"},el("button",{class:"btn primary",onclick:ev=>{copyText(shareText(day),ev.currentTarget)}},"Copy result"),el("button",{class:"btn",onclick:closeModal},"Close")));
+  openModal();
+}
+function copyText(t,btn){
+  const done=()=>{if(btn){const o=btn.textContent;btn.textContent="Copied";setTimeout(()=>btn.textContent=o,1400)}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>done());else done();
+}
+
+/* ======================================================================
+   SPEED MODE: find every country in the region, against the clock
+   ====================================================================== */
+const REGION_VIEW={World:[15,20],Africa:[18,3],Americas:[-75,8],Asia:[95,30],Europe:[14,50],Oceania:[150,-22]};
+const REGION_ZOOM={World:1,Africa:1.35,Americas:1.1,Asia:1.2,Europe:2.4,Oceania:1.5};
+function syncSpeedUI(){
+  const b=$("skipBtn"),ph=R.phase;
+  b.classList.toggle("primary",ph!=="run"&&ph!=="count");
+  b.textContent=ph==="run"?"Skip · +10s":ph==="done"?"Race again":ph==="count"?"Get ready…":"Start race";
+  b.disabled=ph==="count";
+  $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
+  if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="Find";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
+}
+function speedEnter(){
+  R.phase="idle";R.found=new Set();R.pen=0;
+  S.done=false;hideCard();clearMissed();
+  paint();updateProgress();syncSpeedUI();
+  showStartSheet();
+}
+function abortRace(){
+  R.phase="idle";R.found=new Set();R.cur=null;R.queue=[];R.pen=0;stopMusic();
+  $("count").classList.remove("beat");
+  paint();updateProgress();syncSpeedUI();
+}
+function showStartSheet(){
+  const sh=$("sheet");sh.innerHTML="";
+  const ids=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap),b=bestOf(rkey(S.region));
+  sh.append(closeBtn(),el("h2",{},"Race the world"),
+    el("p",{},`Find all ${ids.length} countries in ${S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region} against the clock. ${S.rv==="flag"?"You will see a flag":S.rv==="capital"?"You will see a capital city":"You will only see names"}: no continent, no hints. Wrong country +2s, skip +10s.`));
+  const vchips=el("div",{class:"row"});
+  [["country","Locate"],["flag","Flag"],["capital","Capital"]].forEach(([k,l])=>vchips.append(el("button",{class:"chip","aria-pressed":String(S.rv===k),onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}},l)));
+  const chips=el("div",{class:"row"});
+  ["World",...REGIONS].forEach(r=>{
+    const n=r==="World"?playable.length:playable.filter(f=>inReg(f.id,r)).length,bb=bestOf(rkey(r));
+    chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();showStartSheet()}},
+      r==="World"?"World":r,el("span",{class:"n"},isFinite(bb)?fmtT(bb,0):n+"")));
+  });
+  sh.append(vchips,chips,
+    el("p",{style:"margin-top:14px"},isFinite(b)?`Your best here: ${fmtT(b)}`:"No time set here yet. Be the first."),
+    el("div",{class:"row"},el("button",{class:"btn primary",id:"startRace",onclick:startRace},"Start"),el("button",{class:"btn",onclick:()=>{setMode("wander")}},"Back to Explore")));
+  sh.append(raceRecordsBlock(S.region,S.rv));
+  openModal(true);setTimeout(()=>{const s=$("startRace");if(s)s.focus({preventScroll:true})},60);
+}
+function startRace(){
+  closeModal();
+  R.region=S.region;R.found=new Set();R.pen=0;R.skips=0;R.wrong=0;R.times={};R.streak=0;R.riser=false;
+  R.variant=S.rv;R.queue=shuffle(regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap));R.total=R.queue.length;R.cur=null;R.phase="count";
+  paint();updateProgress();syncSpeedUI();
+  $("sTarget").textContent="";$("sHint").textContent="";$("sTime").textContent="0:00.0";$("sPen").textContent="";
+  const cn=$("count");let n=3;
+  const beat=()=>{
+    if(R.phase!=="count")return;
+    cn.textContent=n>0?n:"GO";cn.classList.remove("beat");void cn.offsetWidth;cn.classList.add("beat");
+    sndCount(n===0);
+    if(n===0){goRace();return}
+    n--;setTimeout(beat,820);
+  };
+  setTimeout(beat,350);
+}
+function goRace(){
+  R.phase="run";R.t0=performance.now();
+  startMusic();speedNext();syncSpeedUI();
+}
+function speedNext(){
+  if(R.phase!=="run")return;
+  R.cur=R.queue[0];R.tTarget=performance.now();R.queue.slice(0,3).forEach(warmArt);
+  if(lensOpen&&lensOf(R.cur)!==lensG.name)closeLens();
+  {const v=R.variant||"country",ff=FACTS[R.cur];
+    $("sFlag").hidden=v!=="flag";$("sTarget").classList.toggle("small",v!=="country");
+    if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
+    else if(v==="capital"){$("sAsk").textContent="Find the country whose capital is";swell($("sTarget"),ff.cap)}
+    else{$("sAsk").textContent="Find";swell($("sTarget"),ff.n)}}
+  $("sCount").textContent=`${R.found.size} / ${R.total}`;
+}
+function updatePen(pop){const e=$("sPen");e.textContent=R.pen?"+"+(R.pen/1000)+"s":"";if(pop&&!reduced){e.classList.remove("pop");void e.offsetWidth;e.classList.add("pop")}}
+function speedGuess(id,ll,other){
+  if(R.phase!=="run"||!R.cur)return;
+  if(other){swell($("sHint"),typeof other==="string"?`${other}: outside the game. No penalty.`:"Outside the game. No penalty.");sndOcean();return}
+  const T=R.cur,f=FACTS[T];
+  if(hitTest(id,ll,T)){
+    R.times[T]=performance.now()-R.tTarget;R.found.add(T);R.queue.shift();R.streak++;R.cur=null;
+    if(S.weak[T]&&R.times[T]<4000)S.weak[T]=Math.max(0,S.weak[T]-1);
+    sndSpeedHit();musUpdate();updateProgress();
+    swell($("sHint"),"");$("sCount").textContent=`${R.found.size} / ${R.total}`;
+    const vw=vwOf(T);   // Race never moves the camera: only the player's own dragging does
+    startReveal(T,ll||LL(T),false,()=>paint(),true,vw);
+    floatLabel(f.n,ll||LL(T),1100,vw);
+    if(R.found.size>=R.total)finishRace();else setTimeout(speedNext,320);
+    return;
+  }
+  if(id&&FACTS[id]){
+    R.pen+=2000;R.wrong++;R.streak=0;S.weak[T]=Math.min(10,(S.weak[T]||0)+1);
+    updatePen(true);swell($("sHint"),`Not ${article(FACTS[id].n)}. +2s`);
+    floatLabel(FACTS[id].n,ll,900,vwOf(id));
+    const sel=d3.selectAll(`[data-id="${id}"]`);if(!R.found.has(id)){sel.classed("missed",true);setTimeout(()=>sel.classed("missed",false),520)}
+    $("app").classList.remove("flash");void $("app").offsetWidth;$("app").classList.add("flash");
+    sndPenalty();
+  }else{
+    swell($("sHint"),"Open water. No penalty.");sndOcean();
+  }
+}
+function speedSkip(){
+  if(R.phase!=="run"||!R.cur)return;
+  const T=R.cur;R.pen+=10000;R.skips++;R.streak=0;S.weak[T]=Math.min(10,(S.weak[T]||0)+2);
+  R.queue.push(R.queue.shift());R.cur=null;
+  updatePen(true);swell($("sHint"),"Skipped. +10s. It’ll come back round.");sndPenalty();
+  setTimeout(speedNext,200);
+}
+function finishRace(){
+  R.phase="done";R.cur=null;
+  const elapsed=performance.now()-R.t0,tot=Math.round(elapsed+R.pen);
+  $("sTime").textContent=fmtT(tot);
+  stopMusic(true);syncSpeedUI();
+  const reg=rkey(R.region,R.variant),prev=bestOf(reg),isBest=tot<prev;
+  const rec=REC[reg]||(REC[reg]={best:null,runs:[]});
+  rec.runs.push({t:tot,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total});
+  rec.runs=rec.runs.slice(-20);if(isBest)rec.best=tot;saveRec();save();
+  setTimeout(()=>showResults(tot,isBest,prev),1400);
+  setTimeout(checkAch,2200);
+}
+function showResults(tot,isBest,prev){
+  const sh=$("sheet");sh.innerHTML="";
+  const byR={};Object.keys(R.times).forEach(id=>{const r=FACTS[id].r;(byR[r]=byR[r]||[]).push(R.times[id])});
+  const slow=Object.keys(R.times).sort((a,b)=>R.times[b]-R.times[a]).slice(0,5);
+  sh.append(closeBtn(),el("h2",{},"Finished",isBest?el("span",{class:"badge"},"New best"):""),
+    el("p",{},`${R.total} countries · ${R.region==="World"?"whole world":R.region==="Americas"?"the Americas":R.region}${R.variant==="flag"?" (flags)":R.variant==="capital"?" (capitals)":""}`),
+    el("div",{class:"bignum"},fmtT(tot)),
+    el("dl",{class:"kv"},
+      el("dt",{},"Penalties"),el("dd",{},`+${R.pen/1000}s (${R.wrong} wrong, ${R.skips} skipped)`),
+      el("dt",{},"Raw time"),el("dd",{},fmtT(tot-R.pen)),
+      el("dt",{},"Previous best"),el("dd",{},isFinite(prev)?fmtT(prev):"none")));
+  if(R.region==="World"){
+    const tb=el("table",{class:"tbl"},el("tr",{},el("th",{},"Where the time went"),el("th",{class:"t"},"Avg per country")));
+    REGIONS.forEach(r=>{if(byR[r])tb.append(el("tr",{},el("td",{},el("span",{class:"swatch",style:`background:var(--c-${r});margin-right:8px`}),r),el("td",{class:"t"},(d3.mean(byR[r])/1000).toFixed(1)+"s")))});
+    sh.append(tb);
+  }
+  sh.append(el("h3",{},"Slowest five, worth a second look"),
+    el("div",{class:"nchips"},slow.map(id=>el("button",{onclick:()=>{closeModal();setMode("wander");openCountry(id)}},FACTS[id].n+" · "+(R.times[id]/1000).toFixed(1)+"s"))),
+    el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{speedEnter()}},"Race again"),el("button",{class:"btn",onclick:()=>showStartSheet()},"Records"),el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore")));
+  openModal();
+}
+
+/* ======================================================================
+   CARD + LEARN PAGE
+   ====================================================================== */
+let cardId=null;
+const restart=e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""};
+function showCard(id,keepOpen){
+  const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
+  cardId=id;
+  const img=$("cFlagImg"),src=typeof FLAGS!=="undefined"&&FLAGS[id];
+  if(src){img.src=src;img.alt=`Flag of ${f.n}`;img.hidden=false;$("cFlag").hidden=true}
+  else{img.hidden=true;img.removeAttribute("src");$("cFlag").hidden=false;$("cFlag").textContent=f.f}
+  $("cName").textContent=f.n;
+  $("cSwatch").style.background=`var(--c-${f.r})`;
+  $("cWhere").textContent=f.s||f.r;
+  $("cLearned").hidden=!S.learned.has(id);
+  const rows=[];
+  if(f.cap)rows.push(["Capital",f.cap]);
+  if(f.l.length)rows.push([f.l.length>1?"Languages":"Language",f.l.join(", ")]);
+  if(f.cur)rows.push(["Currency",f.cur]);
+  rows.push(["Area",areaTxt(f.a)]);
+  $("cList").innerHTML="";
+  rows.forEach(([k,v])=>{const dt=document.createElement("dt");dt.textContent=k;const dd=document.createElement("dd");dd.textContent=v;$("cList").append(dt,dd)});
+  let note="";
+  const b=f.b;
+  if(f.ld) note=`Landlocked, with no coastline at all. Its neighbours are ${list(b)}.`;
+  else if(!b.length) note=`It shares no land border with any other country; the sea surrounds it.`;
+  else if(b.length===1) note=`It shares a land border with only one country: ${article(b[0])}.`;
+  else if(b.length>=8) note=`It touches ${b.length} countries, including ${list(b.slice(0,4))}.`;
+  else note=`It borders ${list(b)}.`;
+  $("cNote").textContent=note;
+  if(wasOn){restart(img);restart($("cNote"))}
+  else sndCard(true);
+  const open=!!(keepOpen&&card.classList.contains("big"));
+  setExplore(open,id);
+  $("cBody").scrollTop=0;
+  card.classList.add("on");relayout();
+}
+function list(a){a=a.map(article);return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
+function hideCard(){const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
+$("cardClose").onclick=hideCard;
+function openCountry(id){showCard(id);flyTo(LL(id),1100,Math.max(zoomK,FACTS[id].a<30000?2.4:1.4))}
+
+function setExplore(open,id){
+  const card=$("card"),btn=$("learnBtn");
+  card.classList.toggle("big",open);btn.setAttribute("aria-expanded",String(open));
+  $("learn").hidden=!open;
+  btn.firstElementChild.textContent=open?"Close the page":"Explore this country";
+  if(open){renderLearn(id||cardId);S.learned.add(id||cardId);$("cLearned").hidden=false;save();setTimeout(checkAch,600)}
+}
+$("learnBtn").onclick=()=>{
+  const open=!$("card").classList.contains("big");
+  sndPage();setExplore(open,cardId);
+  setTimeout(relayout,620);
+  if(open)setTimeout(()=>{$("learn").scrollIntoView({behavior:reduced?"auto":"smooth",block:"nearest"})},120);
+};
+let rankArea=null,rankPop=null;
+function ranks(){
+  if(rankArea)return;
+  const ids=playable.map(f=>f.id);
+  const ra=ids.slice().sort((a,b)=>FACTS[b].a-FACTS[a].a);rankArea={};ra.forEach((id,i)=>rankArea[id]=i+1);
+  const rp=ids.filter(id=>LEARN[id]&&LEARN[id].p).sort((a,b)=>LEARN[b].p-LEARN[a].p);rankPop={};rp.forEach((id,i)=>rankPop[id]=i+1);
+}
+function antipodeOf(id){
+  const [lat,lon]=FACTS[id].ll,pt=[((lon+180+540)%360)-180,-lat];
+  const hit=features.find(f=>d3.geoContains(f,pt));
+  return hit&&FACTS[hit.id]?FACTS[hit.id].n:null;
+}
+function funFacts(id){
+  ranks();const f=FACTS[id],L=LEARN[id]||{},out=[],n=playable.length;
+  const ra=rankArea[id];
+  out.push(ra===1?`${f.n} is the largest country in this game, at ${areaTxt(f.a)}.`:ra===n?`${f.n} is the smallest country in this game, at just ${areaTxt(f.a)}.`:`By area, ${f.n} is the ${ord(ra)} largest of the ${n} countries here.`);
+  if(L.p){
+    const rp=rankPop[id];
+    out.push(`About ${L.p>=1e6?(L.p/1e6).toFixed(L.p>=1e7?0:1)+" million":fmt(L.p)} people live there${rp?`, which makes it the ${rp===1?"most":ord(rp)+" most"} populous of the ${n}`:""}.`);
+  }
+  const ap=antipodeOf(id);
+  out.push(ap?`Dig straight through the centre of the Earth from the middle of ${f.n} and you’d come out in ${article(ap)}.`:`Dig straight through the centre of the Earth from the middle of ${f.n} and you’d come out in open ocean.`);
+  if(f.ld)out.push(`It has no coastline: every border is a land border.`);
+  else if(!f.b.length)out.push(`It shares no land border with anyone. It is surrounded by sea.`);
+  else if(f.b.length>=6)out.push(`It has ${f.b.length} land neighbours, more than most countries.`);
+  return out.slice(0,4);
+}
+function paras(t){return String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean)}
+/* a drawn outline of the country (neighbours faint around it); upgraded to the 10m map once that has downloaded */
+let topo10=null,topo10Loading=null;
+function load10(){
+  if(topo10)return Promise.resolve(topo10);
+  if(!topo10Loading)topo10Loading=fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json").then(r=>r.json()).then(t=>{
+    const feats=topojson.feature(t,t.objects.countries).features,byid={};feats.forEach(f=>{if(f.id!=null&&!(f.id in byid))byid[f.id]=f});
+    topo10={feats,byid};return topo10;
+  }).catch(()=>{topo10Loading=null;return null});
+  return topo10Loading;
+}
+function outlineFig(id){
+  const f=FACTS[id];if(!byId[id])return null;
+  const W0=420,H0=220,key=ensureArt(id);
+  const svgO=d3.create("svg").attr("viewBox",`0 0 ${W0} ${H0}`).attr("role","img").attr("aria-label","Outline of "+f.n);
+  const cap=el("figcaption",{},"Outline of "+f.n);
+  const fig=el("figure",{class:"outline"},svgO.node(),cap);
+  let drawn=0;
+  const draw=(hi)=>{
+    const feat=(hi&&hi.byid[id])||byId[id],list=hi?hi.feats:features;
+    const c=d3.geoCentroid(feat);if(!isFinite(c[0]))return;
+    const proj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).fitExtent([[26,22],[W0-26,H0-26]],feat),p=d3.geoPath(proj);
+    const rad=(byId[id]._r||.3)*1.1+.07;
+    const near=list.filter(g=>g!==feat&&g.id!==id&&g.id!=="010"||g.id==="010"&&false).filter(g=>{const gc=g._c||(g._c=d3.geoCentroid(g));return isFinite(gc[0])&&d3.geoDistance(gc,c)<rad+.25});
+    svgO.selectAll("*").remove();
+    svgO.append("path").attr("class","ol-g").attr("d",p(d3.geoGraticule().step([5,5])()));
+    svgO.append("g").selectAll("path").data(near).join("path").attr("class","ol-n").attr("d",p);
+    const own=svgO.append("path").attr("class","ol-c"+(drawn?" still":"")).attr("pathLength",1).attr("d",p(feat)).style("fill",`url(#af-${key})`);
+    drawn++;
+    cap.textContent="Outline of "+f.n;
+  };
+  draw(topo10);
+  if(!topo10)load10().then(t=>{if(t&&fig.isConnected&&cardId===id)draw(t)});
+  return fig;
+}
+function renderLearn(id){
+  const L=LEARN[id],f=FACTS[id],root=$("learn");root.innerHTML="";
+  root.style.setProperty("--p",`var(--c-${f.r})`);
+  if(!L){root.append(el("p",{},"No reading page for this country yet."));return}
+  const fig=outlineFig(id);if(fig)root.append(fig);
+  let i=0;
+  const sec=(title,...kids)=>{const s=el("section",{style:`--i:${i++}`},el("h3",{},el("span",{class:"dot"}),title),...kids);root.append(s);return s};
+  const P=t=>paras(t).map(x=>el("p",{},x));
+  if(L.n)sec("Where the name comes from",P(L.n));
+  if(L.o)sec("At a glance",P(L.o));
+  if(L.h)sec("A short history",P(L.h),L.m?[el("div",{class:"sub"},"More recently"),P(L.m)]:"");
+  if(L.g)sec("The land",P(L.g));
+  if(L.c)sec("People and culture",P(L.c));
+  const dl=el("dl",{class:"kv"});
+  const add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};
+  add("Population",L.p?fmt(L.p):null);
+  add("Density",L.p?densTxt(L.p,f.a):null);
+  add("Capital",f.cap);add("Calling code",L.k);add("Drives on the",L.d);
+  sec("Quick data",dl);
+  sec("Did you know",el("ul",{},funFacts(id).map(t=>el("li",{},t))));
+  const nb=el("div",{class:"nchips"});
+  f.b.forEach(nm=>{const nid=nameId[nm];nb.append(nid?el("button",{onclick:()=>{sndTick();showCard(nid,true);flyTo(LL(nid),1100,Math.max(zoomK,FACTS[nid].a<30000?2.4:1.3))}},nm):el("span",{},nm))});
+  if(f.b.length)sec("Neighbours",nb);
+  root.append(el("p",{class:"attrib"},"Text adapted from the Wikipedia article “"+L.t+"” (",el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(L.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},"read the full article"),"), licensed CC BY-SA 4.0. Flags from flagcdn.com."));
+}
+
+/* ---------- clicks ---------- */
+function tap(id,ll,other){
+  if(S.mode==="wander"){if(id){showCard(id);floatLabel(FACTS[id].n,ll,2400);sndTick()}return}
+  if(S.mode==="speed")return speedGuess(id,ll,other);
+  guess(id,ll,other);
+}
+function onClick(e,d){
+  const ll=projection.invert(d3.pointer(e,svg.node()));
+  if(!ll)return;
+  tap(FACTS[d.id]?d.id:null,ll,FACTS[d.id]?false:((d.properties&&d.properties.name)||true));
+}
+paths.on("click",onClick);
+sphere.on("click",function(e){
+  const ll=projection.invert(d3.pointer(e,svg.node()));
+  if(!ll)return;
+  if(S.mode==="find")guess(null,ll);else if(S.mode==="speed")speedGuess(null,ll);
+});
+
+/* ---------- progress & chips ---------- */
+function updateProgress(){
+  const all=playable.map(f=>f.id),F=cf();
+  const base=S.mode==="speed"?regionPool():all;
+  $("foundN").textContent=base.filter(id=>F.has(id)).length;
+  $("totalN").textContent=base.length;
+  $("progLabel").textContent=S.mode==="speed"?"found this race":"countries painted";
+  const bar=$("bar");
+  REGIONS.forEach((r,i)=>{
+    const n=base.filter(id=>FACTS[id].r===r&&F.has(id)).length;
+    let s=bar.children[i];if(!s){s=document.createElement("span");s.style.background=`var(--c-${r})`;s.style.width="0%";bar.appendChild(s)}
+    requestAnimationFrame(()=>{s.style.width=(n/base.length*100)+"%"});
+  });
+  document.querySelectorAll(".chip[data-r]").forEach(c=>{
+    const r=c.dataset.r;const ids=r==="World"?all:all.filter(id=>inReg(id,r));
+    c.querySelector(".n").textContent=`${ids.filter(id=>F.has(id)).length}/${ids.length}`;
+  });
+}
+function syncChips(){document.querySelectorAll(".chip[data-r]").forEach(c=>c.setAttribute("aria-pressed",c.dataset.r===S.region))}
+["World",...REGIONS].forEach(r=>{
+  const b=document.createElement("button");b.className="chip";b.dataset.r=r;b.setAttribute("aria-pressed",r===S.region);
+  b.innerHTML=(r==="World"?"":`<span class="swatch" style="background:var(--c-${r})"></span>`)+`${r==="World"?"Whole world":r} <span class="n"></span>`;
+  b.onclick=()=>{
+    if(D.active){toast("📅","Daily challenge","Finish today’s ten first, or leave it from the menu.");return}
+    if(S.mode==="speed"){
+      if(R.phase==="run"||R.phase==="count"){if(!confirm("Leave this race? This run won’t be saved."))return;abortRace()}
+      sndTick();S.region=r;syncChips();R.phase="idle";R.found=new Set();paint();updateProgress();syncSpeedUI();
+      showStartSheet();return;
+    }
+    sndTick();S.practice=false;endSession();
+    S.region=r;syncChips();
+    stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);
+    if(S.mode==="find"&&!S.qIdle)nextRound();
+  };
+  $("chips").appendChild(b);
+});
+
+/* ======================================================================
+   ACHIEVEMENTS + TOASTS
+   ====================================================================== */
+const regDone=r=>playable.filter(f=>inReg(f.id,r)).every(f=>S.found.has(f.id));
+const anyRuns=()=>Object.values(REC).some(x=>x&&x.runs&&x.runs.length);
+const ACH=[
+  {id:"first",n:"First Wash",i:"💧",d:"Paint your first country",t:()=>S.found.size>=1},
+  {id:"ten",n:"Ten Strokes",i:"🖌️",d:"Paint 10 countries",t:()=>S.found.size>=10},
+  {id:"half",n:"Halfway Round",i:"🧭",d:"Paint half the world",t:()=>S.found.size>=playable.length/2},
+  {id:"all",n:"Cartographer",i:"🗺️",d:"Paint every country",t:()=>S.found.size>=playable.length},
+  ...REGIONS.map(r=>({id:"reg"+r,n:(r==="Americas"?"All the Americas":"All of "+r),i:{Africa:"🦒",Americas:"🌎",Asia:"🏯",Europe:"🏰",Oceania:"🌊"}[r],d:"Paint every country in "+(r==="Americas"?"the Americas":r),t:()=>regDone(r)})),
+  {id:"streak10",n:"Steady Hand",i:"🎯",d:"10 first-try finds in a row",t:()=>S.bestStreak>=10},
+  {id:"read10",n:"Bookworm",i:"📖",d:"Read 10 country pages",t:()=>S.learned.size>=10},
+  {id:"read50",n:"Scholar",i:"🎓",d:"Read 50 country pages",t:()=>S.learned.size>=50},
+  {id:"readall",n:"Complete Library",i:"\u{1F4DA}",d:"Read all 195 country pages",t:()=>S.learned.size>=playable.length},
+  {id:"flags",n:"Flag Fan",i:"🚩",d:"Name 20 countries from their flags",t:()=>S.counts.flag>=20},
+  {id:"caps",n:"Capital Idea",i:"🏛️",d:"Name 20 countries from their capitals",t:()=>S.counts.capital>=20},
+  {id:"race1",n:"First Race",i:"⏱️",d:"Finish a race",t:()=>anyRuns()},
+  {id:"eu5",n:"Quick Europe",i:"⚡",d:"Race all of Europe in under 5 minutes",t:()=>bestOf("Europe")<300000},
+  {id:"daily1",n:"Daily Habit",i:"📅",d:"Finish a daily challenge",t:()=>!!S.daily.last},
+  {id:"daily3",n:"Three in a Row",i:"🔥",d:"A 3-day daily streak",t:()=>S.daily.streak>=3},
+  {id:"sixty",n:"Sixty Seconds",i:"\u{23F1}",d:"Finish a daily in under a minute",t:()=>Object.values(S.daily.results).some(r=>r&&r.time&&r.time<60000)},
+  {id:"shape",n:"Shape Shifter",i:"\u{1F537}",d:"Name 20 countries from their silhouettes",t:()=>(S.counts.sil||0)>=20},
+  {id:"raceflag",n:"Flag Sprinter",i:"\u{1F3C1}",d:"Race all of Europe from flags",t:()=>!!(REC["Europe|flag"]&&REC["Europe|flag"].runs.length)},
+  {id:"racecap",n:"Capital Sprinter",i:"\u{1F3D9}",d:"Race all of Europe from capitals",t:()=>!!(REC["Europe|capital"]&&REC["Europe|capital"].runs.length)}
+];
+function checkAch(){
+  ACH.forEach(a=>{if(!S.ach[a.id]&&a.t()){S.ach[a.id]=Date.now();toast(a.i,"Stamp earned: "+a.n,a.d,4600,()=>{if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){toast("*","Race in progress","Check your stamps when the race is over.");return}sndTick();renderStamps()});sndBadge();save()}});
+}
+let toastTm=null;
+function toast(ic,title,text,ms=3800,onClick){
+  const t=$("toast");t.innerHTML="";t.append(el("span",{class:"ic"},ic),el("div",{},el("b",{},title),el("div",{style:"font-size:13px;color:var(--ink-soft)"},text||"")));
+  t.classList.toggle("click",!!onClick);t.tabIndex=onClick?0:-1;
+  t.onclick=onClick?()=>{t.classList.remove("on");onClick()}:null;
+  t.onkeydown=onClick?e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t.classList.remove("on");onClick()}}:null;
+  t.classList.add("on");clearTimeout(toastTm);toastTm=setTimeout(()=>t.classList.remove("on"),ms);
+}
+
+/* ======================================================================
+   MODAL + MENU (play, records, stamps, sound)
+   ====================================================================== */
+const modal=$("modal");let modalTrap=false;
+function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:()=>{if(S.mode==="speed"&&R.phase==="idle"){closeModal()}else closeModal()}},"✕")}
+function openModal(){modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function closeModal(){modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
+const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
+function guardRace(){if(raceBusy()){toast("*","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
+$("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderStamps()};
+$("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
+function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
+function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn()}
+function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:()=>{S.theme=k;save();applyTheme();sndTick();renderSettings()}},l)));return w}
+function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
+function syncUnit(){$("unitA").textContent=S.unit;$("unitB").textContent=S.unit==="mi"?"km":"mi"}
+function setUnit(u){S.unit=u;save();syncUnit();if($("card").classList.contains("on"))showCard(cardId,true)}
+$("themeBtn").onclick=()=>{S.theme=isDark()?"light":"dark";save();applyTheme();sndTick()};
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.theme==="auto")syncThemeBtn()});
+applyTheme();
+$("unitBtn").onclick=()=>{sndTick();setUnit(S.unit==="mi"?"km":"mi")};
+function opt(title,sub,control){return el("div",{class:"opt"},el("div",{},el("b",{},title),sub?el("small",{},sub):""),control)}
+function toggle(checked,fn,label){const i=el("input",{type:"checkbox","aria-label":label});i.checked=checked;i.onchange=()=>fn(i.checked);return el("label",{class:"sw"},i,el("i"))}
+function sheetHead(title){const sh=$("sheet");sh.innerHTML="";sh.append(closeBtn(),el("h2",{},title));return sh}
+function renderStamps(){
+  const sh=sheetHead("Stamp Book"),got=ACH.filter(a=>S.ach[a.id]).length;
+  sh.append(el("h3",{},`${got} of ${ACH.length} stamps`));
+  const g=el("div",{class:"stamps"});
+  ACH.forEach(a=>g.append(el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
+  sh.append(g);openModal();
+}
+function setSound(v){
+  S.sound=v;save();
+  if(S.sound){if(AC("mus")){if(S.mode==="speed"&&R.phase==="run")startMusic()}sndTick();audioGesture()}
+  else{stopMusic();applyVol()}
+}
+function renderSettings(){
+  const sh=sheetHead("Settings");
+  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
+  const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
+  vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
+  sh.append(opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
+    opt("Master volume","",vol),
+    opt("Sound effects","Chimes, drops, paper rustles.",toggle(S.sfx,v=>{S.sfx=v;save();if(v)sndTick()},"Sound effects")),
+    opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music")));
+  openModal();
+}
+/* records now live with their game: Quiz records in the Quiz sheet, Race records in the Race sheet */
+function quizRecordsBlock(){
+  const days=Object.keys(S.daily.results).sort(),times=days.map(d=>S.daily.results[d].time).filter(t=>t>0);
+  const kv=[["Daily streak",`${S.daily.streak||0} day${S.daily.streak===1?"":"s"}`],["Dailies played",String(days.length)],["Best daily time",times.length?fmtT(Math.min(...times)):"none yet"],
+    ["Best first-try streak",String(S.bestStreak)],["Countries painted",`${S.found.size} of ${playable.length}`],
+    ["Flags named",String(S.counts.flag||0)],["Capitals named",String(S.counts.capital||0)],["Silhouettes named",String(S.counts.sil||0)]];
+  const dl=el("dl",{class:"kv"});kv.forEach(([k,v])=>dl.append(el("dt",{},k),el("dd",{},v)));
+  const box=el("div",{class:"qcard"},el("h3",{},"Records"),dl);
+  if(days.length){
+    const t=el("table",{class:"tbl"},el("tr",{},el("th",{},"Recent dailies"),el("th",{class:"t"},"Time")));
+    days.slice(-5).reverse().forEach(d=>{const r=S.daily.results[d];t.append(el("tr",{},el("td",{},d+"  "+r.marks.join("")),el("td",{class:"t"},r.time?fmtT(r.time):"-")))});
+    box.append(t);
+  }
+  return box;
+}
+function raceRecordsBlock(cur,cv){
+  const rk=r=>cv==="country"?r:r+"|"+cv,box=el("div",{class:"qcard"},el("h3",{},"Records"));
+  const tb=el("table",{class:"tbl"},el("tr",{},el("th",{},"Region"),el("th",{class:"t"},"Best"),el("th",{class:"t"},"Runs")));
+  ["World",...REGIONS].forEach(r=>{const x=REC[rk(r)];tb.append(el("tr",{style:r===cur?"font-weight:600":""},el("td",{},r),el("td",{class:"t"},x&&x.best?fmtT(x.best):"-"),el("td",{class:"t"},x?x.runs.length:0)))});
+  box.append(tb);
+  const oldN=Object.entries(OLD).filter(([k,x])=>x&&x.best);
+  if(oldN.length&&cv==="country")box.append(el("p",{style:"font-size:12.5px;color:var(--ink-faint)"},"Times from the earlier country lists are kept apart. Best then: "+oldN.map(([k,x])=>k+" "+fmtT(x.best,0)).join(", ")+"."));
+  const x=REC[rk(cur)];
+  box.append(el("p",{style:"margin:10px 0 4px;font-weight:500"},(cur==="World"?"Whole world":cur)+", recent runs"));
+  if(!x||!x.runs.length)box.append(el("p",{},"No races here yet. Set a time."));
+  else{
+    const runs=x.runs.slice(-12),svgEl=el("div",{class:"spark"});box.append(svgEl);
+    const w=480,h=70,s=d3.select(svgEl).append("svg").attr("viewBox",`0 0 ${w} ${h}`).attr("width","100%").attr("height",70);
+    const xs=d3.scaleLinear([0,Math.max(1,runs.length-1)],[8,w-8]),ys=d3.scaleLinear(d3.extent(runs,d=>d.t).map((v,i,a)=>a[0]===a[1]?(i?v+1000:v-1000):v),[h-10,10]);
+    s.append("path").datum(runs).attr("fill","none").attr("stroke","var(--accent)").attr("stroke-width",2).attr("d",d3.line().x((d,i)=>xs(i)).y(d=>ys(d.t)).curve(d3.curveMonotoneX));
+    s.selectAll("circle").data(runs).join("circle").attr("cx",(d,i)=>xs(i)).attr("cy",d=>ys(d.t)).attr("r",d=>d.t===x.best?5:3).attr("fill",d=>d.t===x.best?"var(--hot)":"var(--accent)");
+    const lt=el("table",{class:"tbl"},el("tr",{},el("th",{},"Date"),el("th",{class:"t"},"Time"),el("th",{class:"t"},"Penalty")));
+    runs.slice().reverse().slice(0,6).forEach(r=>lt.append(el("tr",{},el("td",{},r.date),el("td",{class:"t"},fmtT(r.t)),el("td",{class:"t"},r.pen?"+"+r.pen/1000+"s":"-"))));
+    box.append(lt);
+  }
+  return box;
+}
+/* ---------- mode switching & buttons ---------- */
+$("showBtn").onclick=()=>{if(!S.done)success(true)};
+$("nextBtn").onclick=()=>{sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("skipBtn").onclick=()=>{
+  if(R.phase==="run")speedSkip();
+  else if(R.phase==="done"||R.phase==="idle")speedEnter();
+};
+const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race"};
+const cap=m=>m==="find"?"Find":m==="speed"?"Speed":"Wander";
+function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.width=b.offsetWidth+"px";p.style.transform=`translateX(${b.offsetLeft}px)`}
+function sndMode(m){
+  const c=AC();if(!c)return;const t=c.currentTime;
+  if(m==="wander")[523.25,659.25,783.99].forEach((f,i)=>pluck(f,t+i*.09,.05,1.6,.5));
+  else if(m==="find")[587.33,880].forEach((f,i)=>bell(f,t+i*.12,.035,1.8));
+  else{blip(t,500,1500,.14,.05,.15);blip(t+.1,800,2200,.12,.04,.15)}
+}
+function modeWash(m){
+  placeDock();
+  try{localStorage.setItem("mb-dock","1")}catch(e){}
+  $("dock").classList.remove("shimmer");
+  if(reduced)return;
+  const b=$("mode"+cap(m)).getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,R2=Math.hypot(innerWidth,innerHeight)*1.05;
+  const w=$("wash");w.style.background=`radial-gradient(circle at ${x}px ${y}px,${MODE_ACC[m]},color-mix(in srgb,${MODE_ACC[m]} 70%,#fff))`;
+  w.animate([{clipPath:`circle(0px at ${x}px ${y}px)`,opacity:.0},{clipPath:`circle(${R2*.45}px at ${x}px ${y}px)`,opacity:.9,offset:.25},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:.9,offset:.55},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:0}],{duration:1150,easing:"ease-in-out"});
+  const n=$("modeName");n.textContent=MODE_NAME[m];
+  n.animate([{opacity:0,letterSpacing:".35em",filter:"blur(10px)"},{opacity:1,letterSpacing:".02em",filter:"blur(0px)",offset:.38},{opacity:1,offset:.7},{opacity:0}],{duration:1250,easing:"ease-out"});
+}
+function setMode(m,quiet,noIdle){
+  if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}return}
+  if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
+  const from=S.mode;closeLens();
+  if(from==="speed")abortRace();
+  if(D.active&&m!=="find")D.active=false;
+  if(m!=="find"){S.qIdle=false;endSession();S.practice=false;if(typeof silHide==="function")silHide()}
+  closeModal();
+  S.mode=m;
+  document.documentElement.dataset.mode=m;
+  $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
+  ["Find","Speed","Wander"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
+  if(!quiet){sndMode(m);modeWash(m)}else placeDock();
+  { const g=$("globe");g.classList.remove("dip");void g.offsetWidth;g.classList.add("dip");setTimeout(()=>g.classList.remove("dip"),900) }
+  hideCard();clearMissed();
+  size();paint();updateProgress();
+  if(m==="speed"){stopDrift();speedEnter()}
+  else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
+  else{scheduleDrift()}
+}$("modeFind").onclick=()=>setMode("find");
+$("modeSpeed").onclick=()=>setMode("speed");
+$("modeWander").onclick=()=>setMode("wander");
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&S.done&&S.mode==="find"&&!S.qIdle&&document.activeElement===document.body&&!modal.classList.contains("on"))nextRound()});
+// browsers only allow audio after a gesture; the first touch wakes it up
+["pointerdown","keydown","touchend","click"].forEach(ev=>window.addEventListener(ev,audioGesture,true));
+
+/* ---------- reset (Find mode): wipes painted progress only, after a confirm ---------- */
+$("resetBtn").onclick=()=>{
+  if(S.mode!=="find")return;
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"Start over?"),
+    el("p",{},"This clears every country you’ve painted and your weak spots, so the globe goes back to blank paper. Your stamps, speed records, daily results, reading history and settings all stay."),
+    el("div",{class:"row"},el("button",{class:"btn",id:"rsCancel",onclick:closeModal},"Cancel"),el("button",{class:"btn danger",id:"rsGo",onclick:doReset},"Reset progress")));
+  openModal();setTimeout(()=>{const c=$("rsCancel");if(c)c.focus({preventScroll:true})},60);
+};
+function doReset(){
+  closeModal();closeLens();hideCard();
+  const fin=()=>{
+    S.found.clear();S.shown.clear();S.returnQ=[];S.weak={};S.recent=[];S.turn=0;S.streak=0;S.practice=false;
+    S.done=false;save();paint();updateProgress();idleView();
+    d3.select("#paint").style("opacity",null);d3.select("#lensSvg").style("opacity",null);
+    toast("\u{1F33F}","Fresh canvas","Everything’s blank paper again.");sndPage();
+  };
+  if(reduced){fin();return}
+  sndPage();
+  const pg=document.getElementById("paint");pg.style.transition="opacity .7s ease";pg.style.opacity="0";
+  setTimeout(()=>{fin();pg.style.transition=""},760);
+}
+
+/* ======================================================================
+   OPENING SEQUENCE: tap to begin (the tap unlocks audio), a drop of color washes the
+   name onto the paper, the globe rises and a few countries bloom, then the game fades in.
+   ====================================================================== */
+const introEl=$("intro"),introTimers=[];
+const introLater=(fn,ms)=>{introTimers.push(setTimeout(fn,ms))};
+const INTRO_REGIONS=[["Africa",["818","566","710","404","012"]],["Europe",["250","276","380","724","826"]],["Asia",["156","356","392","682","398"]],["Americas",["840","076","124","032","484"]],["Oceania",["036","554","598"]]];
+function initIntro(){
+  const skip=/[?&]nointro/.test(location.search)||(()=>{try{return localStorage.getItem("mb-skip-intro")==="1"}catch(e){return false}})();
+  if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";return}
+  introState="wait";
+  if(S.found.size){introOwn=new Set();paint()}   // a returning player’s map stays hidden until the opening reveals it
+  const ready=()=>{if(introState!=="wait")return;introState="ready";$("introBegin").hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>{$("introBegin").classList.add("on");$("introHint").classList.add("on")}));try{$("introBegin").focus({preventScroll:true})}catch(e){}};
+  (document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1800))]):Promise.resolve()).then(ready);
+  // the whole splash is one big button: any tap or key is the gesture the browser needs before it allows sound
+  const start=()=>{if(introState==="wait")ready();{const c=AC();if(c&&c.state!=="running")c.resume().catch(()=>{})}introPlay()};
+  $("introBegin").onclick=start;
+  $("introSkip").onclick=()=>introHandoff(true);
+  document.addEventListener("keydown",e=>{
+    if(["Shift","Control","Alt","Meta","CapsLock","Tab"].includes(e.key))return;
+    if(introState==="wait"||introState==="ready"){e.preventDefault();start()}
+    else if(introState==="run"&&(e.key==="Escape"||e.key==="Enter"||e.key===" ")){e.preventDefault();introHandoff(true)}
+  });
+  ["click","touchend"].forEach(ev=>introEl.addEventListener(ev,()=>{if(introState==="wait"||introState==="ready")start()}));
+  introEl.addEventListener("pointerdown",()=>{if(introState==="wait"||introState==="ready")start();else if(introState==="run")introHandoff(true)});
+}
+function introPlay(){
+  if(introState!=="ready")return;introState="run";
+  unlockAudio(AC());audioReady(()=>{sndPage();sndIntroFall()});   // inside the user’s gesture: the first sound plays right away
+  $("introBegin").classList.add("gone");$("introHint").classList.remove("on");$("introSkip").hidden=false;
+  if(reduced){introHandoff(true);return}
+  const ink=$("introInk"),r=ink.getBoundingClientRect(),dx=r.left+r.width*.3,dy=r.top+r.height*.55;
+  ink.style.setProperty("--dx","30%");ink.style.setProperty("--dy","55%");
+  const drop=$("introDrop"),ring=$("introRing");
+  const t0=performance.now(),FALL=430;
+  drop.style.opacity=1;drop.style.transform=`translate(${dx}px,${dy-300}px)`;
+  const tm=d3.timer(()=>{
+    const k=Math.min(1,(performance.now()-t0)/FALL),e=k*k;
+    drop.style.transform=`translate(${dx}px,${dy-(1-e)*300}px)`;
+    if(k>=1){tm.stop();drop.style.opacity=0;impact()}
+  });
+  function impact(){
+    if(introState!=="run")return;
+    audioReady(()=>{sndIntroDrop();sndBloom(false)});
+    ring.style.left=dx+"px";ring.style.top=dy+"px";ring.classList.remove("go");void ring.offsetWidth;ring.classList.add("go");
+    const maxR=Math.hypot(r.width,r.height)*1.1,t1=performance.now(),DUR=1500;
+    const t2=d3.timer(()=>{const k=Math.min(1,(performance.now()-t1)/DUR);ink.style.setProperty("--mr",(maxR*easeOut(k))+"px");if(k>=1)t2.stop()});
+    introLater(()=>$("introSub").classList.add("on"),500);
+  }
+  introLater(()=>{if(introState!=="run")return;introEl.classList.add("out");document.body.classList.add("introglobe")},1900);
+  const chime=(id,i)=>{const c=AC();if(c)pluck(note(FACTS[id].r,[0,2,3,4,3,2,4][i%7]),c.currentTime+.05,.05,1.3,.55)};
+  let endAt;
+  if(introOwn){
+    /* returning player: their own countries wash back in one continent at a time (never country by country, however much is painted) */
+    const ids=[...S.found].filter(id=>FACTS[id]);
+    const order=["Africa","Europe","Asia","Americas","Oceania"].filter(r=>ids.some(id=>FACTS[id].r===r));
+    let t=2500;
+    order.forEach((rg,i)=>{
+      introLater(()=>{
+        if(introState!=="run"||!introOwn)return;
+        const grp=ids.filter(id=>FACTS[id].r===rg);grp.forEach(id=>introOwn.add(id));paint();
+        grp.forEach(id=>{const n=document.querySelector(`#globe .country[data-id="${id}"]`);if(n)n.style.animation="introFade 1.1s ease both"});
+        const c=AC();if(c)pluck(note(rg,[0,2,3,4,3][i%5]),c.currentTime+.03,.05,1.5,.6);
+        sndBloom(true);
+      },t);
+      t+=900;
+    });
+    endAt=Math.max(4300,t+700);
+    introLater(()=>{if(introState==="run")sndFlourish("Europe")},endAt-500);  }else{
+    /* new player: a sweep across the regions, each blooming in its own colour, then the map goes back to blank paper */
+    INTRO_REGIONS.forEach(([rg,anch],ri)=>{
+      const t0=2300+ri*1050;
+      introLater(()=>{if(introState==="run")flyTo(REGION_VIEW[rg],900,1)},t0);
+      anch.filter(id=>FACTS[id]).slice(0,3).forEach((id,j)=>introLater(()=>{
+        if(introState!=="run")return;chime(id,ri+j);
+        startReveal(id,LL(id),false,()=>{if(introState==="run"){introSet.add(id);paint()}},true,MV);
+      },t0+420+j*230));
+    });
+    endAt=2300+INTRO_REGIONS.length*1050+500;
+    introLater(()=>{if(introState==="run")sndFlourish("Europe")},endAt-400);
+  }
+  introLater(()=>introHandoff(false),endAt);
+}
+function introHandoff(fast){
+  if(introState!=="run")return;introState="done";
+  introTimers.forEach(clearTimeout);introTimers.length=0;
+  const own=!!introOwn,pg=document.getElementById("paint");
+  const ui=()=>{
+    document.body.classList.remove("introing","introglobe");document.body.classList.add("introout");
+    $("introSkip").hidden=true;introEl.classList.add("out");
+    scheduleDrift();render(true);
+    setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
+  };
+  if(own){introOwn=null;introSet.clear();paint();document.querySelectorAll("#globe .country").forEach(n=>{n.style.animation=""});ui();return}   // the replayed countries ARE the real painted map: nothing to clear, nothing to fade
+  const blank=()=>{
+    introSet.clear();paint();
+    pg.style.transition="none";void pg.offsetWidth;pg.style.opacity="";
+    requestAnimationFrame(()=>{pg.style.transition=""});
+    ui();
+    setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
+  };
+  if(fast||!introSet.size){blank();return}
+  flyTo(REGION_VIEW.World,1100,1);
+  pg.style.transition="opacity .9s ease";pg.style.opacity="0";   // one clean fade of everything the demo painted
+  setTimeout(blank,950);
+}
+/* ---------- text selection: only reading text can be selected, and a stray selection is cleared ---------- */
+const SEL_OK=".learn,.card .note,.card dd,.card dt,.sheet,.share,.attrib,input,textarea,select,.dvPanel";
+const inSelOk=n=>{const t=n&&(n.nodeType===1?n:n.parentElement);return !!(t&&t.closest&&t.closest(SEL_OK))};
+function clearSel(){try{const sel=getSelection();if(sel&&sel.rangeCount&&!sel.isCollapsed&&!inSelOk(sel.anchorNode))sel.removeAllRanges()}catch(e){}}
+document.addEventListener("selectstart",e=>{if(!inSelOk(e.target))e.preventDefault()});
+document.addEventListener("pointerdown",e=>{if(!inSelOk(e.target))clearSel()},true);
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="a"&&!inSelOk(e.target)&&!inSelOk(document.activeElement)){e.preventDefault();clearSel()}},true);
+document.addEventListener("visibilitychange",clearSel);window.addEventListener("pageshow",clearSel);clearSel();
+
+/* ======================================================================
+   SILHOUETTE QUIZ: the globe is hidden, a shape is shown, the answer is typed
+   ====================================================================== */
+const SIL_ALIAS=[["United States","United States of America","USA","US","America"],["United Kingdom","UK","Britain","Great Britain","England"],["Ivory Coast","Cote d’Ivoire","Cote dIvoire"],["Czechia","Czech Republic"],["Myanmar","Burma"],["Eswatini","Swaziland"],["Cabo Verde","Cape Verde"],["Vatican City","Vatican","Holy See"],["DR Congo","Democratic Republic of the Congo","Congo Kinshasa","DRC"],["Republic of the Congo","Congo Brazzaville","Republic of Congo","Congo"],["Timor-Leste","East Timor"],["North Macedonia","Macedonia"],["T\u00FCrkiye","Turkey","Turkiye"],["Palestine","State of Palestine"],["Russia","Russian Federation"],["South Korea","Republic of Korea"],["North Korea","DPRK"],["Laos","Lao PDR"],["Vietnam","Viet Nam"],["Micronesia","Federated States of Micronesia"],["Bahamas","The Bahamas"],["Gambia","The Gambia"],["Brunei","Brunei Darussalam"],["Syria","Syrian Arab Republic"],["Iran","Persia"],["Tanzania","United Republic of Tanzania"],["Moldova","Republic of Moldova"],["Bolivia","Plurinational State of Bolivia"],["Venezuela","Bolivarian Republic of Venezuela"],["S\u00E3o Tom\u00E9 and Pr\u00EDncipe","Sao Tome and Principe","Sao Tome"],["Saint Kitts and Nevis","St Kitts and Nevis","St Kitts"],["Saint Lucia","St Lucia"],["Saint Vincent and the Grenadines","St Vincent and the Grenadines","St Vincent"],["United Arab Emirates","UAE","Emirates"],["Netherlands","Holland"],["Guinea-Bissau","Guinea Bissau"],["Trinidad and Tobago","Trinidad"],["Bosnia and Herzegovina","Bosnia"],["Antigua and Barbuda","Antigua"],["Papua New Guinea","PNG"],["Central African Republic","CAR"],["Marshall Islands","Marshalls"],["Solomon Islands","Solomons"]];
+let silOn=false,silMiss=0,silNames=null;
+const silNorm=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g," and ").replace(/\bst\.?\s/g,"saint ").replace(/[^a-z0-9]+/g," ").trim().replace(/^the /,"");
+function silBuild(){
+  if(silNames)return;silNames={all:new Set(),byId:{}};
+  const groups=SIL_ALIAS.map(g=>g.map(silNorm));
+  Object.keys(FACTS).forEach(id=>{const n=silNorm(FACTS[id].n),set=new Set([n]);groups.forEach(g=>{if(g.includes(n))g.forEach(x=>set.add(x))});silNames.byId[id]=set;set.forEach(x=>silNames.all.add(x))});
+}
+function lev(a,b){const m=a.length,n=b.length;let p=[...Array(n+1).keys()];for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function silCheck(id,txt){
+  const t=silNorm(txt);if(!t)return false;silBuild();
+  const set=silNames.byId[id];if(set.has(t))return true;
+  if(silNames.all.has(t))return false;                     // a real, different country: never forgiven as a typo
+  for(const n of set)if(n.length>=6&&Math.abs(n.length-t.length)<=1&&lev(t,n)<=1)return true;
+  return false;
+}
+function silShape(id){
+  const f=byId[id];if(f._sil)return f._sil;
+  if(f.geometry.type!=="MultiPolygon")return (f._sil=f);
+  const ps=f.geometry.coordinates.map(co=>{const g={type:"Polygon",coordinates:co};return {co,a:d3.geoArea(g),c:d3.geoCentroid(g)}}).sort((a,b)=>b.a-a.a),m=ps[0];
+  const keep=ps.filter(p=>p===m||d3.geoDistance(p.c,m.c)<.5);   // the mainland and its neighbours, not far-flung territories
+  return (f._sil={type:"Feature",geometry:{type:"MultiPolygon",coordinates:keep.map(p=>p.co)}});
+}
+function silDraw(id){
+  const feat=silShape(id),w=360,h=230,c=d3.geoCentroid(feat);
+  const proj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).fitExtent([[18,14],[w-18,h-14]],feat);
+  const sv=d3.select("#silSvg");sv.selectAll("*").remove();
+  sv.append("path").attr("d",d3.geoPath(proj)(feat));
+}
+function silHide(){silOn=false;const e=$("sil");if(e){e.hidden=true;e.classList.remove("out")}$("app").classList.remove("silmode")}
+function silBegin(){
+  const id=S.target;silOn=true;silMiss=0;
+  hideCard();
+  $("app").classList.add("silmode");$("sil").hidden=false;$("sil").classList.remove("out");
+  silDraw(id);
+  $("silIn").value="";$("silSug").innerHTML="";$("silHint").textContent=D.active?`Daily ${D.idx+1} of ${D.ids.length}`:"";
+  setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
+}
+function silFinish(shown){
+  if(!silOn)return;silOn=false;
+  $("sil").classList.add("out");$("app").classList.remove("silmode");
+  setTimeout(()=>{$("sil").hidden=true;$("sil").classList.remove("out")},520);
+  success(shown);
+}
+function silGuess(){
+  if(!silOn)return;
+  const txt=$("silIn").value;if(!txt.trim())return;
+  const T=S.target,f=FACTS[T];
+  if(silCheck(T,txt))return silFinish(false);
+  silMiss++;S.tries++;S.streak=0;S.weak[T]=Math.min(10,(S.weak[T]||0)+2);save();sndMiss();
+  const fm=$("silForm");fm.classList.remove("shake");void fm.offsetWidth;fm.classList.add("shake");
+  const hints=[`Not quite. It is in ${regName(f)}.`,`It starts with ${f.n[0].toUpperCase()}.`,`Its name has ${f.n.replace(/[^\p{L}]/gu,"").length} letters.`];
+  $("silHint").textContent=S.hints?hints.slice(0,Math.min(3,silMiss)).join(" ")+(silMiss>=3?" You can also ask to be shown.":""):"Not quite.";
+  $("silIn").select();
+}
+$("silForm").onsubmit=e=>{e.preventDefault();silGuess()};
+$("silShow").onclick=()=>silFinish(true);
+$("silSkip").onclick=()=>{if(!silOn)return;sndTick();nextRound()};
+$("silIn").addEventListener("input",()=>{
+  const t=silNorm($("silIn").value),ul=$("silSug");ul.innerHTML="";
+  if(t.length<2)return;
+  const m=Object.keys(FACTS).filter(id=>silNorm(FACTS[id].n).includes(t)).sort((a,b)=>silNorm(FACTS[a].n).startsWith(t)===silNorm(FACTS[b].n).startsWith(t)?0:silNorm(FACTS[a].n).startsWith(t)?-1:1).slice(0,5);
+  m.forEach(id=>ul.append(el("li",{},el("button",{type:"button",onclick:()=>{$("silIn").value=FACTS[id].n;ul.innerHTML="";$("silIn").focus()}},FACTS[id].n))));
+});
+
+/* ---------- camera memory: where you last left the globe ---------- */
+let viewTm=null;
+function saveViewSoon(){clearTimeout(viewTm);viewTm=setTimeout(save,400)}
+function restoreView(){
+  const v=S.view;if(!v||!Array.isArray(v.r))return;
+  projection.rotate([+v.r[0]||0,clamp(+v.r[1]||0,-85,85),+v.r[2]||0]);
+  zoomK=clamp(+v.k||1,.8,8);
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});window.addEventListener("pagehide",save);
+
+/* ---------- go ---------- */
+window.addEventListener("resize",size);
+document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
+try{if(localStorage.getItem("mb-dock"))$("dock").classList.remove("shimmer")}catch(e){}
+syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+setTimeout(buildMid,700);
+initIntro();
+syncZoom();
+if(!reduced){drifting=false;scheduleDrift();}
+})();
+</script>
+</body>
+</html>

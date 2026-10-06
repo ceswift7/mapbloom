@@ -164,7 +164,7 @@ function cvColors(){
   CV.tintEA=d3.interpolateRgb(CV.land,d3.interpolateRgb(CV.p.Europe,CV.p.Asia)(.5))(.4);
   CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
   if(GLX.colors)GLX.colors();
-  makePaperBg();benchSoon();
+  makePaperBg();makeBookTiles();benchSoon();
 }
 /* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
 const benchEl=document.getElementById("bench"),benchCtx=benchEl.getContext("2d");let benchTm=0;
@@ -197,6 +197,45 @@ function benchDraw(){
       for(let k=0;k<6;k++){const a2=r()*6.2832,d2=sz*(1.1+r()*1.2),rr=.8+r()*1.9;c.moveTo(px+Math.cos(a2)*d2+rr,py+Math.sin(a2)*d2);c.arc(px+Math.cos(a2)*d2,py+Math.sin(a2)*d2,rr,0,6.2832)}c.fill();
       break}
   });
+}
+/* the journal's own materials, baked once per theme: pebbled leather for the cover, toothy paper for the pages */
+function makeBookTiles(){
+  const dark=isDark(),mk=N=>{const c=document.createElement("canvas");c.width=c.height=N;return c},st=document.documentElement.style;
+  let seed=29;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  {const N=160,c=mk(N),x=c.getContext("2d");
+    for(let i=0;i<1500;i++){const px=rnd()*N,py=rnd()*N,r=.7+rnd()*1.6;
+      x.fillStyle=`rgba(25,12,0,${.06+rnd()*.1})`;x.beginPath();x.arc(px,py,r,0,6.2832);x.fill();
+      x.fillStyle=`rgba(255,226,180,${.04+rnd()*.07})`;x.beginPath();x.arc(px-.8,py-.8,r*.55,0,6.2832);x.fill()}
+    x.lineCap="round";for(let i=0;i<16;i++){const px=rnd()*N,py=rnd()*N,a=rnd()*6.28,l=5+rnd()*14;x.strokeStyle=`rgba(255,226,180,${.05+rnd()*.06})`;x.lineWidth=.7;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
+    st.setProperty("--leather-img",`url(${c.toDataURL("image/png")})`)}
+  {const N=128,c=mk(N),x=c.getContext("2d"),ink=dark?"235,225,205":"110,85,50";
+    for(let i=0;i<5;i++){const px=rnd()*N,py=rnd()*N,r=34+rnd()*40,g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,`rgba(${ink},${dark?.03:.045})`);g.addColorStop(1,`rgba(${ink},0)`);x.fillStyle=g;
+      for(const ox of[-N,0,N])for(const oy of[-N,0,N]){x.save();x.translate(ox,oy);x.fillRect(px-r,py-r,r*2,r*2);x.restore()}}
+    for(let i=0;i<520;i++){x.fillStyle=`rgba(${ink},${(dark?.05:.07)+rnd()*.07})`;x.fillRect(Math.floor(rnd()*N),Math.floor(rnd()*N),1+(rnd()<.2?1:0),1)}
+    x.lineWidth=.6;for(let i=0;i<30;i++){const px=rnd()*N,py=rnd()*N,a=rnd()*6.28,l=3+rnd()*7;x.strokeStyle=`rgba(${ink},${dark?.05:.07})`;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
+    st.setProperty("--page-img",`url(${c.toDataURL("image/png")})`)}
+}
+/* signs of life on the pages: a coffee ring, an ink blot, a thumb smudge, pencil marks (drawn once when the book opens) */
+function drawBookMarks(cv){
+  const p=cv&&cv.parentElement;if(!p)return;
+  const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(1.5,window.devicePixelRatio||1);
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const c=cv.getContext("2d");c.scale(dpr,dpr);
+  const dark=isDark(),ink=dark?"235,225,205":"90,70,45",two=w>=640;
+  let seed=41;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const lx=two?w*.24:w*.78,ly=two?h*.9:h*.14;
+  c.lineCap="round";
+  c.strokeStyle=`rgba(${dark?"210,170,120":"125,80,38"},${dark?.1:.13})`;c.lineWidth=3;c.beginPath();c.arc(lx,ly,36,.3,5.7);c.stroke();   // coffee ring
+  c.lineWidth=1.2;c.beginPath();c.arc(lx+2,ly+1,37.5,.6,5.2);c.stroke();
+  c.fillStyle=`rgba(${dark?"210,170,120":"125,80,38"},${dark?.035:.05})`;c.beginPath();c.arc(lx,ly,34,0,6.28);c.fill();
+  const bx=two?w*.86:w*.2,by=two?h*.09:h*.9;   // ink blot with spatter
+  c.fillStyle=dark?"rgba(150,175,230,.38)":"rgba(28,32,70,.4)";c.beginPath();
+  for(let k=0;k<6;k++){const ox=bx+(rnd()-.5)*10,oy=by+(rnd()-.5)*10,r=3+rnd()*5;c.moveTo(ox+r,oy);c.arc(ox,oy,r,0,6.28)}c.fill();
+  c.beginPath();for(let k=0;k<9;k++){const a=rnd()*6.28,d=11+rnd()*20,r=.6+rnd()*1.7;c.moveTo(bx+Math.cos(a)*d+r,by+Math.sin(a)*d);c.arc(bx+Math.cos(a)*d,by+Math.sin(a)*d,r,0,6.28)}c.fill();
+  const g=c.createRadialGradient(w*.9,h*.93,2,w*.9,h*.93,70);g.addColorStop(0,`rgba(${ink},.07)`);g.addColorStop(1,`rgba(${ink},0)`);   // thumb smudge
+  c.save();c.translate(w*.9,h*.93);c.rotate(-.5);c.scale(1.5,.8);c.translate(-w*.9,-h*.93);c.fillStyle=g;c.fillRect(w*.9-80,h*.93-80,160,160);c.restore();
+  c.strokeStyle=`rgba(${ink},${dark?.16:.2})`;c.lineWidth=1;   // a pencil star and a tick
+  const sx=two?w*.62:w*.88,sy=two?h*.95:h*.06;for(let k=0;k<4;k++){const a=k*Math.PI/4;c.beginPath();c.moveTo(sx-Math.cos(a)*7,sy-Math.sin(a)*7);c.lineTo(sx+Math.cos(a)*7,sy+Math.sin(a)*7);c.stroke()}
+  c.beginPath();c.moveTo(w*.06,h*.965);c.bezierCurveTo(w*.09,h*.955,w*.12,h*.975,w*.17,h*.96);c.stroke();
 }
 function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
   const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
@@ -1936,7 +1975,8 @@ const ACH=[
   {id:"sixty",n:"Sixty Seconds",i:"\u{23F1}",d:"Finish a daily in under a minute",t:()=>Object.values(S.daily.results).some(r=>r&&r.time&&r.time<60000)},
   {id:"shape",n:"Shape Shifter",i:"\u{1F537}",d:"Name 20 countries from their silhouettes",t:()=>(S.counts.sil||0)>=20},
   {id:"raceflag",n:"Flag Sprinter",i:"\u{1F3C1}",d:"Race all of Europe from flags",t:()=>!!(REC["Europe|flag"]&&REC["Europe|flag"].runs.length)},
-  {id:"racecap",n:"Capital Sprinter",i:"\u{1F3D9}",d:"Race all of Europe from capitals",t:()=>!!(REC["Europe|capital"]&&REC["Europe|capital"].runs.length)}
+  {id:"racecap",n:"Capital Sprinter",i:"\u{1F3D9}",d:"Race all of Europe from capitals",t:()=>!!(REC["Europe|capital"]&&REC["Europe|capital"].runs.length)},
+  {id:"chain1",n:"Link by Link",i:"\u{1F517}",d:"Finish a neighbour chain",t:()=>(S.counts.chain||0)>=1}
 ];
 function checkExp(silent){
   EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp")})}});
@@ -2003,8 +2043,8 @@ function renderBook(tab){
   const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"]];
   const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
   const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages})[tab]();
-  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
-  openModal("book");
+  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"}),el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
+  openModal("book");requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks")));
 }
 function atlasPages(){
   const tot=total(),F=S.found,nFound=playable.filter(f=>F.has(f.id)).length,got=ACH.filter(a=>S.ach[a.id]).length;
@@ -2034,8 +2074,8 @@ function atlasPages(){
 }
 function stampPages(){
   const got=ACH.filter(a=>S.ach[a.id]).length,half=Math.ceil(ACH.length/2);
-  const grid=list=>el("div",{class:"stamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
-  return [[el("h2",{},"Stamp Book"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:6px"}),grid(ACH.slice(half))]];
+  const grid=list=>el("div",{class:"stamps bkstamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
+  return [[el("h2",{},"Stamp Book"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]];
 }
 function expPages(){
   const sel=EXPS.find(e=>e.id===expSel)||EXPS[0],L=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys across the map. Every country you find counts toward each journey it belongs to.")];

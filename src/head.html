@@ -514,7 +514,7 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .brand::after{display:none}
   .seg button{padding:6px 10px;font-size:13px}
   header{flex-wrap:wrap}
-  .dock{position:static;transform:none;order:3;width:100%;justify-content:space-between;margin-top:8px}
+  .dock{position:relative;left:auto;top:auto;transform:none;order:3;width:100%;justify-content:space-between;margin-top:8px;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--sheet)}
   .dock button{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
   .icon-btn{width:32px;height:32px}
   .tools{gap:4px}
@@ -566,6 +566,10 @@ body{touch-action:manipulation}
   .silq{font-size:18px;margin:2px 0}
   .silhint{min-height:0;margin-bottom:4px}
 }
+/* lite graphics (phones by default): no paper layers, no blur, flat fills, cheaper strokes */
+body.lite .paper i.mottle,body.lite .paper i.tooth,body.lite .paper i.grain,body.lite .paper i.scan{display:none}
+body.lite *{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-edge{vector-effect:none}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
   .label{clip-path:none}

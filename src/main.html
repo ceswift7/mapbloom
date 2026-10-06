@@ -14,11 +14,14 @@ const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.get
 
 /* effect switches (all on by default; the dev menu flips them to isolate what costs frames) */
 const FX={ts:1,wc:true,bloomFx:true,tiles:true,clip:true,cull:true,lod:"auto"};
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isTouch=isIOS||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
+let LITE=false;   // lite graphics: on by default for touch devices (see applyFx)
 let introOwn=null;      // while the opening replays a returning player’s map: only these saved countries are shown so far
 const introSet=new Set();   // countries painted only for the opening sequence (never saved)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -45,10 +48,11 @@ try{
   if(s.view&&Array.isArray(s.view.r)) S.view=s.view;
   if(typeof s.hints==="boolean") S.hints=s.hints;
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
+  if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -212,7 +216,7 @@ function renderNow(){
   projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-24,-stageTop-24],[W+24,innerHeight-stageTop+24]]:null);
   if(!animating){   // no geometry swaps in the middle of a fly-to; one full-quality render lands when it ends
     if(zoomK>=6)lodLvl=2;else if(zoomK<5.2&&lodLvl===2)lodLvl=1;
-    if(lodLvl<2){if(zoomK>=1.7)lodLvl=1;else if(zoomK<1.5)lodLvl=0}
+    if(lodLvl<2){if(zoomK>=(LITE?2.4:1.7))lodLvl=1;else if(zoomK<(LITE?2.2:1.5))lodLvl=0}
   }
   const lvl=typeof FX.lod==="number"?FX.lod:(moving&&lodLvl===2?1:lodLvl);
   const lim=Math.min(1.5708,Math.asin(Math.min(1,Math.hypot(W/2,Math.max(cy(),H-cy()))/s)))+.04;
@@ -432,7 +436,7 @@ d3.timer(ts=>{
   brushTick();
   if(R.phase==="run")$("sTime").textContent=fmtT(performance.now()-R.t0+R.pen);
   if(D.active&&D.t0!=null){const dt2=D.tEnd!=null?D.tEnd:performance.now()-D.t0;$("dClock").textContent=fmtT(dt2);$("dClock").classList.toggle("gold",dt2<60000)}
-  if(drifting&&!animating&&dt<100&&zoomK<=1.03&&!lensOpen&&S.mode!=="speed"){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
+  if(drifting&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&!lensOpen&&S.mode!=="speed"){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
 });
 svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",scheduleDrift);
 
@@ -1539,7 +1543,7 @@ function setSound(v){
 }
 function renderSettings(){
   const sh=sheetHead("Settings");
-  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
+  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
   sh.append(opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
@@ -1673,7 +1677,7 @@ function initIntro(){
   if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";return}
   introState="wait";
   if(S.found.size){introOwn=new Set();paint()}   // a returning player’s map stays hidden until the opening reveals it
-  if(S.found.size){   // build their paintings while the splash waits, a couple at a time, so the opening never has to do it all at once
+  if(S.found.size&&FX.tiles){   // build their paintings while the splash waits, a couple at a time, so the opening never has to do it all at once
     const order=["Africa","Europe","Asia","Americas","Oceania"],ids=[...S.found].filter(id=>FACTS[id]).sort((a,b)=>order.indexOf(FACTS[a].r)-order.indexOf(FACTS[b].r));let wi=0;
     const step=()=>{const t0=performance.now();while(wi<ids.length&&performance.now()-t0<9)ensureArt(ids[wi++]);if(wi<ids.length)setTimeout(step,24)};
     setTimeout(step,200);
@@ -1773,10 +1777,20 @@ function introHandoff(fast){
   setTimeout(blank,950);
 }
 /* ---------- phones: no page zoom, and lighter effects only if the device is visibly struggling ---------- */
-const isTouch=!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
 ["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
 document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
-function liteMode(){FX.bloomFx=false;document.body.classList.add("noblur","nopaper")}
+let fxForced=false;
+function liteMode(){if(S.fx==="full")return;fxForced=true;applyFx();paint();render(true)}   // a touch device that is visibly struggling
+/* graphics level: Auto = lite on phones/tablets, full on computers; the user can pick either */
+function applyFx(){
+  LITE=S.fx==="lite"||(S.fx==="auto"&&(isTouch||fxForced));
+  FX.wc=!LITE;FX.tiles=!LITE;FX.bloomFx=!LITE;
+  gPaint.attr("filter",LITE?null:"url(#wc)");lPaint.attr("filter",LITE?null:"url(#wc)");
+  gShadow.style("display",LITE?"none":null);gLift.style("display",LITE?"none":null);
+  projection.precision(LITE?1.2:.4);projC.precision(LITE?1.2:.5);
+  document.body.classList.toggle("lite",LITE);
+}
+function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
 if(isTouch){
   let n=0,sum=0,last=0;
   const tick=t=>{if(last&&!document.hidden){const dt=t-last;if(dt<500){sum+=dt;n++}}last=t;if(n>=45){if(sum/n>48)liteMode();return}requestAnimationFrame(tick)};
@@ -1873,7 +1887,10 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});wi
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
 try{if(localStorage.getItem("mb-dock"))$("dock").classList.remove("shimmer")}catch(e){}
-syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
+if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
+window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged
 setTimeout(buildMid,700);
 initIntro();
 syncZoom();

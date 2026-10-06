@@ -2918,7 +2918,7 @@ out vec4 oC;
 uniform vec4 uBorder;
 uniform float uPx;
 void main(){
-  float a=clamp((uPx*1.2-abs(vD))/(uPx*0.9),0.0,1.0)*vF*uBorder.a;
+  float a=clamp((uPx*0.95-abs(vD))/(uPx*0.8),0.0,1.0)*vF*uBorder.a;
   oC=vec4(uBorder.rgb*a,a);
 }`;
 const GL_VS=`#version 300 es
@@ -3106,7 +3106,8 @@ function glUploadFull(tex,canvas,fmt){
   GLc.bindTexture(GLc.TEXTURE_2D,tex);
   GLc.pixelStorei(GLc.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);GLc.pixelStorei(GLc.UNPACK_FLIP_Y_WEBGL,false);
   GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,GLc.RGBA,GLc.UNSIGNED_BYTE,canvas);
-  if(fmt!=="nomip")GLc.generateMipmap(GLc.TEXTURE_2D);
+  if(fmt==="nomip")GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR);   // no mip levels: a mip-mapped filter would make the texture incomplete and sample as black
+  else GLc.generateMipmap(GLc.TEXTURE_2D);
 }
 function glUploadBand(tex,canvas,y,h){
   if(h<=0)return;
@@ -3367,7 +3368,8 @@ GLX.draw=function(s,cen0){
     GLc.useProgram(glLProg);GLc.bindVertexArray(glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
     GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,1/cvDpr);
-    GLc.uniform4f(glLU.uBorder,bo[0],bo[1],bo[2],bo[3]);
+    const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[.88,.84,.74,.42]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
+    GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
     GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,glLN);
     GLc.disable(GLc.BLEND);GLc.bindVertexArray(glVao);
   }

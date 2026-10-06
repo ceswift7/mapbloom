@@ -30,7 +30,6 @@
   --c-Oceania:#F2B79B;  --c-Oceania-d:#C07754;
   --miss:#C9BFAA; --focus:#3F6E8C; --hot:#B5452F; --accent:#3A332B;
   --halo:rgba(231,217,185,.95); --halo-soft:rgba(231,217,185,.66); --ink-hint:#4A4136;
-  --gx:50%; --gy:50%; --gr:220px;
   --cur-cross:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='white' stroke-opacity='.9' stroke-width='2.6'%3E%3Ccircle cx='14' cy='14' r='7.5'/%3E%3Cpath d='M14 2.5v6M14 19.5v6M2.5 14h6M19.5 14h6'/%3E%3C/g%3E%3Cg stroke='%233A332B' stroke-width='1.2'%3E%3Ccircle cx='14' cy='14' r='7.5'/%3E%3Cpath d='M14 2.5v6M14 19.5v6M2.5 14h6M19.5 14h6'/%3E%3C/g%3E%3C/g%3E%3Ccircle cx='14' cy='14' r='1.4' fill='%233A332B' stroke='white' stroke-width='.7'/%3E%3C/svg%3E") 14 14,crosshair; --cur-dot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Ccircle cx='11' cy='11' r='5.2' fill='none' stroke='white' stroke-opacity='.9' stroke-width='2.2'/%3E%3Ccircle cx='11' cy='11' r='5.2' fill='none' stroke='%233A332B' stroke-width='.9'/%3E%3Ccircle cx='11' cy='11' r='1.2' fill='%233A332B'/%3E%3C/svg%3E") 11 11,auto; --cur-ring:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='8.5' fill='rgba(255,255,255,.1)' stroke='white' stroke-opacity='.9' stroke-width='2.4'/%3E%3Ccircle cx='14' cy='14' r='8.5' fill='none' stroke='%233A332B' stroke-width='1.1'/%3E%3Ccircle cx='14' cy='14' r='1.8' fill='%233A332B'/%3E%3C/svg%3E") 14 14,pointer;
   --grat:rgba(120,92,50,.18); --edge:rgba(90,70,40,.32); --lift:#5a4527; --lift-op:.10; --wash-blend:normal;
   --paper-shadow:rgba(88,66,32,.20);
@@ -89,7 +88,7 @@ button,.btn,.chip,.icon-btn{-webkit-user-select:none;user-select:none}
 ::selection{background:color-mix(in srgb,var(--c-Europe-d) 38%,transparent);color:inherit}
 html,body{height:100%;margin:0}
 body{
-  background:radial-gradient(120% 90% at 50% 38%,var(--paper),var(--paper-2));
+  background:var(--paper) var(--paper-img,none);background-size:256px 256px;
   color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.45;
   overflow:hidden; -webkit-font-smoothing:antialiased;
 }
@@ -98,22 +97,7 @@ body{
   background:radial-gradient(110% 80% at 50% 40%,#10224A,#050A19 70%)}
 [data-mode="speed"] .speedbg{opacity:1}
 
-/* ---- paper stock: mottled fibre + cold-press tooth + fine grain + vignette (over everything, never blocks input) ---- */
-.paper{position:fixed;inset:0;pointer-events:none;z-index:50}
-.paper i,.papertex i{position:absolute;inset:0;display:block}
-.papertex{position:fixed;inset:0;pointer-events:none;z-index:0;display:none}   /* canvas globe: the paper grain sits UNDER the app, so it is composited once and never again */
-.paper .mottle,.papertex .mottle{opacity:var(--mottle-op);mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .009' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .52 0 0 0 0 .40 0 0 0 0 .22 0 0 0 1.25 -.42'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E")}
-.paper .tooth,.papertex .tooth{opacity:var(--tooth-op);mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='t' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='7' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='1.2'%3E%3CfeDistantLight azimuth='235' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E")}
-.paper .grain,.papertex .grain{opacity:var(--grain-op);mix-blend-mode:var(--grain-blend);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .27 0 0 0 0 .2 0 0 0 .34 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.paper .scan{opacity:var(--scan-op);transition:opacity .9s;background:repeating-linear-gradient(0deg,rgba(120,210,255,.05) 0 1px,transparent 1px 3px)}
-
-/* grain thins out over the globe so the map stays crisp (centre/radius set from JS) */
-.paper .mottle,.paper .tooth,.paper .grain{
-  -webkit-mask-image:radial-gradient(circle at var(--gx) var(--gy),rgba(0,0,0,.22) 0,rgba(0,0,0,.22) calc(var(--gr)*.96),#000 calc(var(--gr)*1.12));
-  mask-image:radial-gradient(circle at var(--gx) var(--gy),rgba(0,0,0,.22) 0,rgba(0,0,0,.22) calc(var(--gr)*.96),#000 calc(var(--gr)*1.12))}
+/* paper: one static tile (made once by makePaperBg) on the body: no blend layers, no masks, never repainted while the globe moves */
 
 #toast.click{cursor:pointer;pointer-events:auto}
 
@@ -171,7 +155,7 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .lenshead small{font-family:var(--sans);font-style:normal;font-size:12px;color:var(--ink-soft);margin-left:8px}
 .lensx{position:absolute;right:10px;top:10px;z-index:2}
 .lenscap{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:9px 14px;
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transform:translateY(130%);transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+  transform:translateY(130%);transition:transform .55s cubic-bezier(.2,.8,.2,1)}
 .lenscap.on{transform:none}
 .lenscap img{width:46px;max-height:34px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18);flex:none}
 .lenscap b{font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.1}
@@ -185,15 +169,6 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .btn.danger{background:var(--hot);color:#fff;border-color:transparent}
 .lens svg{touch-action:none}
 /* while something flies or blooms: no blur-behind (re-blurring over a moving map every frame is costly) */
-.app.busy .card,.app.busy .label,.app.busy .btn,.app.busy .dock,.app.busy .chip,.app.busy .icon-btn,.app.busy .lenscap,.app.busy .progress,.app.busy .pill{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
-.app.busy .card{background:var(--sheet)}
-.app.busy .label{background:var(--sheet)}
-body.noblur .card,body.noblur .label,body.noblur .btn,body.noblur .chip,body.noblur .icon-btn,body.noblur .lenscap{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
-body.nopaper .paper,body.nopaper .papertex{display:none}
-body.cv .papertex{display:block}
-body.cv .paper i.mottle,body.cv .paper i.tooth,body.cv .paper i.grain{display:none}
-body.lite .papertex{display:none}
-body.noblur *{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
 /* ---- opening sequence ---- */
 .intro{position:fixed;inset:0;z-index:49;display:grid;place-items:center;background:radial-gradient(120% 90% at 50% 38%,var(--paper),var(--paper-2));transition:opacity .9s ease}
 .intro.out{opacity:0;pointer-events:none}
@@ -292,6 +267,7 @@ body.introing.introglobe #gcanvas,body.introing.introglobe #glcanvas{animation:r
 #lift{fill:var(--lift);opacity:var(--lift-op)}
 #paint{mix-blend-mode:var(--wash-blend)}
 .sphere-edge{stroke:var(--edge)}
+body.gl #globe:not(:focus-visible) .sphere-edge{display:none}   /* the GPU globe draws its own limb line */
 
 /* header */
 header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:12px 20px 0;position:relative;z-index:3}
@@ -301,7 +277,7 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
   background:linear-gradient(90deg,var(--c-Europe),var(--c-Americas),var(--c-Africa),var(--c-Asia));opacity:.5;filter:blur(1.4px);transform-origin:left;animation:stroke 1.8s .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes stroke{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:.5}}
 .tools{display:flex;gap:6px;align-items:center;justify-self:end}
-.dock{--acc:var(--mode-acc);position:relative;display:flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:999px;background:var(--panel);border:1px solid color-mix(in srgb,var(--acc) 40%,var(--panel-line));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .5s ease;z-index:4}
+.dock{--acc:var(--mode-acc);position:relative;display:flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:999px;background:var(--panel);border:1px solid color-mix(in srgb,var(--acc) 40%,var(--panel-line));transition:border-color .5s ease;z-index:4}
 .dock button{position:relative;z-index:1;display:flex;align-items:center;gap:6px;height:28px;padding:0 13px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:500;line-height:1;color:var(--ink-soft);background:none;border:0;transition:color .35s ease}
 .dock button svg{width:15px;height:15px;flex:none}
 .dock button[aria-pressed="true"]{color:#fff;font-weight:600}
@@ -331,7 +307,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .prompt .actions{margin-top:4px;display:flex;gap:8px;justify-content:center;pointer-events:auto}
 .qflag{display:block;margin:2px auto 6px;width:clamp(110px,18vw,170px);max-height:112px;object-fit:contain;border-radius:4px;box-shadow:0 0 0 1px rgba(58,51,43,.2),0 10px 20px -10px var(--paper-shadow);transform:rotate(-1.5deg)}
 .qflag[hidden]{display:none}
-.btn{padding:8px 16px;border-radius:999px;font-size:14px;font-weight:500;border:1px solid var(--panel-line);background:var(--panel);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .25s ease,box-shadow .25s ease}
+.btn{padding:8px 16px;border-radius:999px;font-size:14px;font-weight:500;border:1px solid var(--panel-line);background:var(--panel);transition:transform .25s ease,box-shadow .25s ease}
 .btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px -8px var(--paper-shadow)}
 .btn.primary{background:var(--ink);color:var(--paper);border-color:transparent;animation:nudge 2.8s 1s ease-in-out infinite}
 [data-mode="speed"] .btn.primary{background:var(--accent);color:#06142C;animation:none}
@@ -364,14 +340,14 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* floating labels: written in like ink */
 .label{position:absolute;z-index:2;pointer-events:none;transform:translate(-50%,-130%);font-family:var(--serif);font-style:italic;font-size:17px;
-  background:var(--panel);border:1px solid var(--panel-line);padding:3px 10px 4px;border-radius:8px;white-space:nowrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  background:var(--panel);border:1px solid var(--panel-line);padding:3px 10px 4px;border-radius:8px;white-space:nowrap;
   opacity:0;clip-path:inset(0 100% 0 0);filter:blur(2px);transition:opacity .5s ease,clip-path .75s cubic-bezier(.3,.7,.2,1),filter .6s ease}
 .label.on{opacity:1;clip-path:inset(0 0 0 0);filter:none}
 
 /* fact card: unfolds like a paper slip; "Explore" widens it into a reading page */
 .card{position:absolute;z-index:7;right:12px;bottom:10px;width:min(340px,calc(100% - 24px));max-height:calc(100% - 20px);display:flex;flex-direction:column;
   background:var(--panel);border:1px solid var(--panel-line);
-  border-radius:16px;padding:18px 20px 0;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 18px 40px -22px var(--paper-shadow),0 2px 0 rgba(255,255,255,.35) inset;
+  border-radius:16px;padding:18px 20px 0;box-shadow:0 18px 40px -22px var(--paper-shadow),0 2px 0 rgba(255,255,255,.35) inset;
   transform-origin:100% 100%;transform:translateY(22px) rotate(1.6deg) scale(.96);opacity:0;pointer-events:none;
   transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1),width .55s cubic-bezier(.2,.8,.2,1)}
 .card.on{transform:none;opacity:1;pointer-events:auto}
@@ -445,7 +421,7 @@ footer{position:relative;z-index:3;padding:0 20px 14px;display:flex;align-items:
 @media (max-width:1100px){.chip .n{display:none}}
 
 /* modal sheets (menu, records, results) */
-.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(30,24,14,.38);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .35s ease}
+.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(30,24,14,.38);opacity:0;pointer-events:none;transition:opacity .35s ease}
 [data-mode="speed"] .modal{background:rgba(2,6,18,.6)}
 .modal.on{opacity:1;pointer-events:auto}
 .sheet{position:relative;width:min(540px,calc(100% - 24px));max-height:min(88vh,740px);overflow:auto;background:var(--sheet);border:1px solid var(--panel-line);border-radius:20px;padding:22px 24px 22px;
@@ -588,8 +564,6 @@ body{touch-action:manipulation}
   .silhint{min-height:0;margin-bottom:4px}
 }
 /* lite graphics (phones by default): no paper layers, no blur, flat fills, cheaper strokes */
-body.lite .paper i.mottle,body.lite .paper i.tooth,body.lite .paper i.grain,body.lite .paper i.scan{display:none}
-body.lite *{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
 body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-edge{vector-effect:none}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
@@ -600,7 +574,6 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 </head>
 <body class="introing">
 <div class="speedbg" aria-hidden="true"></div>
-<div class="papertex" aria-hidden="true"><i class="mottle"></i><i class="tooth"></i><i class="grain"></i></div>
 <div class="intro" id="intro" role="dialog" aria-label="Welcome to Mapbloom">
   <div class="intro-stage">
     <h1 class="intro-word" aria-label="Mapbloom"><span class="guide" aria-hidden="true">Mapbloom</span><span class="ink" id="introInk" aria-hidden="true">Mapbloom</span></h1>
@@ -712,4 +685,3 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="count" id="count" aria-hidden="true"></div>
 <div class="wash" id="wash" aria-hidden="true"></div><div class="modeName" id="modeName" aria-hidden="true"></div>
-<div class="paper" aria-hidden="true"><i class="mottle"></i><i class="tooth"></i><i class="grain"></i><i class="scan"></i></div>

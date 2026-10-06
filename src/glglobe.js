@@ -73,13 +73,18 @@ uniform vec3 uSeaMid;
 uniform vec3 uSeaOut;
 uniform vec4 uGrat;
 uniform vec4 uBorder;
+uniform vec4 uEdge;
 uniform float uPA;
 uniform float uFade;
 uniform sampler2D uPLand;
 uniform sampler2D uPArt;
 uniform float uPOn;
 uniform vec4 uP;
+uniform vec4 uDrop[3];
+uniform vec4 uDropC[3];
 const float PI=3.14159265358979;
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}
 vec3 layers(vec3 col,sampler2D tL,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,float pa){
   vec4 L=textureGrad(tL,uv,gx,gy);
   col=L.rgb+col*(1.0-L.a);
@@ -130,8 +135,28 @@ void main(){
   vec2 pgx=dFdx(puv),pgy=dFdy(puv);
   float pw=smoothstep(0.0,0.06,min(min(puv.x,1.0-puv.x),min(puv.y,1.0-puv.y)))*uPOn;
   if(pw>0.0){vec3 cp=layers(base,uPLand,uPArt,puv,pgx,pgy,uPA);col=mix(col,cp,pw);}
-  vec4 B=textureGrad(uArt2,uv,gx,gy)*uFade;
+  vec4 B2=textureGrad(uArt2,uv,gx,gy);
+  float bm=uFade,bring=0.0;vec3 brc=vec3(0.0);bool anyD=false;
+  for(int i=0;i<3;i++){
+    vec4 c=uDropC[i];if(c.w<0.0)continue;
+    if(!anyD){anyD=true;bm=0.0;}
+    vec4 d=uDrop[i];
+    float dlo=lon-d.x;dlo-=2.0*PI*floor((dlo+PI)/(2.0*PI));
+    float ang=acos(clamp(sin(lat)*sin(d.y)+cos(lat)*cos(d.y)*cos(dlo),-1.0,1.0));
+    vec2 q=vec2(dlo*cos(lat),lat-d.y)/max(d.z,1e-3)*d.w;
+    float n=vn(q)*0.6+vn(q*2.3+7.0)*0.4;
+    float p=c.w,e=1.0-pow(1.0-p,2.2);
+    float front=d.z*(e*(0.6+0.9*n)+smoothstep(0.85,1.0,p)*1.6);
+    float soft=d.z*0.05+1e-4;
+    bm=max(bm,1.0-smoothstep(front-soft,front+soft,ang));
+    float rg=exp(-pow((ang-front)/(soft*1.7),2.0))*smoothstep(0.0,0.05,p)*(1.0-smoothstep(0.85,1.0,p));
+    if(rg>bring){bring=rg;brc=c.rgb;}
+  }
+  vec4 B=B2*bm;
   col=B.rgb+col*(1.0-B.a);
+  col=mix(col,brc,bring*B2.a*0.38);       // the darker pigment line that bleeds along the front of the wash
+  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)*0.028;   // static paper grain, free
+  col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line
   oC=vec4(col*cov,cov);
 }`;
 
@@ -192,7 +217,7 @@ function glInitGL(){
   GLc.bindAttribLocation(p,0,"aC");GLc.linkProgram(p);
   if(!GLc.getProgramParameter(p,GLc.LINK_STATUS))throw new Error(GLc.getProgramInfoLog(p));
   glProg=p;
-  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uPA","uFade","uLand","uArt","uArt2","uPLand","uPArt","uPOn","uP"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
+  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uEdge","uPA","uFade","uLand","uArt","uArt2","uPLand","uPArt","uPOn","uP","uDrop","uDropC"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
   const vao=GLc.createVertexArray();glVao=vao;GLc.bindVertexArray(vao);
   const b=GLc.createBuffer();GLc.bindBuffer(GLc.ARRAY_BUFFER,b);GLc.bufferData(GLc.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),GLc.STATIC_DRAW);
   GLc.enableVertexAttribArray(0);GLc.vertexAttribPointer(0,2,GLc.FLOAT,false,0,0);
@@ -261,6 +286,9 @@ function glStartLand(){
     const st=j.st;if(st.i>=st.list.length)return true;
     const [key,fs]=st.list[st.i++];
     glPath.context(st.ctx);st.ctx.beginPath();fs.forEach(f=>glPath(f));st.ctx.fillStyle=glLandColor(key);st.ctx.fill();
+    {const c0=d3.color(glLandColor(key));if(c0){const k=glTW/4096,cx=st.ctx;cx.save();cx.clip();cx.lineJoin="round";   // wet-edge pigment pool just inside every coast and border
+      cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=9*k;cx.stroke();
+      cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=3.5*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
   },null);
   job.finish=()=>{
@@ -361,6 +389,25 @@ function glDoSync(){
     render(true);
   };
 }
+/* ---- the colour drop: the painting bleeds out of the drop point inside the shader (no SVG filters, no extra layers) ---- */
+const GB={slots:[null,null,null],cv:null,ctx:null,ready:false,dArr:new Float32Array(12),cArr:new Float32Array(12)};
+GLX.bloomStart=function(id,ll,rMax,shown,region){
+  const si=GB.slots.findIndex(x=>!x),f=byId[id];if(si<0||!f)return -1;
+  if(!GB.ready){GB.cv=glMakeCanvas(glTW,glTH);GB.ctx=GB.cv.getContext("2d");glUploadFull(glT.art2,GB.cv);GB.ready=true}
+  glDrawArt(GB.ctx,id,(shown?"w|":"f|")+artKey(id));
+  const yb=glBoundsY(f),y0=Math.max(0,Math.floor(yb[0]-12)),y1=Math.min(glTH,Math.ceil(yb[1]+12));
+  glUploadBand(glT.art2,GB.cv,y0,y1-y0);
+  const c=glRGB(CV.pd[region]||"#7a6a58");
+  GB.slots[si]={id,y0,y1,lon:ll[0]*Math.PI/180,lat:ll[1]*Math.PI/180,rMax,col:c,p:0,shown};
+  requestRender();return si;
+};
+GLX.bloomP=function(si,p){const b=GB.slots[si];if(b)b.p=p};
+GLX.bloomEnd=function(si){
+  const b=GB.slots[si];if(!b)return;GB.slots[si]=null;
+  GB.ctx.clearRect(0,b.y0,glTW,b.y1-b.y0);
+  GB.slots.forEach(o=>{if(o&&o.y0<b.y1&&o.y1>b.y0)glDrawArt(GB.ctx,o.id,(o.shown?"w|":"f|")+artKey(o.id))});   // redraw any other live drop that shared those rows
+  glUploadBand(glT.art2,GB.cv,b.y0,b.y1-b.y0);requestRender();
+};
 GLX.stateSize=()=>glArtState.size;
 GLX.artCanvas=()=>glArt;GLX.dbg=()=>({jobs:glJobs.length,artRun:glArtRun,landRun:glLandRun,fading:glFading.size,busy:glBusy,fadeV:glFadeV});
 GLX.paint=function(){if(!glSyncQ){glSyncQ=true;Promise.resolve().then(()=>{glSyncQ=false;glDoSync()})}};
@@ -376,7 +423,7 @@ function glFadeStart(){
   const c=glMakeCanvas(glTW,glTH),ctx=c.getContext("2d");
   const want=new Map();ids.forEach(id=>want.set(id,"f|"+artKey(id)));
   ids.forEach(id=>glDrawArt(ctx,id,want.get(id)));
-  glUploadFull(glT.art2,c);
+  glUploadFull(glT.art2,c);GB.ready=false;
   const t0=performance.now();
   const tm=d3.timer(()=>{
     const k=Math.min(1,(performance.now()-t0)/1100);glFadeV=k*k*(3-2*k);render();
@@ -478,8 +525,13 @@ GLX.draw=function(s,cen0){
   GLc.uniform1f(glU.uS,s);
   const si=glRGB(CV.seaIn),sm=glRGB(CV.seaMid),so=glRGB(CV.seaOut),gr=glRGB(CV.grat),bo=glRGB(CV.border);
   GLc.uniform3f(glU.uSeaIn,si[0],si[1],si[2]);GLc.uniform3f(glU.uSeaMid,sm[0],sm[1],sm[2]);GLc.uniform3f(glU.uSeaOut,so[0],so[1],so[2]);
+  const ed=glRGB(CV.edge);GLc.uniform4f(glU.uEdge,ed[0],ed[1],ed[2],Math.min(1,ed[3]*1.6));
   GLc.uniform4f(glU.uGrat,gr[0],gr[1],gr[2],gr[3]);GLc.uniform4f(glU.uBorder,bo[0],bo[1],bo[2],bo[3]);
   GLc.uniform1f(glU.uPA,cvPA);GLc.uniform1f(glU.uFade,glFadeV);
+  for(let i=0;i<3;i++){const b=GB.slots[i];
+    if(b){GB.dArr.set([b.lon,b.lat,b.rMax,3.2],i*4);GB.cArr.set([b.col[0],b.col[1],b.col[2],b.p],i*4)}
+    else{GB.dArr.set([0,0,1,1],i*4);GB.cArr.set([0,0,0,-1],i*4)}}
+  GLc.uniform4fv(glU.uDrop,GB.dArr);GLc.uniform4fv(glU.uDropC,GB.cArr);
   glPatchTick(s);
   const pl=GP.plan,usePatch=GP.on&&pl&&pl.s*.5<=s&&s<=pl.s*2.2;
   const pf=usePatch?Math.min(1,(performance.now()-GP.t0)/320):0;

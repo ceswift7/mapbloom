@@ -157,15 +157,27 @@ let cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
 const CV={},cvMissed=new Set(),cvFades=new Map();
 function cvColors(){
   const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
-  CV.seaIn=g("--sea-in");CV.seaMid=g("--sea-mid");CV.seaOut=g("--sea-out");CV.land=g("--land");CV.border=g("--border");CV.grat=g("--grat");CV.miss=g("--miss");
+  CV.seaIn=g("--sea-in");CV.seaMid=g("--sea-mid");CV.seaOut=g("--sea-out");CV.land=g("--land");CV.border=g("--border");CV.grat=g("--grat");CV.edge=g("--edge");CV.miss=g("--miss");
   CV.p={};CV.pd={};CV.tint={};
   REGIONS.forEach(r=>{CV.p[r]=g("--c-"+r);CV.pd[r]=g("--c-"+r+"-d");CV.tint[r]=d3.interpolateRgb(CV.land,CV.p[r])(.4)});
   CV.tintEA=d3.interpolateRgb(CV.land,d3.interpolateRgb(CV.p.Europe,CV.p.Asia)(.5))(.4);
   CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
   if(GLX.colors)GLX.colors();
+  makePaperBg();
+}
+/* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
+function makePaperBg(){
+  const dark=isDark()||S.mode==="speed",N=256,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const ink=dark?"232,222,200":"120,92,50";
+  for(let i=0;i<9;i++){const px=rnd()*N,py=rnd()*N,r=40+rnd()*70,g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,`rgba(${ink},${dark?.035:.05})`);g.addColorStop(1,`rgba(${ink},0)`);x.fillStyle=g;
+    for(const ox of[-N,0,N])for(const oy of[-N,0,N]){x.save();x.translate(ox,oy);x.fillRect(px-r,py-r,r*2,r*2);x.restore()}}
+  for(let i=0;i<650;i++){x.fillStyle=`rgba(${ink},${(dark?.05:.07)+rnd()*.06})`;x.fillRect(Math.floor(rnd()*N),Math.floor(rnd()*N),1,1)}
+  x.lineWidth=.6;for(let i=0;i<46;i++){const px=rnd()*N,py=rnd()*N,a=rnd()*6.28,l=3+rnd()*7;x.strokeStyle=`rgba(${ink},${dark?.04:.06})`;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
+  document.documentElement.style.setProperty("--paper-img",`url(${c.toDataURL("image/png")})`);
 }
 function cvResize(){
-  cvDpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)*cvQ);
+  cvDpr=Math.max(1,Math.min(1.5,window.devicePixelRatio||1)*cvQ);
   const w=innerWidth,h=innerHeight;
   if(GLX.resize)GLX.resize();
   cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";cv.style.left=(-stageLeft)+"px";
@@ -355,9 +367,8 @@ function renderNow(){
   const _pS=performance.now();
   const s=baseScale*zoomK;
   projection.scale(s).translate([W/2,cy()]);
-  const sp=path({type:"Sphere"});
-  sphere.attr("d",sp);
-  edge.attr("d",sp);
+  const skey=s+"|"+cy()+"|"+W;   // the globe outline only changes with size, never with rotation: no per-frame svg repaint while turning
+  if(skey!==renderNow.sk){renderNow.sk=skey;const sp=path({type:"Sphere"});sphere.attr("d",sp);edge.attr("d",sp)}
   if(!CANVAS)grat.attr("d",path(graticule));
   const cen0=projection.invert([W/2,cy()]);
   projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-stageLeft-24,-stageTop-24],[innerWidth-stageLeft+24,innerHeight-stageTop+24]]:null);
@@ -381,17 +392,14 @@ function renderNow(){
   const _p2=performance.now();
   if(blooms.length)blooms.forEach(b=>{if(b.v===MV)placeBloom(b)});
   positionLabels();
-  syncGrain(s);
   renderNow.prof={pre:_p0-_pS,draw:_p1-_p0,islands:_p2-_p1,rest:performance.now()-_p2};
   if(CANVAS&&(moving||animating)){
     const n=performance.now();
     if(cvLastT&&n-cvLastT<200){cvAvg=cvAvg*.92+(n-cvLastT)*.08;cvN++}
     cvLastT=n;
-    if(cvN>45&&cvAvg>28&&cvQ>.6&&cvDpr>1){cvQ=Math.max(.6,cvQ-.2);cvN=0;cvAvg=16;cvResize()}
+    if(cvN>30&&cvAvg>19&&cvQ>.6&&cvDpr>1){cvQ=Math.max(.6,cvQ-.15);cvN=0;cvAvg=16;cvResize()}   // 60 fps governor: render a little smaller whenever frames run long
   }else cvLastT=0;
 }
-let gl=[0,0,0];
-function syncGrain(s){const x=W/2,y=stageTop+cy();if(Math.abs(x-gl[0])+Math.abs(y-gl[1])+Math.abs(s-gl[2])<1)return;gl=[x,y,s];const st=document.documentElement.style;st.setProperty("--gx",x+"px");st.setProperty("--gy",y+"px");st.setProperty("--gr",s+"px")}
 const jit=id=>.88+((+id*37)%9)/100;  // each wash settles a little differently
 function paintSel(sel,landG,paintG){
   const F=cf(),speed=S.mode==="speed";
@@ -560,7 +568,7 @@ $("lensClose").onclick=closeLens;$("lensScrim").onclick=closeLens;
 let lastT=d3.zoomIdentity, idleTimer=null, drifting=!reduced;
 let movT=null,moving=false,rq=false;
 function requestRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;render()})}
-function markMoving(){if(!moving){moving=true;svg.classed("moving",true);setBusy()}clearTimeout(movT);movT=setTimeout(()=>{moving=false;svg.classed("moving",false);setBusy();render();saveViewSoon()},170)}
+function markMoving(){if(!moving){moving=true;svg.classed("moving",true);}clearTimeout(movT);movT=setTimeout(()=>{moving=false;svg.classed("moving",false);render();saveViewSoon()},170)}
 const zoom=d3.zoom().scaleExtent([.8,8]).clickDistance(5)
   .on("start",()=>{stopDrift()})
   .on("zoom",e=>{
@@ -605,16 +613,16 @@ function flyTo(lonlat,ms=1400,k){
   while(r1[0]-r0[0]>180)r1[0]-=360;while(r1[0]-r0[0]<-180)r1[0]+=360;
   const k0=zoomK,k1=k||zoomK;ms*=FX.ts||1;
   if(reduced){projection.rotate(r1);zoomK=k1;syncZoom();render();return Promise.resolve()}
-  animating=true;setBusy();sndFly(ms/1000);
+  animating=true;sndFly(ms/1000);
   return new Promise(res=>{
     d3.transition().duration(ms).ease(d3.easeCubicInOut).tween("fly",()=>{
       const ir=d3.interpolate(r0,r1), ik=d3.interpolate(k0,k1);
       return t=>{projection.rotate(ir(t));zoomK=ik(t);render()};
-    }).on("end",()=>{animating=false;syncZoom();render();setBusy();res()});
+    }).on("end",()=>{animating=false;syncZoom();render();res()});
   });
 }
 /* while something is flying or blooming, translucent blurred panels become plain ones (re-blurring over a moving map every frame is costly) */
-function setBusy(){document.getElementById("app").classList.toggle("busy",animating||blooms.length>0||moving)}
+
 /* build a country’s painting tiles ahead of time (when it becomes the target) so the click itself does no canvas work */
 function warmArt(id){
   if(!id||!FACTS[id])return;
@@ -1015,6 +1023,18 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
   });
   function impact(){
     if(!fast)sndDrop();rings(ll,col,fast,v);
+    if(GLX.on&&v===MV){      // GPU globe: the wash bleeds out inside the shader
+      const rMax=(src._r||.3)*1.6+.04,si=GLX.bloomStart(id,ll,rMax,shown,f.r);
+      if(!fast||S.mode!=="speed")sndBloom(fast);
+      if(si<0){done();if(onPayoff)onPayoff();return}
+      const t1=performance.now(),DUR=(fast?950:1700)*TS,MOT=(fast?380:900)*TS;let paid=false;
+      const tg=d3.timer(()=>{
+        const k=Math.min(1,(performance.now()-t1)/DUR);GLX.bloomP(si,k);if(!animating)render();
+        if(!paid&&k>=(fast?1:.4)){paid=true;if(!fast){sndPencil(MOT/1000);if(onPayoff)onPayoff();glint(ll,v)}}
+        if(k>=1){tg.stop();done();GLX.whenIdle(()=>{GLX.bloomEnd(si);render(true)});if(fast)glint(ll,v)}
+      });
+      return;
+    }
     const seed=1+Math.floor(Math.random()*99),fx=FX.bloomFx;
     defs.node().insertAdjacentHTML("beforeend",
       `<filter id="f-${uid}" x="-40%" y="-40%" width="180%" height="180%"><feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="2" seed="${seed}"/><feDisplacementMap in="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.6"/></filter>`+
@@ -1025,7 +1045,7 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
       ox:i?(Math.random()-.5)*.7:0,oy:i?(Math.random()-.5)*.7:0,delay:i?.08+Math.random()*.25:0,size:i?1.1+Math.random()*.4:1.5}));
     const clone=v.gPaint.append("path").datum(src).attr("class","country bloom").attr("data-r",f.r).attr("mask",`url(#m-${uid})`).style("fill",`url(#aw-${key})`);
     const b={uid,v,ll,src,lobes,clone,ov:null,t:0,fin:shown?.5:.94,dispEl:document.querySelector(`#f-${uid} feDisplacementMap`),turbEl:document.querySelector(`#f-${uid} feTurbulence`)};
-    blooms.push(b);setBusy();if(!fast||S.mode!=="speed")sndBloom(fast);
+    blooms.push(b);if(!fast||S.mode!=="speed")sndBloom(fast);
     const t1=performance.now(),DUR=(fast?950:1700)*TS,MOT=(fast?380:900)*TS;
     let moStarted=false,bloomDone=false,moDone=false;
     const tick=()=>{if(v!==MV||!animating)placeBloom(b)};   // during a fly-to render() already places main-view blooms
@@ -1049,7 +1069,7 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
       if(!(bloomDone&&moDone))return;
       blooms.splice(blooms.indexOf(b),1);done();
       clone.remove();b.ov.remove();document.getElementById("m-"+uid)?.remove();document.getElementById("f-"+uid)?.remove();
-      setBusy();if(v===MV&&!animating)render();
+      if(v===MV&&!animating)render();
       if(fast)glint(ll,v);
     }
   }
@@ -1982,10 +2002,10 @@ function introSpin(){
   at(0);render(true);
   introLater(()=>{
     if(introState!=="run")return;
-    const t0=performance.now();animating=true;setBusy();
+    const t0=performance.now();animating=true;
     spinT=d3.timer(()=>{
       const t=Math.min(1,(performance.now()-t0)/D);at(1-Math.pow(1-t,3));render();
-      if(t>=1){spinT.stop();spinT=null;animating=false;syncZoom();setBusy()}
+      if(t>=1){spinT.stop();spinT=null;animating=false;syncZoom();}
     });
     audioReady(()=>sndSpin(D/1000));
     const seq=[0,2,4,3,5,4,2,3,1,5,4,2];
@@ -2010,7 +2030,7 @@ function introHandoff(fast){
   if(introState!=="run")return;introState="done";
   introTimers.forEach(clearTimeout);introTimers.length=0;
   if(spinT){spinT.stop();spinT=null}
-  if(spinFinal){projection.rotate(spinFinal.r);zoomK=spinFinal.k;animating=false;syncZoom();setBusy();spinFinal=null}
+  if(spinFinal){projection.rotate(spinFinal.r);zoomK=spinFinal.k;animating=false;syncZoom();spinFinal=null}
   if(spinG&&actx){try{spinG.gain.cancelScheduledValues(actx.currentTime);spinG.gain.setTargetAtTime(0,actx.currentTime,.06)}catch(e){}spinG=null}
   document.body.classList.remove("introing","introglobe");document.body.classList.add("introout");
   $("introSkip").hidden=true;introEl.classList.add("out");
@@ -2033,7 +2053,6 @@ function applyFx(){
   gShadow.style("display",soft||CANVAS?"none":null);gLift.style("display",soft||CANVAS?"none":null);
   projection.precision(soft?1.2:.4);projC.precision(soft?1.2:.5);
   document.body.classList.toggle("lite",S.fx==="lite"||(soft&&!CANVAS));   // lite = no paper grain either
-  document.body.classList.toggle("noblur",soft);                          // soft = no live blur over the moving map
 }
 function engineSeg(){const w=el("div",{class:"seg2"});[["gl","Fast (GPU)"],["canvas","Compatible"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine2===k),onclick:()=>{if(S.engine2===k)return;S.engine2=k;save();location.reload()}},l)));return w}
 function autoSeg(){const w=el("div",{class:"seg2"});[["off","Off"],["fast","Quick"],["normal","Normal"],["slow","Slow"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.autoNext===k),onclick:()=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()}},l)));return w}

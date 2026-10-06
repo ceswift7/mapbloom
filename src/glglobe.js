@@ -84,6 +84,7 @@ uniform vec4 uDrop[3];
 uniform vec4 uDropC[3];
 const float PI=3.14159265358979;
 float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vnp(vec2 p,float per){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);float a=h21(vec2(mod(i.x,per),i.y)),b=h21(vec2(mod(i.x+1.0,per),i.y)),c=h21(vec2(mod(i.x,per),i.y+1.0)),d=h21(vec2(mod(i.x+1.0,per),i.y+1.0));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
 float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}
 vec3 layers(vec3 col,sampler2D tL,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,float pa){
   vec4 L=textureGrad(tL,uv,gx,gy);
@@ -155,7 +156,13 @@ void main(){
   vec4 B=B2*bm;
   col=B.rgb+col*(1.0-B.a);
   col=mix(col,brc,bring*B2.a*0.38);       // the darker pigment line that bleeds along the front of the wash
-  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)*0.028;   // static paper grain, free
+  {   // paper grain wrapped around the globe: it is fixed to the map, so it turns with the earth (periodic around the equator: no seam)
+    float cpp=1.0/(uS*max(z,0.2));                       // radians per screen pixel
+    float k1=clamp(1.0-cpp*120.0*1.1,0.0,1.0),k2=clamp(1.0-cpp*380.0*1.1,0.0,1.0);
+    vec2 g2=vec2(lon,lat);
+    float gr=(vnp(g2*120.0,754.0)-0.5)*k1*0.6+(vnp(g2*380.0+vec2(5.0,3.0),2388.0)-0.5)*k2*0.4;
+    col*=1.0+gr*0.22;
+  }
   col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line
   oC=vec4(col*cov,cov);
 }`;

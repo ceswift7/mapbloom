@@ -1,4 +1,4 @@
-﻿# Mapbloom
+# Mapbloom
 
 A quiet geography game: turn a watercolour globe, find countries, and watch each one bloom into a small painting.
 
@@ -10,11 +10,12 @@ A quiet geography game: turn a watercolour globe, find countries, and watch each
 - **Race**: find every country in a region against the clock.
 
 ## Building
-`src/` holds the parts (`head.html`, `data.html`, `flags.js`, `learn.js`, `main.html`). On Windows, `src/build.ps1` joins them into `index.html`.
+`src/` holds the parts (`head.html`, `data.html`, `flags.js`, `learn.js`, `main.html`, `glglobe.js`). On Windows, `src/build.ps1` joins them into `index.html`.
 
 ## Credits and licences
 - Code: MIT (see `LICENSE`).
 - Country reading pages (`src/learn.js`): text adapted from Wikipedia, licensed CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); facts such as population from Wikidata (CC0). The adapted text stays under CC BY-SA 4.0.
+- Food and dishes sections (the `FOOD` block of `src/learn.js`): introductions of the Wikipedia "cuisine" articles (e.g. "Italian cuisine"), licensed CC BY-SA 4.0, fetched once with `src/tools/fetch_food.ps1`; each page links to its article.
 - Flag images: flagcdn.com.
 - Map data: Natural Earth (public domain) via the `world-atlas` package.
 - Libraries: d3, topojson-client, topojson-simplify (ISC), loaded from public CDNs.

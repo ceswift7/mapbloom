@@ -1567,6 +1567,37 @@ function funFacts(id){
   return out.slice(0,4);
 }
 function paras(t){return String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean)}
+/* Wikipedia text, tidied for reading on a phone: ancient-script glyphs (they show as empty boxes) are dropped with the punctuation around them */
+const ASRX=src=>new RegExp(src.split("~a~").join("\\u{10000}-\\u{10FFFF}").split("~A~").join("[\\u{10000}-\\u{10FFFF}]"),"gu");
+function tidyText(t){
+  let x=String(t||"");
+  if(ASRX("~A~").test(x)){
+    x=x.replace(ASRX("where it is written as\\s*~A~+ in Ancient South Arabian and\\s*~A~+ in Aramaic"),"where it is written in the Ancient South Arabian and Aramaic scripts")
+       .replace(ASRX("formed from\\s*[~a~\\s]+,\\s*meaning"),"formed from a sign meaning")
+       .replace(ASRX("Mycenaean Greek ~A~+, ku-pi-ri-jo"),"Mycenaean Greek ku-pi-ri-jo")
+       .replace(ASRX("\\s*(?:[A-Z][a-z]+ )*[A-Z][a-z]+:\\s*~A~+;?"),"")
+       .replace(ASRX("\\s*\\(\\s*[~a~\\s,;]+\\)"),"")
+       .replace(ASRX("\\s*\\([^()]*~A~[^()]*\\)"),"")
+       .replace(ASRX("~A~+"),"");
+  }
+  return x.replace(/Scholars reconstruct its Old Egyptian pronunciation as, its Middle Egyptian pronunciation as, and its Late Egyptian pronunication as\.\s*/,"").replace(/\(\s+/g,"(").replace(/\s+\)/g,")").replace(/\(\s*\)/g,"").replace(/:\s*;/g,";").replace(/\s+([,;.])/g,"$1").replace(/,\s*,/g,",").replace(/([^.])\.\.(?=\s|$)/g,"$1.").replace(/[ \t]{2,}/g," ");
+}
+/* a few Wikipedia lists arrive as bare lowercase lines: they become real bullets (with a lead-in where the original was lost) */
+const LEAD={"196|n":"Several explanations have been suggested for the name:","882|g":"The eight small islets are:"};
+const up1=x=>x.charAt(0).toUpperCase()+x.slice(1),dot=x=>/[.!?]$/.test(x)?x:x+".";
+function blocks(id,key,t){
+  const f=FACTS[id],ps=paras(tidyText(t)),out=[];let i=0;
+  while(i<ps.length){
+    if(/^[a-z]/.test(ps[i])){
+      const items=[];while(i<ps.length&&/^[a-z]/.test(ps[i]))items.push(ps[i++]);
+      const lead=LEAD[id+"|"+key];
+      if(items.length===1&&!lead){out.push(el("p",{},/^(bounded|located|situated|surrounded|divided)/.test(items[0])?f.n+" is "+items[0]:up1(items[0])));continue}
+      if(lead)out.push(el("p",{},lead));
+      out.push(el("ul",{},items.map(x=>el("li",{},dot(up1(x))))));
+    }else out.push(el("p",{},ps[i++]));
+  }
+  return out;
+}
 /* a drawn outline of the country (neighbours faint around it); upgraded to the 10m map once that has downloaded */
 let topo10=null,topo10Loading=null;
 function load10(){
@@ -1608,23 +1639,25 @@ function renderLearn(id){
   const fig=outlineFig(id);if(fig)root.append(fig);
   let i=0;
   const sec=(title,...kids)=>{const s=el("section",{style:`--i:${i++}`},el("h3",{},el("span",{class:"dot"}),title),...kids);root.append(s);return s};
-  const P=t=>paras(t).map(x=>el("p",{},x));
-  if(L.n)sec("Where the name comes from",P(L.n));
-  if(L.o)sec("At a glance",P(L.o));
-  if(L.h)sec("A short history",P(L.h),L.m?[el("div",{class:"sub"},"More recently"),P(L.m)]:"");
-  if(L.g)sec("The land",P(L.g));
-  if(L.c)sec("People and culture",P(L.c));
+  const P=(k,t)=>blocks(id,k,t);
+  if(L.o)sec("At a glance",P("o",L.o));
   const dl=el("dl",{class:"kv"});
   const add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};
   add("Population",L.p?fmt(L.p):null);
   add("Density",L.p?densTxt(L.p,f.a):null);
   add("Capital",f.cap);add("Calling code",L.k);add("Drives on the",L.d);
   sec("Quick data",dl);
+  if(L.g)sec("The land",P("g",L.g));
+  if(L.c)sec("People and culture",P("c",L.c));
+  const fd=typeof FOOD!=="undefined"?FOOD[id]:null;
+  if(fd&&fd.x)sec("Food and dishes",P("f",fd.x));
+  if(L.h)sec("A short history",P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:"");
+  if(L.n)sec("Where the name comes from",P("n",L.n));
   sec("Did you know",el("ul",{},funFacts(id).map(t=>el("li",{},t))));
   const nb=el("div",{class:"nchips"});
   f.b.forEach(nm=>{const nid=nameId[nm];nb.append(nid?el("button",{onclick:()=>{sndTick();showCard(nid,true);flyTo(LL(nid),1100,Math.max(zoomK,FACTS[nid].a<30000?2.4:1.3))}},nm):el("span",{},nm))});
   if(f.b.length)sec("Neighbours",nb);
-  root.append(el("p",{class:"attrib"},"Text adapted from the Wikipedia article “"+L.t+"” (",el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(L.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},"read the full article"),"), licensed CC BY-SA 4.0. Flags from flagcdn.com."));
+  root.append(el("p",{class:"attrib"},"Text adapted from the Wikipedia article “"+L.t+"” (",el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(L.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},"read the full article"),"), licensed CC BY-SA 4.0."+(fd&&fd.x?" Food text from the Wikipedia article \u201C":" Flags from flagcdn.com."),fd&&fd.x?el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(fd.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},fd.t):"",fd&&fd.x?"\u201D, same licence. Flags from flagcdn.com.":""));
 }
 
 /* ---------- clicks ---------- */

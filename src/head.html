@@ -405,14 +405,16 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .explore .chev{display:inline-block;transition:transform .4s ease}
 .explore[aria-expanded="true"] .chev{transform:rotate(90deg)}
 /* learn page */
-.learn{margin-top:6px}
+.learn{margin-top:6px;overflow-wrap:break-word;min-width:0}
 .learn[hidden]{display:none}
 .learn section{margin-top:16px;padding-top:12px;border-top:1px dashed var(--panel-line);animation:inkin .7s both;animation-delay:calc(var(--i,0)*.07s)}
 .learn h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:18px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
 .learn h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--p,var(--ink-faint))}
 .learn p{font-family:var(--serif);font-size:16px;line-height:1.58;margin:0 0 9px;color:var(--ink)}
 .learn .sub{font-family:var(--sans);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:10px 0 3px}
-.learn ul{margin:0;padding-left:18px;font-family:var(--serif);font-size:15.5px;line-height:1.5}
+.learn ul{margin:0 0 9px;padding-left:20px;font-family:var(--serif);font-size:15.5px;line-height:1.5}
+.learn p+ul{margin-top:-3px}
+.learn p:last-child,.learn ul:last-child{margin-bottom:0}
 .learn li{margin:0 0 5px}
 .learn dl{margin:0}
 .nchips{display:flex;flex-wrap:wrap;gap:6px}

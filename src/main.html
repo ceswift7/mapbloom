@@ -1215,6 +1215,7 @@ function skipNext(){if(S.mode==="find"&&S.done&&!S.qIdle&&!$("nextBtn").hidden){
   cd.addEventListener("pointerdown",()=>{if(autoT)autoHold.tapped=true});
   nb.addEventListener("pointerenter",()=>{autoHold.btn=1});nb.addEventListener("pointerleave",()=>{autoHold.btn=0});}
 function guess(id,ll,other){
+  if(C.active)return chainGuess(id,ll,other);
   if(S.done||S.mode!=="find"||S.qIdle||!S.target)return;
   if(other){swell($("hint"),typeof other==="string"?`That’s ${other}. It isn’t part of the game, so no penalty.`:"That’s outside this game. No penalty.");sndOcean();return}
   const T=S.target,f=FACTS[T];
@@ -1312,6 +1313,7 @@ function quizIdle(){idleView();showQuizSheet()}
 function beginFree(){closeModal();D.active=false;S.qIdle=false;S.practice=false;D.active=false;endSession();nextRound()}
 function leaveDailyOk(){return !D.active||confirm("Leave today’s ten? Your progress in it will be lost.")}
 function showQuizSheet(){
+  chainStop();
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
   sh.append(closeBtn(),el("h2",{},"Quiz"),
@@ -1330,12 +1332,105 @@ function showQuizSheet(){
   sh.append(el("div",{class:"qcard"},el("h3",{},"Practice weak spots"),
     el("p",{style:"margin:0;font-size:13.5px;color:var(--ink-soft)"},wk?`${wk} countr${wk===1?"y":"ies"} to revisit, on a clean map.`:"Nothing here yet. Misses collect here."),
     el("div",{class:"qfoot"},el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
+  const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Neighbour chains"),
+    el("p",{style:"margin:0;font-size:13.5px;color:var(--ink-soft)"},"Join two far-apart countries through land borders. How few can you use?"),
+    el("div",{class:"qfoot"},el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"See daily chain":"Daily chain"),el("button",{class:"btn primary",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play"))));
   sh.append(quizRecordsBlock());
   sh.append(el("div",{class:"row",style:"margin-top:6px"},el("button",{class:"btn danger",onclick:askReset},"Reset progress"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore")));
   openModal(true);setTimeout(()=>{const s=$("qFree");if(s)s.focus({preventScroll:true})},60);
 }function startPractice(){
   closeModal();if(S.mode!=="find")setMode("find",true,true);
   S.qIdle=false;D.active=false;S.practice=true;S.region="World";syncChips();beginSession();updateProgress();nextRound();
+}
+
+/* ======================================================================
+   NEIGHBOUR CHAINS: join two far-apart countries through land borders, using as few as you can.
+   The map is a clean slate (SESS): the two ends are painted, every country you add blooms in.
+   ====================================================================== */
+const C={active:false,start:null,end:null,path:[],par:[],daily:false,day:null,wrong:0,assists:0,done:false};
+let NBg=null;
+function nbGraph(){
+  if(NBg)return NBg;NBg={};playable.forEach(f=>NBg[f.id]=new Set());
+  playable.forEach(f=>(FACTS[f.id].b||[]).forEach(n=>{const o=nameId[n];if(o&&o!==f.id&&NBg[o]){NBg[f.id].add(o);NBg[o].add(f.id)}}));
+  return NBg;
+}
+function nbPath(a,b){
+  const g=nbGraph(),prev={[a]:null},q=[a];
+  while(q.length){const x=q.shift();if(x===b)break;g[x].forEach(y=>{if(!(y in prev)){prev[y]=x;q.push(y)}})}
+  if(!(b in prev))return null;const p=[];for(let x=b;x!=null;x=prev[x])p.unshift(x);return p;
+}
+function nbDist(a){const g=nbGraph(),d={[a]:0},q=[a];while(q.length){const x=q.shift();g[x].forEach(y=>{if(!(y in d)){d[y]=d[x]+1;q.push(y)}})}return d}
+function chainPair(rnd){
+  const g=nbGraph(),ids=playable.map(f=>f.id).filter(id=>g[id].size>0).sort();
+  for(let tries=0;tries<80;tries++){
+    const a=ids[Math.floor(rnd()*ids.length)],d=nbDist(a);
+    let c=ids.filter(id=>d[id]>=4&&d[id]<=6);if(!c.length)c=ids.filter(id=>d[id]>=3&&d[id]<=7);
+    if(c.length)return [a,c[Math.floor(rnd()*c.length)]];
+  }
+  return ["620","496"];   // Portugal to Mongolia
+}
+function chainStop(){if(!C.active)return;C.active=false;C.done=false;clearMissed();$("target").classList.remove("small");endSession()}
+function startChain(daily){
+  closeModal();
+  const day=todayStr();
+  if(daily&&S.daily.chains&&S.daily.chains[day]){showChainResult(S.daily.chains[day],true);return}
+  if(S.mode!=="find")setMode("find",true,true);
+  silHide();clearAuto();hideCard();clearMissed();closeLens();
+  const [a,b]=chainPair(daily?seeded("mapbloom-chain-"+day):Math.random);
+  Object.assign(C,{active:true,start:a,end:b,path:[a],par:nbPath(a,b),daily:!!daily,day,wrong:0,assists:0,done:false});
+  S.qIdle=false;S.target=null;S.done=false;D.active=false;S.practice=false;
+  SESS=new Set([a,b]);fadeRepaint(()=>{paint();updateProgress()});
+  const dd=d3.geoDistance(LL(a),LL(b));
+  flyTo(d3.geoInterpolate(LL(a),LL(b))(.5),1300,dd>2.2?.9:dd>1.5?1:dd>.9?1.25:1.7);
+  chainRender();sndMode("find");
+}
+function chainRender(){
+  $("qFlag").hidden=true;$("ask").textContent="Neighbour chain \u00B7 shortest is "+C.par.length;
+  const tg=$("target");tg.classList.add("small");tg.textContent=FACTS[C.start].n+" \u2192 "+FACTS[C.end].n;
+  $("hint").textContent=C.path.map(id=>FACTS[id].n).join(" \u2192 ")+(C.done?"":" \u2192 \u2026");
+  $("showBtn").hidden=C.done;$("nextBtn").hidden=C.path.length<2||C.done;$("nextBtn").textContent="Undo";
+  $("dClock").classList.remove("on");
+}
+function chainGuess(id,ll,other){
+  if(C.done)return;
+  if(other||!id||!FACTS[id]){floatLabel("Outside the game",ll,1500);sndOcean();return}
+  const last=C.path[C.path.length-1],g=FACTS[id];
+  if(C.path.includes(id)){floatLabel("Already in your chain",ll,1600);sndTick();return}
+  if(nbGraph()[last].has(id))return chainStep(id,ll,false);
+  C.wrong++;cvMiss(id,true);setTimeout(()=>cvMiss(id,false),900);
+  floatLabel(g.n+" doesn\u2019t border "+FACTS[last].n,ll,2200);sndMiss();
+}
+function chainStep(id,ll,assist){
+  C.path.push(id);if(assist)C.assists++;
+  if(!SESS.has(id))startReveal(id,LL(id),false,()=>{if(C.active&&C.path.includes(id)){SESS.add(id);updateProgress();paint()}},true);
+  floatLabel(FACTS[id].n,ll||LL(id),1800);sndHit(FACTS[id].r,false);
+  chainRender();
+  if(id===C.end)setTimeout(chainFinish,assist?500:1000);
+}
+function chainUndo(){
+  if(C.done||C.path.length<2)return;
+  const id=C.path.pop();SESS.delete(id);paint();updateProgress();sndTick();chainRender();
+}
+function chainReveal(){
+  if(C.done)return;const p=nbPath(C.path[C.path.length-1],C.end);if(!p||p.length<2)return;
+  sndShow();chainStep(p[1],LL(p[1]),true);
+}
+function chainFinish(){
+  if(!C.active)return;C.done=true;
+  const n=C.path.length,par=C.par.length;
+  S.counts.chain=(S.counts.chain||0)+1;if(n<=par&&!C.assists)S.counts.chainPar=(S.counts.chainPar||0)+1;
+  const res={n,par,assists:C.assists,wrong:C.wrong,path:C.path.slice(),parPath:C.par.slice()};
+  if(C.daily){S.daily.chains=S.daily.chains||{};S.daily.chains[C.day]=res}
+  save();chainRender();sndFlourish(FACTS[C.end].r);showChainResult(res,C.daily);
+}
+function showChainResult(res,daily){
+  const sh=sheetHead(daily?"Daily chain":"Chain complete"),nm=a=>a.map(id=>FACTS[id].n).join(" \u2192 "),extra=res.n-res.par;
+  sh.append(el("p",{},extra<=0?(res.assists?`Connected in ${res.n}, the shortest possible, with ${res.assists} hint${res.assists>1?"s":""}.`:`Perfect: ${res.n} countries is the shortest possible chain.`):`${res.n} countries, ${extra} more than the shortest chain (${res.par}).${res.wrong?` ${res.wrong} wrong tap${res.wrong>1?"s":""}.`:""}`));
+  sh.append(el("h3",{},"Your chain"),el("p",{style:"font-family:var(--serif);font-size:16px;margin:0 0 8px"},nm(res.path)),
+    el("h3",{},"Shortest chain"),el("p",{style:"font-family:var(--serif);font-size:16px;color:var(--ink-soft);margin:0"},nm(res.parPath)));
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();idleView()}},"Quiz menu")));
+  openModal(true);
 }
 
 /* ---- daily challenge ---- */
@@ -1940,8 +2035,8 @@ function raceRecordsBlock(cur,cv){
   return box;
 }
 /* ---------- mode switching & buttons ---------- */
-$("showBtn").onclick=()=>{if(!S.done)success(true)};
-$("nextBtn").onclick=()=>{sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("showBtn").onclick=()=>{if(C.active){chainReveal();return}if(!S.done)success(true)};
+$("nextBtn").onclick=()=>{if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
@@ -1972,7 +2067,7 @@ function setMode(m,quiet,noIdle){
   const from=S.mode;closeLens();clearAuto();
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;
-  if(m!=="find"){S.qIdle=false;endSession();S.practice=false;if(typeof silHide==="function")silHide()}
+  if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
   document.documentElement.dataset.mode=m;cvColors();

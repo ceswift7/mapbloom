@@ -556,9 +556,9 @@ input[type=range]{width:150px;accent-color:var(--ink)}
 .app.silmode #globe,.app.silmode #labels,.app.silmode .pill,.app.silmode .lenswrap{opacity:0 !important;pointer-events:none !important}
 #globe,#labels{transition:opacity .8s ease}
 .app.silmode .prompt{opacity:0;pointer-events:none}
-.toast{position:fixed;left:50%;top:62px;z-index:41;transform:translate(-50%,-190px) rotate(-1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
-  box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:calc(100% - 28px)}
-.toast.on{transform:translate(-50%,0) rotate(-1deg)}
+.toast{position:fixed;right:16px;top:58px;z-index:41;transform:translate(0,-190px) rotate(1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
+  box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:min(380px,calc(100% - 28px))}
+.toast.on{transform:translate(0,0) rotate(1deg)}
 .toast .ic{font-size:22px}
 
 @media (max-width:720px){
@@ -987,28 +987,40 @@ function makeBookTiles(){
     st.setProperty("--page-img",`url(${c.toDataURL("image/png")})`)}
 }
 /* signs of life on the pages: a coffee ring, an ink blot, a thumb smudge, pencil marks (drawn once when the book opens) */
-function drawBookMarks(cv){
-  const p=cv&&cv.parentElement;if(!p)return;
-  const w=p.clientWidth,h=p.clientHeight,dpr=Math.min(1.5,window.devicePixelRatio||1);
+function drawBookMarks(cv,tab){
+  const bp=cv&&cv.parentElement;if(!bp)return;
+  const w=bp.clientWidth,h=bp.clientHeight,dpr=Math.min(1.5,window.devicePixelRatio||1);
   cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const c=cv.getContext("2d");c.scale(dpr,dpr);
-  const dark=isDark(),ink=dark?"235,225,205":"90,70,45",two=w>=640;
-  let seed=41;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const lx=two?w*.24:w*.78,ly=two?h*.9:h*.14;
-  c.lineCap="round";
-  c.strokeStyle=`rgba(${dark?"210,170,120":"125,80,38"},${dark?.1:.13})`;c.lineWidth=3;c.beginPath();c.arc(lx,ly,36,.3,5.7);c.stroke();   // coffee ring
-  c.lineWidth=1.2;c.beginPath();c.arc(lx+2,ly+1,37.5,.6,5.2);c.stroke();
-  c.fillStyle=`rgba(${dark?"210,170,120":"125,80,38"},${dark?.035:.05})`;c.beginPath();c.arc(lx,ly,34,0,6.28);c.fill();
-  const bx=two?w*.86:w*.2,by=two?h*.09:h*.9;   // ink blot with spatter
-  c.fillStyle=dark?"rgba(150,175,230,.38)":"rgba(28,32,70,.4)";c.beginPath();
-  for(let k=0;k<6;k++){const ox=bx+(rnd()-.5)*10,oy=by+(rnd()-.5)*10,r=3+rnd()*5;c.moveTo(ox+r,oy);c.arc(ox,oy,r,0,6.28)}c.fill();
-  c.beginPath();for(let k=0;k<9;k++){const a=rnd()*6.28,d=11+rnd()*20,r=.6+rnd()*1.7;c.moveTo(bx+Math.cos(a)*d+r,by+Math.sin(a)*d);c.arc(bx+Math.cos(a)*d,by+Math.sin(a)*d,r,0,6.28)}c.fill();
-  const g=c.createRadialGradient(w*.9,h*.93,2,w*.9,h*.93,70);g.addColorStop(0,`rgba(${ink},.07)`);g.addColorStop(1,`rgba(${ink},0)`);   // thumb smudge
-  c.save();c.translate(w*.9,h*.93);c.rotate(-.5);c.scale(1.5,.8);c.translate(-w*.9,-h*.93);c.fillStyle=g;c.fillRect(w*.9-80,h*.93-80,160,160);c.restore();
-  c.strokeStyle=`rgba(${ink},${dark?.16:.2})`;c.lineWidth=1;   // a pencil star and a tick
-  const sx=two?w*.62:w*.88,sy=two?h*.95:h*.06;for(let k=0;k<4;k++){const a=k*Math.PI/4;c.beginPath();c.moveTo(sx-Math.cos(a)*7,sy-Math.sin(a)*7);c.lineTo(sx+Math.cos(a)*7,sy+Math.sin(a)*7);c.stroke()}
-  c.beginPath();c.moveTo(w*.06,h*.965);c.bezierCurveTo(w*.09,h*.955,w*.12,h*.975,w*.17,h*.96);c.stroke();
-}
-function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
+  if(bp.scrollHeight>bp.clientHeight+1)return;   // marks only on pages that do not scroll
+  const dark=isDark(),ink=dark?"235,225,205":"90,70,45",br=bp.getBoundingClientRect();
+  const blot=(x,y,s)=>{let sd=Math.round(x*7+y*3);const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
+    c.fillStyle=dark?"rgba(150,175,230,.36)":"rgba(28,32,70,.38)";c.beginPath();
+    for(let k=0;k<6;k++){const ox=x+(r()-.5)*10*s,oy=y+(r()-.5)*10*s,rr=(3+r()*5)*s;c.moveTo(ox+rr,oy);c.arc(ox,oy,rr,0,6.28)}c.fill();
+    c.beginPath();for(let k=0;k<9;k++){const a=r()*6.28,d=(11+r()*20)*s,rr=.6+r()*1.7;c.moveTo(x+Math.cos(a)*d+rr,y+Math.sin(a)*d);c.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,rr,0,6.28)}c.fill()};
+  const smudge=(x,y)=>{const g=c.createRadialGradient(x,y,2,x,y,70);g.addColorStop(0,`rgba(${ink},.08)`);g.addColorStop(1,`rgba(${ink},0)`);
+    c.save();c.translate(x,y);c.rotate(-.5);c.scale(1.5,.8);c.translate(-x,-y);c.fillStyle=g;c.fillRect(x-80,y-80,160,160);c.restore()};
+  const pencil=()=>{c.strokeStyle=`rgba(${ink},${dark?.18:.22})`;c.lineWidth=1;c.lineCap="round";c.setLineDash([])};
+  const star=(x,y)=>{pencil();for(let k=0;k<4;k++){const a=k*Math.PI/4;c.beginPath();c.moveTo(x-Math.cos(a)*7,y-Math.sin(a)*7);c.lineTo(x+Math.cos(a)*7,y+Math.sin(a)*7);c.stroke()}};
+  const tick=(x,y,l)=>{pencil();c.beginPath();c.moveTo(x,y);c.bezierCurveTo(x+l*.2,y-4,x+l*.45,y+4,x+l*.7,y-1);c.bezierCurveTo(x+l*.8,y-3,x+l*.9,y,x+l,y-2);c.stroke()};
+  const route=(x,y,l)=>{pencil();c.setLineDash([4,5]);c.beginPath();c.moveTo(x,y);c.bezierCurveTo(x+l*.3,y-26,x+l*.55,y+22,x+l,y-8);c.stroke();c.setLineDash([]);
+    c.beginPath();c.moveTo(x+l-5,y-13);c.lineTo(x+l+5,y-3);c.moveTo(x+l+5,y-13);c.lineTo(x+l-5,y-3);c.stroke();c.beginPath();c.arc(x,y,3,0,6.28);c.stroke()};
+  const compass=(x,y)=>{pencil();c.beginPath();c.arc(x,y,16,.4,2.9);c.stroke();c.beginPath();c.arc(x,y,16,3.5,5.9);c.stroke();c.beginPath();c.arc(x,y,2,0,6.28);c.stroke();c.beginPath();c.moveTo(x,y-22);c.lineTo(x,y-10);c.moveTo(x,y+10);c.lineTo(x,y+22);c.stroke()};
+  const dots=(x,y)=>{pencil();for(let k=0;k<5;k++){c.beginPath();c.arc(x+k*9,y+Math.sin(k*1.7)*3,1,0,6.28);c.stroke()}};
+  const SETS={atlas:{l:["star","tick"],r:["route"]},stamps:{l:["blot","tick"],r:["smudge","compass"]},exp:{l:["route","blot"],r:["star","smudge","dots"]}}[tab]||{l:[],r:[]};
+  [["l",bp.querySelector(".bkpage.l")],["r",bp.querySelector(".bkpage.r")]].forEach(([side,pg])=>{
+    if(!pg||pg.scrollHeight>pg.clientHeight+1)return;
+    const r=pg.getBoundingClientRect(),x0=r.left-br.left,y0=r.top-br.top,pw=r.width,ph=r.height;
+    (SETS[side]||[]).forEach(m=>{
+      if(m==="blot")blot(x0+pw-52,y0+ph-34,1);
+      else if(m==="smudge")smudge(x0+pw*.78,y0+ph-18);
+      else if(m==="star")star(x0+pw-46,y0+ph-22);
+      else if(m==="tick")tick(x0+34,y0+ph-14,70);
+      else if(m==="route")route(x0+36,y0+ph-26,Math.min(130,pw*.4));
+      else if(m==="compass")compass(x0+44,y0+ph-30);
+      else if(m==="dots")dots(x0+pw*.45,y0+ph-14);
+    });
+  });
+}function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
   const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.09:.14);
@@ -2815,7 +2827,9 @@ function renderBook(tab){
   const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
   const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages})[tab]();
   sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"}),el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
-  openModal("book");requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks")));
+  openModal("book");
+  const pagesEl=sh.querySelector(".bkpages"),redraw=()=>requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),tab));
+  pagesEl.addEventListener("toggle",redraw,true);redraw();
 }
 function atlasPages(){
   const tot=total(),F=S.found,nFound=playable.filter(f=>F.has(f.id)).length,got=ACH.filter(a=>S.ach[a.id]).length;

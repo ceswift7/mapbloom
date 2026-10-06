@@ -556,9 +556,9 @@ input[type=range]{width:150px;accent-color:var(--ink)}
 .app.silmode #globe,.app.silmode #labels,.app.silmode .pill,.app.silmode .lenswrap{opacity:0 !important;pointer-events:none !important}
 #globe,#labels{transition:opacity .8s ease}
 .app.silmode .prompt{opacity:0;pointer-events:none}
-.toast{position:fixed;left:50%;top:62px;z-index:41;transform:translate(-50%,-190px) rotate(-1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
-  box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:calc(100% - 28px)}
-.toast.on{transform:translate(-50%,0) rotate(-1deg)}
+.toast{position:fixed;right:16px;top:58px;z-index:41;transform:translate(0,-190px) rotate(1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
+  box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:min(380px,calc(100% - 28px))}
+.toast.on{transform:translate(0,0) rotate(1deg)}
 .toast .ic{font-size:22px}
 
 @media (max-width:720px){

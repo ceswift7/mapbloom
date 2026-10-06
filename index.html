@@ -307,13 +307,13 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
   background:linear-gradient(90deg,var(--c-Europe),var(--c-Americas),var(--c-Africa),var(--c-Asia));opacity:.5;filter:blur(1.4px);transform-origin:left;animation:stroke 1.8s .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes stroke{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:.5}}
 .tools{display:flex;gap:6px;align-items:center}
-.dock{--acc:var(--mode-acc);position:absolute;left:50%;top:10px;transform:translateX(-50%);display:flex;gap:2px;padding:4px;border-radius:999px;background:var(--panel);border:1.5px solid color-mix(in srgb,var(--acc) 55%,var(--panel-line));box-shadow:0 10px 26px -12px color-mix(in srgb,var(--acc) 70%,transparent),0 2px 0 color-mix(in srgb,var(--acc) 25%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .5s ease,box-shadow .5s ease;z-index:4}
-.dock button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;padding:9px 18px 9px 14px;border-radius:999px;font:inherit;font-size:14.5px;font-weight:500;color:var(--ink-soft);background:none;border:0;transition:color .35s ease}
-.dock button svg{width:18px;height:18px;flex:none}
+.dock{--acc:var(--mode-acc);--rw:58px;--rh:58px;--rp:5px;position:fixed;left:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;padding:var(--rp);border-radius:22px;background:var(--panel);border:1.5px solid color-mix(in srgb,var(--acc) 55%,var(--panel-line));box-shadow:0 10px 26px -12px color-mix(in srgb,var(--acc) 70%,transparent),0 2px 0 color-mix(in srgb,var(--acc) 25%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .5s ease,box-shadow .5s ease;z-index:4}
+.dock button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:var(--rw);height:var(--rh);padding:0;border-radius:17px;font:inherit;font-size:11px;font-weight:500;line-height:1;color:var(--ink-soft);background:none;border:0;transition:color .35s ease}
+.dock button svg{width:22px;height:22px;flex:none}
 .dock button[aria-pressed="true"]{color:#fff;font-weight:600}
-.dock-pill{position:absolute;left:0;top:4px;bottom:4px;width:0;border-radius:999px;background:var(--acc);box-shadow:0 6px 16px -6px var(--acc);transition:transform .55s cubic-bezier(.3,1.25,.4,1),width .55s cubic-bezier(.3,1.25,.4,1),background .5s ease;z-index:0}
-.dock.shimmer button[aria-pressed="false"]::after{content:"";position:absolute;inset:3px;border-radius:999px;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--acc) 35%,transparent) 50%,transparent 70%);background-size:250% 100%;animation:shim 3.4s ease-in-out infinite;pointer-events:none}
-@keyframes shim{0%{background-position:150% 0}60%,100%{background-position:-50% 0}}
+.dock-pill{position:absolute;left:var(--rp);top:0;width:var(--rw);height:0;border-radius:17px;background:var(--acc);box-shadow:0 6px 16px -6px var(--acc);transition:transform .55s cubic-bezier(.3,1.25,.4,1),height .55s cubic-bezier(.3,1.25,.4,1),background .5s ease;z-index:0}
+.dock.shimmer button[aria-pressed="false"]::after{content:"";position:absolute;inset:3px;border-radius:14px;background:linear-gradient(170deg,transparent 30%,color-mix(in srgb,var(--acc) 35%,transparent) 50%,transparent 70%);background-size:100% 250%;animation:shimv 3.4s ease-in-out infinite;pointer-events:none}
+@keyframes shimv{0%{background-position:0 150%}60%,100%{background-position:0 -50%}}@keyframes shim{0%{background-position:150% 0}60%,100%{background-position:-50% 0}}
 :root{--mode-acc:#6FA27E}
 :root[data-mode="find"]{--mode-acc:#E06F58}
 :root[data-mode="speed"]{--mode-acc:#2D86FF}
@@ -330,8 +330,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
 button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* prompt */
-.prompt{position:absolute;left:50%;top:40px;transform:translateX(-50%);z-index:2;text-align:center;width:min(560px,calc(100% - 32px));pointer-events:none}
-.prompt .ask{font-size:13px;color:var(--ink-soft);margin:0 0 2px}
+.prompt{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:2;text-align:center;width:min(560px,calc(100% - 32px));pointer-events:none}
+.prompt .ask{font-size:13px;color:var(--ink-soft);margin:0 0 7px}
 .prompt .target{font-family:var(--serif);font-size:clamp(34px,6vw,54px);line-height:1.05;margin:0;font-weight:400;letter-spacing:-.015em}
 .prompt .target.small{font-size:clamp(26px,4.4vw,38px)}
 .prompt .hint{margin:8px auto 0;font-size:14px;color:var(--ink-soft);min-height:2.9em;max-width:42ch}
@@ -497,7 +497,12 @@ input[type=range]{width:150px;accent-color:var(--ink)}
 @keyframes introFade{from{opacity:0}to{opacity:1}}
 .soundchip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;padding:7px 16px;font-size:13px}
 .soundchip[hidden]{display:none}
-.sil{position:absolute;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;padding:76px 12px 12px;transition:opacity .5s ease}
+#learnBtn[hidden]{display:none !important}
+.btn.auto{position:relative;overflow:hidden}
+.btn.auto::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:currentColor;opacity:.5;transform-origin:left;animation:autoFill var(--auto-ms,2500ms) linear forwards}
+.btn.auto.hold::after{animation-play-state:paused}
+@keyframes autoFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.sil{position:absolute;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;padding:44px 12px 12px;transition:opacity .5s ease}
 .sil[hidden]{display:none}
 .sil.out{opacity:0}
 .silcard{pointer-events:auto;width:min(94%,470px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:20px;padding:14px 18px 16px;text-align:center;box-shadow:0 24px 50px -24px var(--paper-shadow);position:relative;animation:silin .6s ease both}
@@ -517,7 +522,7 @@ input[type=range]{width:150px;accent-color:var(--ink)}
 .app.silmode #globe,.app.silmode #labels,.app.silmode .pill,.app.silmode .lenswrap{opacity:0 !important;pointer-events:none !important}
 #globe,#labels{transition:opacity .8s ease}
 .app.silmode .prompt{opacity:0;pointer-events:none}
-.toast{position:fixed;left:50%;top:74px;z-index:41;transform:translate(-50%,-190px) rotate(-1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
+.toast{position:fixed;left:50%;top:62px;z-index:41;transform:translate(-50%,-190px) rotate(-1deg);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
   box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:calc(100% - 28px)}
 .toast.on{transform:translate(-50%,0) rotate(-1deg)}
 .toast .ic{font-size:22px}
@@ -529,9 +534,11 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .brand small{display:none}
   .brand::after{display:none}
   .seg button{padding:6px 10px;font-size:13px}
-  header{flex-wrap:wrap}
-  .dock{position:relative;left:auto;top:auto;transform:none;order:3;width:100%;justify-content:space-between;margin-top:8px;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--sheet)}
-  .dock button{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
+  .dock{--rw:46px;--rh:50px;--rp:4px;left:4px;border-radius:18px;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--sheet)}
+  .dock button{font-size:10px;border-radius:14px}
+  .dock button svg{width:20px;height:20px}
+  .dock-pill{border-radius:14px}
+  #stage{margin-left:62px}
   .icon-btn{width:32px;height:32px}
   .tools{gap:4px}
   .prompt{top:4px}
@@ -558,11 +565,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{touch-action:manipulation}
 @supports (height:100dvh){.sheet{max-height:min(88dvh,740px)}}
 @media (max-width:720px){
-  .tools{display:contents}          /* the three buttons join the brand row; the mode dock gets its own full-width row */
   .brand{margin-right:auto}
   header{align-items:center}
-  .toast{top:128px;transform:translate(-50%,-300px) rotate(-1deg)}
-  .toast.on{transform:translate(-50%,0) rotate(-1deg)}
   .sil{place-items:start center;padding-top:24px}
   #silSvg{max-height:30vh}
   .soundchip{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
@@ -571,7 +575,6 @@ body{touch-action:manipulation}
 @media (pointer:coarse) and (max-width:1100px){
   .icon-btn{width:40px;height:40px}
   .chip{min-height:38px}
-  .dock button{padding-top:11px;padding-bottom:11px}
   .btn{min-height:40px}
   .seg2 button{min-height:34px}
 }
@@ -746,7 +749,7 @@ let introOwn=null;      // while the opening replays a returning player’s map:
 const introSet=new Set();   // countries painted only for the opening sequence (never saved)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",engine:"canvas",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine:"canvas",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -774,11 +777,12 @@ try{
   if(typeof s.hints==="boolean") S.hints=s.hints;
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
   if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
+  if(["off","fast","normal","slow"].includes(s.autoNext)) S.autoNext=s.autoNext;
   if(["canvas","svg"].includes(s.engine)) S.engine=s.engine;
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,engine:S.engine,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine:S.engine,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -886,7 +890,7 @@ function cvColors(){
 function cvResize(){
   cvDpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)*cvQ);
   const w=innerWidth,h=innerHeight;
-  cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";
+  cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";cv.style.left=(-stageLeft)+"px";
 }
 function cvMiss(id,on){
   if(id==null){if(cvMissed.size){cvMissed.clear();if(CANVAS)requestRender()}return}
@@ -927,7 +931,7 @@ function drawFeatureCtx(g,cen,lim){
 }
 function drawCanvas(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr,now=performance.now(),cxs=W/2,cys=cy();
-  c.setTransform(dpr,0,0,dpr,0,stageTop*dpr);c.clearRect(0,-stageTop,innerWidth,innerHeight);
+  c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
   // sea
   c.beginPath();pcPath({type:"Sphere"});
   const gx=cxs-s+.84*s,gy=cys-s+.72*s,gr=c.createRadialGradient(gx,gy,0,gx,gy,1.44*s);
@@ -991,21 +995,21 @@ function hitCountry(ll){
   return best;
 }
 
-let W=0,H=0,baseScale=1,zoomK=1,stageTop=0,lodLvl=0;
+let W=0,H=0,baseScale=1,zoomK=1,stageTop=0,stageLeft=0,lodLvl=0;
 function size(){
   const r=document.getElementById("stage").getBoundingClientRect();
-  W=r.width;H=r.height;stageTop=r.top;
+  W=r.width;H=r.height;stageTop=r.top;stageLeft=r.left;
   const mobile=W<720;
   if(S.mode==="wander"){promptBottom=Math.max(50,document.querySelector("header").getBoundingClientRect().bottom-r.top+(mobile?4:10))}
   else{const fp=document.querySelector(S.mode==="speed"?".speed-prompt":".find-prompt").getBoundingClientRect();
   promptBottom=Math.max(150,fp.bottom-r.top+(mobile?4:10))}
   const avail=H-promptBottom-8;
-  baseScale=Math.max(110,Math.min(W*.45, avail*.48));
+  baseScale=Math.max(110,Math.min(W*(mobile?.49:.45), avail*.48));
   svg.attr("viewBox",`0 0 ${W} ${H}`);
   if(CANVAS)cvResize();
   cyVal=layoutCy();
   if(lensOpen){layoutLens();fitLens();drawLens()}
-  {const wc=document.getElementById("wc");if(wc){wc.setAttribute("filterUnits","userSpaceOnUse");wc.setAttribute("x",-10);wc.setAttribute("y",-stageTop-10);wc.setAttribute("width",W+20);wc.setAttribute("height",innerHeight+20)}}   // bound the paint filter to the screen, however big the painted area gets
+  {const wc=document.getElementById("wc");if(wc){wc.setAttribute("filterUnits","userSpaceOnUse");wc.setAttribute("x",-stageLeft-10);wc.setAttribute("y",-stageTop-10);wc.setAttribute("width",innerWidth+20);wc.setAttribute("height",innerHeight+20)}}   // bound the paint filter to the screen, however big the painted area gets
   render(true);
 }
 let cyVal=0,promptBottom=0;
@@ -1066,7 +1070,7 @@ function renderNow(){
   edge.attr("d",sp);
   if(!CANVAS)grat.attr("d",path(graticule));
   const cen0=projection.invert([W/2,cy()]);
-  projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-24,-stageTop-24],[W+24,innerHeight-stageTop+24]]:null);
+  projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-stageLeft-24,-stageTop-24],[innerWidth-stageLeft+24,innerHeight-stageTop+24]]:null);
   if(!animating){   // no geometry swaps in the middle of a fly-to; one full-quality render lands when it ends
     if(zoomK>=6)lodLvl=2;else if(zoomK<5.2&&lodLvl===2)lodLvl=1;
     if(lodLvl<2){if(zoomK>=(LITE?2.4:1.7))lodLvl=1;else if(zoomK<(LITE?2.2:1.5))lodLvl=0}
@@ -1236,7 +1240,7 @@ function lensCaption(id){
   const f=FACTS[id],cap=$("lensCap");cap.innerHTML="";
   const imgEl=FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"";
   cap.append(imgEl,el("div",{},el("b",{},f.n),el("small",{},[f.cap,areaTxt(f.a)].filter(Boolean).join(" · "))),
-    el("button",{class:"btn",onclick:()=>{showCard(id);setExplore(true,id)}},"Explore"));
+    (S.mode==="wander"?el("button",{class:"btn",onclick:()=>{showCard(id);setExplore(true,id)}},"Explore"):""));
   cap.classList.add("on");
 }
 function openLens(name,origin){
@@ -1825,6 +1829,7 @@ function showPrompt(id){
   else{$("ask").textContent="Find";swell(tg,f.n)}
 }
 function nextRound(){
+  clearAuto();
   hideCard();
   clearMissed();
   if(D.active&&D.idx>=D.ids.length){finishDaily();return}
@@ -1847,6 +1852,28 @@ function nextRound(){
   save();
   requestAnimationFrame(()=>{if(S.mode==="find"&&!silOn)size()});   // re-measure the prompt so the globe never sits under it
 }
+/* ---- auto-advance: after a find the next country starts by itself (tap the map or press Enter to skip ahead; hovering/tapping the card pauses it) ---- */
+const AUTO_MS={fast:1500,normal:2500,slow:4000};
+let autoT=null,autoLeft=0;const autoHold={card:0,btn:0,tapped:false};
+function clearAuto(){clearInterval(autoT);autoT=null;autoHold.tapped=false;const b=$("nextBtn");if(b)b.classList.remove("auto","hold")}
+function armAutoNext(){
+  clearAuto();
+  if(S.autoNext==="off"||S.mode!=="find"||S.qIdle)return;
+  if(D.active&&D.idx>=D.ids.length)return;           // "See results" stays manual
+  const ms=AUTO_MS[S.autoNext]||2500,b=$("nextBtn");autoLeft=ms;
+  b.style.setProperty("--auto-ms",ms+"ms");void b.offsetWidth;b.classList.add("auto");
+  autoT=setInterval(()=>{
+    const hold=autoHold.card||autoHold.btn||autoHold.tapped||$("modal").classList.contains("on")||lensOpen||moving||document.hidden;
+    b.classList.toggle("hold",!!hold);
+    if(hold)return;
+    autoLeft-=100;if(autoLeft<=0){clearAuto();if(S.mode==="find"&&S.done)nextRound()}
+  },100);
+}
+function skipNext(){if(S.mode==="find"&&S.done&&!S.qIdle&&!$("nextBtn").hidden){sndTick();nextRound();return true}return false}
+{const cd=$("card"),nb=$("nextBtn");
+  cd.addEventListener("pointerenter",()=>{autoHold.card=1});cd.addEventListener("pointerleave",()=>{autoHold.card=0});
+  cd.addEventListener("pointerdown",()=>{if(autoT)autoHold.tapped=true});
+  nb.addEventListener("pointerenter",()=>{autoHold.btn=1});nb.addEventListener("pointerleave",()=>{autoHold.btn=0});}
 function guess(id,ll,other){
   if(S.done||S.mode!=="find"||S.qIdle||!S.target)return;
   if(other){swell($("hint"),typeof other==="string"?`That’s ${other}. It isn’t part of the game, so no penalty.`:"That’s outside this game. No penalty.");sndOcean();return}
@@ -1906,6 +1933,7 @@ function success(shown,ll){
   if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
   $("showBtn").hidden=true;$("nextBtn").hidden=false;
   $("nextBtn").textContent=D.active&&D.idx>=D.ids.length?"See results":"Next place";
+  armAutoNext();
   if(shown&&lensOf(T)&&!(lensOpen&&lensG.ids.includes(T)))openLens(lensOf(T));
   const inLens=lensOpen&&lensG.ids.includes(T);
   let fp=null;
@@ -1932,6 +1960,7 @@ function fadeRepaint(fn){
 function beginSession(){if(SESS)return;SESS=new Set();fadeRepaint(()=>{paint();updateProgress()})}
 function endSession(){if(!SESS)return;SESS=null;fadeRepaint(()=>{paint();updateProgress()})}
 function idleView(){
+  clearAuto();
   S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
   hideCard();clearMissed();$("dClock").classList.remove("on");$("qFlag").hidden=true;$("target").classList.remove("small");
   $("ask").textContent="Quiz";swell($("target"),"Ready?");swell($("hint"),"Choose how you would like to play.");
@@ -2180,7 +2209,8 @@ function showCard(id,keepOpen){
   $("cNote").textContent=note;
   if(wasOn){restart(img);restart($("cNote"))}
   else sndCard(true);
-  const open=!!(keepOpen&&card.classList.contains("big"));
+  $("learnBtn").hidden=S.mode!=="wander";
+  const open=S.mode==="wander"&&!!(keepOpen&&card.classList.contains("big"));
   setExplore(open,id);
   $("cBody").scrollTop=0;
   card.classList.add("on");relayout();
@@ -2295,6 +2325,7 @@ function renderLearn(id){
 function tap(id,ll,other){
   if(S.mode==="wander"){if(id){showCard(id);floatLabel(FACTS[id].n,ll,2400);sndTick()}return}
   if(S.mode==="speed")return speedGuess(id,ll,other);
+  if(skipNext())return;
   guess(id,ll,other);
 }
 function onClick(e,d){
@@ -2307,7 +2338,7 @@ sphere.on("click",function(e){
   const ll=projection.invert(d3.pointer(e,svg.node()));
   if(!ll)return;
   if(CANVAS){const f=hitCountry(ll);if(f)return tap(FACTS[f.id]?f.id:null,ll,FACTS[f.id]?false:((f.properties&&f.properties.name)||true))}
-  if(S.mode==="find")guess(null,ll);else if(S.mode==="speed")speedGuess(null,ll);
+  if(S.mode==="find"){if(skipNext())return;guess(null,ll)}else if(S.mode==="speed")speedGuess(null,ll);
 });
 
 /* ---------- progress & chips ---------- */
@@ -2425,7 +2456,7 @@ function setSound(v){
 }
 function renderSettings(){
   const sh=sheetHead("Settings");
-  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),opt("Globe engine","Fast draws the globe on a canvas and stays smooth everywhere. Classic is the original look (reloads the page).",engineSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
+  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),opt("Globe engine","Fast draws the globe on a canvas and stays smooth everywhere. Classic is the original look (reloads the page).",engineSeg()),el("h3",{},"Quiz"),opt("Auto next","After a find the next country starts by itself. Tap the map or press Enter to skip ahead; hovering the info card pauses it.",autoSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
   sh.append(opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
@@ -2480,7 +2511,7 @@ $("skipBtn").onclick=()=>{
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race"};
 const cap=m=>m==="find"?"Find":m==="speed"?"Speed":"Wander";
-function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.width=b.offsetWidth+"px";p.style.transform=`translateX(${b.offsetLeft}px)`}
+function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.height=b.offsetHeight+"px";p.style.transform=`translateY(${b.offsetTop}px)`}
 function sndMode(m){
   const c=AC();if(!c)return;const t=c.currentTime;
   if(m==="wander")[523.25,659.25,783.99].forEach((f,i)=>pluck(f,t+i*.09,.05,1.6,.5));
@@ -2501,7 +2532,7 @@ function modeWash(m){
 function setMode(m,quiet,noIdle){
   if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
-  const from=S.mode;closeLens();
+  const from=S.mode;closeLens();clearAuto();
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;
   if(m!=="find"){S.qIdle=false;endSession();S.practice=false;if(typeof silHide==="function")silHide()}
@@ -2678,6 +2709,7 @@ function applyFx(){
   document.body.classList.toggle("noblur",soft);                          // soft = no live blur over the moving map
 }
 function engineSeg(){const w=el("div",{class:"seg2"});[["canvas","Fast"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine===k),onclick:()=>{if(S.engine===k)return;S.engine=k;save();location.reload()}},l)));return w}
+function autoSeg(){const w=el("div",{class:"seg2"});[["off","Off"],["fast","Quick"],["normal","Normal"],["slow","Slow"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.autoNext===k),onclick:()=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()}},l)));return w}
 function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
 if(isTouch){
   let n=0,sum=0,last=0;

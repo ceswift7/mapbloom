@@ -2832,6 +2832,8 @@ if(!reduced){drifting=false;scheduleDrift();}
    simplified or dropped while the globe moves. Falls back to the 2D canvas engine when WebGL2
    is unavailable. Injected into main.html by build.ps1.
    ====================================================================== */
+/* border lines are baked as a distance-like profile (a cone, 1 on the line falling to 0 over GL_LR texels), not a hard stroke; the shader turns that into a constant hairline at any zoom */
+const GL_LR=6,GL_LH=[.5,1.25,2.25,3.5,4.75,6],GL_LV=GL_LH.map((h,i)=>1-(h-(h-(i?GL_LH[i-1]:0))/2)/GL_LR);
 const GL_VS=`#version 300 es
 in vec2 aC;
 uniform vec2 uRes;
@@ -2858,7 +2860,9 @@ uniform vec3 uSeaMid;
 uniform vec3 uSeaOut;
 uniform vec4 uGrat;
 uniform vec4 uBorder;
-uniform float uLineK;
+uniform float uLineW;
+uniform vec2 uWT;
+uniform vec2 uPT;
 uniform float uPA;
 uniform float uFade;
 uniform sampler2D uPLand;
@@ -2867,11 +2871,13 @@ uniform sampler2D uPArt;
 uniform float uPOn;
 uniform vec4 uP;
 const float PI=3.14159265358979;
-vec3 layers(vec3 col,sampler2D tL,sampler2D tN,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,float lk,float pa){
+vec3 layers(vec3 col,sampler2D tL,sampler2D tN,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,vec2 tsz,float pa){
   vec4 L=textureGrad(tL,uv,gx,gy);
   col=L.rgb+col*(1.0-L.a);
-  float ln=textureGrad(tN,uv,gx,gy).r*lk;
-  col=mix(col,uBorder.rgb,clamp(ln,0.0,1.0)*uBorder.a);
+  float v=textureGrad(tN,uv,gx,gy).r;
+  float ppt=1.0/max(max(length(gx*tsz),length(gy*tsz)),1e-4);
+  float ln=clamp(uLineW+0.5-(1.0-v)*${GL_LR}.0*ppt,0.0,1.0)*step(0.003,v);
+  col=mix(col,uBorder.rgb,ln*uBorder.a);
   vec4 A=textureGrad(tA,uv,gx,gy)*pa;
   return A.rgb+col*(1.0-A.a);
 }
@@ -2914,12 +2920,12 @@ void main(){
   float latLine=gridLine(latD,10.0)*step(abs(latD),80.5);
   col=mix(col,uGrat.rgb,max(lonLine,latLine)*uGrat.a);
   vec3 base=col;
-  col=layers(base,uLand,uLines,uArt,uv,gx,gy,uLineK,uPA);
+  col=layers(base,uLand,uLines,uArt,uv,gx,gy,uWT,uPA);
   float dl=lon-uP.x;dl=dl-2.0*PI*floor((dl+PI)/(2.0*PI));
   vec2 puv=vec2(dl/uP.z+0.5,0.5-(lat-uP.y)/uP.w);
   vec2 pgx=dFdx(puv),pgy=dFdy(puv);
   float pw=smoothstep(0.0,0.06,min(min(puv.x,1.0-puv.x),min(puv.y,1.0-puv.y)))*uPOn;
-  if(pw>0.0){vec3 cp=layers(base,uPLand,uPLines,uPArt,puv,pgx,pgy,1.0,uPA);col=mix(col,cp,pw);}
+  if(pw>0.0){vec3 cp=layers(base,uPLand,uPLines,uPArt,puv,pgx,pgy,uPT,uPA);col=mix(col,cp,pw);}
   vec4 B=textureGrad(uArt2,uv,gx,gy)*uFade;
   col=B.rgb+col*(1.0-B.a);
   oC=vec4(col*cov,cov);
@@ -2928,7 +2934,7 @@ void main(){
 let GLc=null,glProg=null,glLost=false,glReady=false;
 const GP={on:false,busy:false,plan:null,last:0,gen:0,tex:null,cA:null,aCtx:null,pg:null,rimW:1};   // the deep-zoom detail patch
 const glU={},glT={land:null,lines:null,art:null,art2:null};
-let glTW=4096,glTH=2048,glLineTexels=2,glRimW=1.6,glAniso=null;
+let glTW=4096,glTH=2048,glRimW=1.6,glAniso=null;
 const glPeq=d3.geoEquirectangular().precision(.25),glPath=d3.geoPath(glPeq);
 let glArt=null,glArtCtx=null,glTmp=null,glTmpCtx=null;
 let glArtState=new Map();
@@ -2963,6 +2969,7 @@ function glTexNew(w,h,fmt){
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.CLAMP_TO_EDGE);
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR_MIPMAP_LINEAR);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MAG_FILTER,GLc.LINEAR);
   if(glAniso)GLc.texParameterf(GLc.TEXTURE_2D,glAniso.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,GLc.getParameter(glAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  if(fmt==="R8")GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR);   // line profiles are never mip-mapped: averaging them is what made borders soft
   if(fmt==="R8")GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.R8,1,1,0,GLc.RED,GLc.UNSIGNED_BYTE,new Uint8Array([0]));
   else GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,1,1,0,GLc.RGBA,GLc.UNSIGNED_BYTE,new Uint8Array([0,0,0,0]));
   return t;
@@ -2975,14 +2982,14 @@ function glInitGL(){
   glAniso=GLc.getExtension("EXT_texture_filter_anisotropic");
   const max=GLc.getParameter(GLc.MAX_TEXTURE_SIZE);
   glTW=Math.min(isTouch?3072:4096,max);glTH=glTW/2;
-  glLineTexels=2*glTW/4096;glRimW=1.6*glTW/4096;
+  glRimW=1.6*glTW/4096;
   glPeq.scale(glTW/(2*Math.PI)).translate([glTW/2,glTH/2]);
   const p=GLc.createProgram();
   GLc.attachShader(p,glShader(GLc.VERTEX_SHADER,GL_VS));GLc.attachShader(p,glShader(GLc.FRAGMENT_SHADER,GL_FS));
   GLc.bindAttribLocation(p,0,"aC");GLc.linkProgram(p);
   if(!GLc.getProgramParameter(p,GLc.LINK_STATUS))throw new Error(GLc.getProgramInfoLog(p));
   glProg=p;
-  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uLineK","uPA","uFade","uLand","uLines","uArt","uArt2","uPLand","uPLines","uPArt","uPOn","uP"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
+  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uLineW","uWT","uPT","uPA","uFade","uLand","uLines","uArt","uArt2","uPLand","uPLines","uPArt","uPOn","uP"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
   const vao=GLc.createVertexArray();GLc.bindVertexArray(vao);
   const b=GLc.createBuffer();GLc.bindBuffer(GLc.ARRAY_BUFFER,b);GLc.bufferData(GLc.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),GLc.STATIC_DRAW);
   GLc.enableVertexAttribArray(0);GLc.vertexAttribPointer(0,2,GLc.FLOAT,false,0,0);
@@ -2998,7 +3005,7 @@ function glUploadFull(tex,canvas,fmt){
     GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.R8,GLc.RED,GLc.UNSIGNED_BYTE,canvas);
     if(GLc.getError()!==GLc.NO_ERROR){GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,GLc.RGBA,GLc.UNSIGNED_BYTE,canvas)}   // older drivers: plain RGBA works too (the shader reads .r)
   }else GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,GLc.RGBA,GLc.UNSIGNED_BYTE,canvas);
-  GLc.generateMipmap(GLc.TEXTURE_2D);
+  if(fmt!=="R8")GLc.generateMipmap(GLc.TEXTURE_2D);
 }
 function glUploadBand(tex,canvas,y,h){
   if(h<=0)return;
@@ -3034,17 +3041,19 @@ function glStartLand(){
     render(true);
   };
 }
-/* ---- baking: border + coast lines (colour comes from a uniform, so this is done once) ---- */function glStartLines(){
+/* ---- baking: border + coast lines (colour comes from a uniform, so this is done once) ---- */function glLineInit(ctx){ctx.fillStyle="#000";ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.lineJoin="round";ctx.lineCap="round";ctx.globalCompositeOperation="lighten"}
+function glLineStroke(ctx){for(let i=GL_LH.length-1;i>=0;i--){const g=Math.round(GL_LV[i]*255);ctx.lineWidth=GL_LH[i]*2;ctx.strokeStyle=`rgb(${g},${g},${g})`;ctx.stroke()}}   // "lighten" keeps the brightest level, so borders shared by two countries are never doubled
+function glStartLines(){
   const job=glJob(j=>{
-    if(!j.st){const c=glMakeCanvas(glTW,glTH),ctx=c.getContext("2d");ctx.strokeStyle="#fff";ctx.lineWidth=glLineTexels;ctx.lineJoin="round";ctx.lineCap="round";j.st={c,ctx,i:0}}
+    if(!j.st){const c=glMakeCanvas(glTW,glTH),ctx=c.getContext("2d");glLineInit(ctx);j.st={c,ctx,i:0}}
     const st=j.st;glPath.context(st.ctx);
     st.ctx.beginPath();
     const end=Math.min(features.length,st.i+30);
     for(;st.i<end;st.i++)glPath(features[st.i]);
-    st.ctx.stroke();
+    glLineStroke(st.ctx);
     return st.i>=features.length;
   },null);
-  job.finish=()=>{if(job.st){glUploadFull(glT.lines,job.st.c,"R8");job.st=null}render(true)};
+  job.finish=()=>{if(job.st){glUploadFull(glT.lines,job.st.c,"R8");GLX.lineCv=job.st.c;job.st=null}render(true)};
 }
 /* ---- baking: paintings ---- */
 function glAnchor(f){
@@ -3198,7 +3207,7 @@ function glPatchBake(pl){
   GP.busy=true;const gen=GP.gen,D=180/Math.PI;
   const proj=d3.geoEquirectangular().rotate([-pl.lon0*D,0]).center([0,pl.lat0*D]).scale(pl.PW/pl.lonSpan).translate([pl.PW/2,pl.PH/2]).precision(.2);
   const pg=d3.geoPath(proj);
-  const pxT=pl.s*pl.lonSpan/pl.PW,lineW=Math.max(.9,.6/pxT),rimW=Math.max(1,.8/pxT);
+  const pxT=pl.s*pl.lonSpan/pl.PW,rimW=Math.max(1,.8/pxT);
   const wr=Math.hypot(pl.lonSpan*Math.cos(pl.lat0),pl.latSpan)/2+.05,cen=[pl.lon0*D,pl.lat0*D];
   const fs=features.filter(f=>!f._c||!isFinite(f._c[0])||f._r>=3||d3.geoDistance(f._c,cen)-f._r<wr);
   const stateArt=[...glArtState.entries()].filter(([id])=>fs.includes(byId[id]));
@@ -3207,12 +3216,12 @@ function glPatchBake(pl){
       const mk=()=>glMakeCanvas(pl.PW,pl.PH),cl=mk(),cn=mk(),ca=mk(),groups=new Map();
       fs.forEach(f=>{const k=glLandKey(f);let a=groups.get(k);if(!a){a=[];groups.set(k,a)}a.push(f)});
       j.st={cl,cn,ca,lc:cl.getContext("2d"),nc:cn.getContext("2d"),ac:ca.getContext("2d"),gl:[...groups.entries()],gi:0,ni:0,ai:0};
-      j.st.nc.strokeStyle="#fff";j.st.nc.lineWidth=lineW;j.st.nc.lineJoin="round";j.st.nc.lineCap="round";
+      glLineInit(j.st.nc);
     }
     const st=j.st,t0=performance.now();
     while(performance.now()-t0<9){
       if(st.gi<st.gl.length){const [key,list]=st.gl[st.gi++];pg.context(st.lc);st.lc.beginPath();list.forEach(f=>pg(f));st.lc.fillStyle=glLandColor(key);st.lc.fill();continue}
-      if(st.ni<fs.length){pg.context(st.nc);st.nc.beginPath();const e=Math.min(fs.length,st.ni+25);for(;st.ni<e;st.ni++)pg(fs[st.ni]);st.nc.stroke();continue}
+      if(st.ni<fs.length){pg.context(st.nc);st.nc.beginPath();const e=Math.min(fs.length,st.ni+25);for(;st.ni<e;st.ni++)pg(fs[st.ni]);glLineStroke(st.nc);continue}
       if(st.ai<stateArt.length){const [id,tag]=stateArt[st.ai++];glDrawArt(st.ac,id,tag,pg,rimW);continue}
       return true;
     }
@@ -3253,13 +3262,12 @@ GLX.draw=function(s,cen0){
   const si=glRGB(CV.seaIn),sm=glRGB(CV.seaMid),so=glRGB(CV.seaOut),gr=glRGB(CV.grat),bo=glRGB(CV.border);
   GLc.uniform3f(glU.uSeaIn,si[0],si[1],si[2]);GLc.uniform3f(glU.uSeaMid,sm[0],sm[1],sm[2]);GLc.uniform3f(glU.uSeaOut,so[0],so[1],so[2]);
   GLc.uniform4f(glU.uGrat,gr[0],gr[1],gr[2],gr[3]);GLc.uniform4f(glU.uBorder,bo[0],bo[1],bo[2],bo[3]);
-  const texPx=s*(2*Math.PI/glTW);                // screen px per texel at the equator
-  GLc.uniform1f(glU.uLineK,Math.min(1,.7/(glLineTexels*texPx)));
+  GLc.uniform1f(glU.uLineW,GLX.lineW||.4);GLc.uniform2f(glU.uWT,glTW,glTH);
   GLc.uniform1f(glU.uPA,cvPA);GLc.uniform1f(glU.uFade,glFadeV);
   glPatchTick(s);
   const pl=GP.plan,usePatch=GP.on&&pl&&pl.s*.5<=s&&s<=pl.s*2.2;
   GLc.uniform1f(glU.uPOn,usePatch?1:0);
-  if(usePatch)GLc.uniform4f(glU.uP,pl.lon0,pl.lat0,pl.lonSpan,pl.latSpan);
+  if(usePatch){GLc.uniform4f(glU.uP,pl.lon0,pl.lat0,pl.lonSpan,pl.latSpan);GLc.uniform2f(glU.uPT,pl.PW,pl.PH)}
   GLc.activeTexture(GLc.TEXTURE0);GLc.bindTexture(GLc.TEXTURE_2D,glT.land);GLc.uniform1i(glU.uLand,0);
   GLc.activeTexture(GLc.TEXTURE1);GLc.bindTexture(GLc.TEXTURE_2D,glT.lines);GLc.uniform1i(glU.uLines,1);
   GLc.activeTexture(GLc.TEXTURE2);GLc.bindTexture(GLc.TEXTURE_2D,glT.art);GLc.uniform1i(glU.uArt,2);

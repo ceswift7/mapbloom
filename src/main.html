@@ -332,9 +332,7 @@ function size(){
   W=r.width;H=r.height;stageTop=r.top;stageLeft=r.left;
   const mobile=W<720;
   if(!mobile)document.getElementById("card").classList.remove("peek");
-  if(S.mode==="wander"){promptBottom=Math.max(6,document.querySelector("header").getBoundingClientRect().bottom-r.top+4)}
-  else{const fp=document.querySelector(S.mode==="speed"?".speed-prompt":".find-prompt").getBoundingClientRect();
-  promptBottom=Math.max(70,fp.bottom-r.top+(mobile?4:6))}
+  promptBottom=Math.max(6,document.querySelector("header").getBoundingClientRect().bottom-r.top+4);
   const avail=H-promptBottom-8;
   baseScale=Math.max(110,Math.min(W*(mobile?.49:.45),H*.45));   // the same size in every mode
   svg.attr("viewBox",`0 0 ${W} ${H}`);
@@ -1449,7 +1447,7 @@ function speedNext(){
     if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
     else if(v==="capital"){$("sAsk").textContent="Find the country whose capital is";swell($("sTarget"),ff.cap)}
     else{$("sAsk").textContent="";swell($("sTarget"),ff.n)}}
-  requestAnimationFrame(()=>{const st=$("stage").getBoundingClientRect(),fp=document.querySelector(".speed-prompt").getBoundingClientRect();if(fp.bottom-st.top+(W<720?4:10)>promptBottom+6)size()});   // a taller prompt (flag/capital, small screens) must never sit over the globe
+  
   $("sCount").textContent=`${R.found.size} / ${R.total}`;
 }
 function updatePen(pop){const e=$("sPen");e.textContent=R.pen?"+"+(R.pen/1000)+"s":"";if(pop&&!reduced){e.classList.remove("pop");void e.offsetWidth;e.classList.add("pop")}}
@@ -1713,6 +1711,60 @@ function renderLearn(id){
   root.append(el("p",{class:"attrib"},"Text adapted from the Wikipedia article “"+L.t+"” (",el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(L.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},"read the full article"),"), licensed CC BY-SA 4.0."+(fd&&fd.x?" Food text from the Wikipedia article \u201C":" Flags from flagcdn.com."),fd&&fd.x?el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(fd.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},fd.t):"",fd&&fd.x?"\u201D, same licence. Flags from flagcdn.com.":""));
 }
 
+/* ======================================================================
+   TAKE ME SOMEWHERE: a random place, a dramatic flight, a mystery brief, then the reveal
+   ====================================================================== */
+let tms=null;
+const popTxt=p=>p>=1e6?(p/1e6).toFixed(p>=1e7?0:1)+" million":fmt(Math.round(p/1000)*1000);
+function tmsPick(){
+  const ok=playable.filter(f=>f.id!==cardId&&FACTS[f.id]&&FACTS[f.id].ll),fresh=ok.filter(f=>!S.found.has(f.id)),src=fresh.length?fresh:ok;
+  return src[Math.floor(Math.random()*src.length)].id;
+}
+function briefHide(){$("brief").classList.remove("on");$("app").classList.remove("tmsrun")}
+function tmsFly(ll,ms,kEnd){
+  return new Promise(res=>{
+    stopDrift();animating=true;sndFly(ms/1000);
+    const r0=projection.rotate().slice(),k0=zoomK,lat1=Math.max(-70,Math.min(70,ll[1]));
+    let d=-ll[0]-r0[0];d=((d%360)+540)%360-180;const spin=(d<0?-1:1)*360;   // one extra full turn
+    const t0=performance.now(),run=()=>{
+      const t=Math.min(1,(performance.now()-t0)/ms),e=d3.easeCubicInOut(t);
+      projection.rotate([r0[0]+(d+spin)*e,r0[1]+(-lat1-r0[1])*e,0]);
+      zoomK=Math.max(.85,(k0+(kEnd-k0)*e)*(1-.42*Math.sin(Math.PI*t)));
+      render();
+      if(t>=1){tm.stop();animating=false;syncZoom();render(true);scheduleDrift();res()}
+    },tm=d3.timer(run);
+  });
+}
+async function tmsGo(){
+  if(tms||S.mode!=="wander")return;
+  if(reduced){/* no spectacle: a plain flight */}
+  hideCard();closeLens();
+  const id=tmsPick(),f=FACTS[id],L=LEARN[id]||{},from=projection.invert([W/2,cy()])||[0,0],me={id,phase:"fly",cancel:false};
+  tms=me;$("app").classList.add("tmsrun");
+  $("briefGo").disabled=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
+  const dl=$("briefFacts");dl.innerHTML="";
+  const rows=[];
+  if(L.p)rows.push(["Population","about "+popTxt(L.p)]);
+  if(f.cap)rows.push(["Capital",f.cap]);
+  rows.push(["Distance",distTxt(km(from,LL(id)))+" away"]);
+  $("brief").classList.add("on");sndCard(true);
+  const ms=reduced?400:3600;
+  rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*850));
+  await tmsFly(LL(id),ms,f.a<30000?2.4:1.6);
+  if(tms!==me)return;
+  me.phase="brief";$("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
+}
+$("tmsBtn").onclick=()=>{sndTick();tmsGo()};
+$("briefClose").onclick=()=>{if(tms)tms.cancel=true;tms=null;briefHide()};
+$("briefAgain").onclick=()=>{tms=null;briefHide();setTimeout(tmsGo,250)};
+$("briefGo").onclick=()=>{
+  if(!tms||tms.phase!=="brief")return;
+  const id=tms.id;tms=null;briefHide();
+  if(S.found.has(id)){showCard(id);return}
+  startReveal(id,LL(id),false,()=>{S.found.add(id);S.shown.delete(id);updateProgress();save();paint();setTimeout(checkAch,600)},false);
+  setTimeout(()=>{if(S.mode==="wander")showCard(id)},reduced?0:1300);
+};
+
 /* ---------- clicks ---------- */
 function tap(id,ll,other){
   if(S.mode==="wander"){if(id){showCard(id);floatLabel(FACTS[id].n,ll,2400);sndTick()}return}
@@ -1916,6 +1968,7 @@ function modeWash(m){
 function setMode(m,quiet,noIdle){
   if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
+  if(tms){tms.cancel=true;tms=null;briefHide()}
   const from=S.mode;closeLens();clearAuto();
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;

@@ -294,12 +294,29 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
 button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* prompt */
-.prompt{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:2;text-align:center;width:min(560px,calc(100% - 32px));pointer-events:none}
+.prompt{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:2;text-align:center;width:min(520px,calc(100% - 640px));pointer-events:none}   /* centre of the footer, floating over the foot of the globe */
+@media (max-width:899px){.prompt{position:fixed;top:52px;bottom:auto;width:min(560px,calc(100% - 32px))}}
 .prompt .ask{font-size:13px;color:var(--ink-soft);margin:0 0 2px}
 .prompt .target{font-family:var(--serif);font-size:clamp(34px,6vw,54px);line-height:1.05;margin:0;font-weight:400;letter-spacing:-.015em}
 .prompt .target.small{font-size:clamp(26px,4.4vw,38px)}
 .prompt .hint{margin:3px auto 0;font-size:13.5px;color:var(--ink-soft);min-height:0;max-width:46ch}
 .prompt .hint:empty{display:none}
+.tms{position:absolute;left:16px;top:10px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 14px 0 11px;border-radius:999px;border:0;background:var(--mode-acc);color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 14px -8px var(--mode-acc);transition:filter .2s ease,opacity .3s ease}
+.tms svg{width:15px;height:15px;flex:none}
+.tms:hover{filter:brightness(1.07)}
+.app.wander .tms{display:inline-flex}
+.app.tmsrun .tms{opacity:.45;pointer-events:none}
+.brief{position:absolute;left:50%;bottom:16px;z-index:6;width:min(380px,calc(100% - 24px));padding:16px 20px 16px;border-radius:16px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 18px 40px -22px var(--paper-shadow);opacity:0;transform:translate(-50%,18px);pointer-events:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.brief.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.brief .bclose{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint)}
+.brief .bk{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.brief h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;margin:4px 0 8px;line-height:1.15}
+.bfacts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.bfacts dt{color:var(--ink-faint)}
+.bfacts dd{margin:0;font-family:var(--serif);font-size:15.5px}
+.bfacts>*{animation:inkin .7s both}
+.brief .brow{display:flex;gap:8px;align-items:center;margin-top:14px}
+.brief .btn[disabled]{opacity:.5;pointer-events:none}
 .bench{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:0}
 .chip[hidden]{display:none}
 .fbtn{align-self:flex-end;margin-bottom:2px}
@@ -512,7 +529,6 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .dock button[aria-pressed="true"]{padding:0 11px}
   .icon-btn{width:32px;height:32px}
   .tools{gap:4px}
-  .prompt{top:4px}
   .prompt .hint{font-size:13.5px}
   footer{padding:0 14px 12px;gap:8px;flex-direction:column;align-items:stretch}
   .progress,.bar{width:100%}
@@ -614,27 +630,6 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
     <svg id="globe" tabindex="0" aria-label="Globe. Drag to turn, scroll or pinch to zoom, arrow keys also turn it."></svg>
     <div id="labels"></div>
 
-    <div class="prompt" aria-live="polite">
-      <div class="find-prompt">
-        <p class="dclock" id="dClock" aria-live="off">0:00.0</p>
-        <p class="ask" id="ask">Find</p>
-        <img class="qflag" id="qFlag" alt="" hidden>
-        <h2 class="target" id="target">…</h2>
-        <p class="hint" id="hint"></p>
-        <div class="actions">
-          <button class="btn primary" id="nextBtn" hidden>Next place</button>
-        </div>
-      </div>
-      <div class="speed-prompt">
-        <div class="sp-top"><span class="sp-count" id="sCount"></span><span class="sp-time" id="sTime">0:00.0</span><span class="sp-pen" id="sPen"></span></div>
-        <p class="ask" id="sAsk">Find</p>
-        <img class="qflag" id="sFlag" alt="" hidden>
-        <h2 class="target" id="sTarget"></h2>
-        <p class="hint" id="sHint"></p>
-        <div class="actions"><button class="chip" id="skipBtn">Skip · +10s</button></div>
-      </div>
-    </div>
-
     <div class="sil" id="sil" hidden>
       <div class="silcard">
         <svg id="silSvg" viewBox="0 0 360 230" role="img" aria-label="The shape of a country"></svg>
@@ -659,6 +654,14 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       </div>
     </div>
 
+    <button class="tms" id="tmsBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Take me somewhere</span></button>
+    <aside class="brief" id="brief" aria-live="polite">
+      <button class="icon-btn bclose" id="briefClose" aria-label="Close" style="border:0;background:none">&#10005;</button>
+      <div class="bk">Tonight&rsquo;s destination</div>
+      <h3 id="briefWhere"></h3>
+      <dl class="bfacts" id="briefFacts"></dl>
+      <div class="brow"><button class="btn primary" id="briefGo" type="button" disabled>Explore</button><button class="chip" id="briefAgain" type="button">Somewhere else</button></div>
+    </aside>
     <aside class="card" id="card" aria-live="polite">
       <button class="cardmore icon-btn" id="cardMore" aria-label="Show details" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
       <button class="close icon-btn" id="cardClose" aria-label="Close" style="border:0;background:none">✕</button>
@@ -676,6 +679,27 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
   </div>
 
   <footer>
+    <div class="prompt" aria-live="polite">
+      <div class="find-prompt">
+        <p class="dclock" id="dClock" aria-live="off">0:00.0</p>
+        <p class="ask" id="ask">Find</p>
+        <img class="qflag" id="qFlag" alt="" hidden>
+        <h2 class="target" id="target">…</h2>
+        <p class="hint" id="hint"></p>
+        <div class="actions">
+          <button class="btn primary" id="nextBtn" hidden>Next place</button>
+        </div>
+      </div>
+      <div class="speed-prompt">
+        <div class="sp-top"><span class="sp-count" id="sCount"></span><span class="sp-time" id="sTime">0:00.0</span><span class="sp-pen" id="sPen"></span></div>
+        <p class="ask" id="sAsk">Find</p>
+        <img class="qflag" id="sFlag" alt="" hidden>
+        <h2 class="target" id="sTarget"></h2>
+        <p class="hint" id="sHint"></p>
+        <div class="actions"><button class="chip" id="skipBtn">Skip · +10s</button></div>
+      </div>
+    </div>
+
     <div class="progress">
       <p><b id="foundN">0</b> of <span id="totalN">0</span> <span id="progLabel">countries painted</span><button class="unit" id="unitBtn" aria-label="Switch distance units" title="Distance units"><b id="unitA">mi</b> / <span id="unitB">km</span></button></p>
       <div class="bar" id="bar"></div>

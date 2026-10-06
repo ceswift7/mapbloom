@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -344,7 +344,8 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   .stamps.bkstamps{grid-template-columns:repeat(3,1fr)}
   .bkpage.l,.bkpage.r{padding-left:18px;padding-right:18px}
   .bkpage.r{padding-top:0;padding-bottom:20px}
-  .bk-tabs{left:12px;gap:4px}.bk-tab{padding:0 12px;font-size:12.5px}
+  .bk-tabs{left:10px;gap:3px}.bk-tab{padding:0 9px;font-size:11.5px}
+  .sheet.book .x{top:8px;right:8px}
 }
 .adet{border-top:1px dashed var(--panel-line);padding:9px 0}
 .adet summary{cursor:pointer;display:flex;align-items:center;gap:8px;font-family:var(--serif);font-size:16px;list-style:none}
@@ -430,13 +431,38 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .card dd{margin:0;font-family:var(--serif);font-size:15.5px;line-height:1.4}
 .card .note{font-family:var(--serif);font-style:italic;color:var(--ink-soft);margin:12px 0 0;font-size:15px;line-height:1.5}
 .card .close{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2}
-.jrrow{display:flex;align-items:center;gap:4px;margin:-4px 0 10px;min-height:9px}
-.jd{width:7px;height:7px;border-radius:50%;border:1.3px solid var(--ink-faint);box-sizing:border-box;flex:none}
-.jd.on{background:var(--ink);border-color:var(--ink)}
-.jrrow small{margin-left:6px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
-.jrrow.m .jd.on{background:#C9A24B;border-color:#C9A24B}
-.jrrow.m small{color:#B08A32}
-.card .tname{min-width:0}
+.jrbtn{display:inline-flex;align-items:center;gap:7px;margin:-4px 0 10px;padding:0;border:0;background:none;font:inherit;font-size:11.5px;letter-spacing:.03em;color:var(--ink-faint);cursor:pointer}
+.jrbtn svg{width:24px;height:24px;flex:none}
+.jrbtn .tk{fill:none;stroke:var(--panel-line);stroke-width:2.4}
+.jrbtn .ar{fill:none;stroke:var(--ink-soft);stroke-width:2.6;stroke-linecap:round}
+.jrbtn .st{fill:var(--ink-faint);opacity:.7}
+.jrbtn.m .ar{stroke:#C9A24B}.jrbtn.m .st{fill:#C9A24B;opacity:1}
+.jrbtn:hover span{color:var(--ink)}
+.mhead{display:flex;align-items:center;gap:14px;margin:0 0 6px}
+.mhead img{width:54px;max-height:40px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18)}
+.mhead h2{margin:0}
+.mhead small{color:var(--ink-faint);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+.mrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px dashed var(--panel-line)}
+.mrow .mi{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--ink-faint);flex:none;display:grid;place-items:center;font-size:12px;color:#fff}
+.mrow .mi.on{background:#6FA27E;border-color:#6FA27E}
+.mrow .mt{flex:1;min-width:0;font-family:var(--serif);font-size:16px}
+.mrow .mt small{display:block;font-family:var(--sans);font-size:11.5px;color:var(--ink-faint)}
+.mq{font-family:var(--serif);font-size:18px;line-height:1.45;margin:6px 0 14px}
+.mq em{font-style:normal;background:color-mix(in srgb,var(--c-Asia) 28%,transparent);border-radius:4px;padding:0 4px}
+.mopts{display:grid;gap:8px}
+.mopts.fl{grid-template-columns:1fr 1fr}
+.mopt{font:inherit;font-size:14.5px;text-align:left;color:inherit;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:11px 14px;cursor:pointer;transition:border-color .2s,background .2s}
+.mopt:hover{border-color:var(--ink)}
+.mopt img{display:block;width:100%;max-height:70px;object-fit:contain;border-radius:3px}
+.mopt.ok{background:color-mix(in srgb,#6FA27E 30%,var(--panel));border-color:#6FA27E}
+.mopt.no{background:color-mix(in srgb,#E06F58 26%,var(--panel));border-color:#E06F58}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:12px 8px;margin-top:12px}
+.mtile{position:relative;font:inherit;color:inherit;background:none;border:1.5px solid transparent;border-radius:10px;padding:6px 4px 5px;cursor:pointer;text-align:center}
+.mtile:hover{border-color:var(--panel-line)}
+.mtile img{display:block;width:54px;height:36px;object-fit:contain;margin:0 auto 4px;border-radius:2px;box-shadow:0 0 0 1px rgba(58,51,43,.16)}
+.mtile .mn{display:block;font-size:10.5px;line-height:1.2;color:var(--ink-soft)}
+.mtile .mlv{position:absolute;right:5px;top:3px;font-style:normal;font-size:11px;color:var(--ink-faint)}
+.mtile.l0{opacity:.45}.mtile.l2{border-color:#B8B2A6}.mtile.l3{border-color:#C9A24B}.mtile.l3 .mlv{color:#C9A24B}.card .tname{min-width:0}
 .card .tsub{display:none;font-size:12.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .cardmore{display:none;position:absolute;right:40px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2;border:0;background:none;place-items:center}
 .card .cardmore svg{width:16px;height:16px;transition:transform .3s ease}
@@ -590,7 +616,7 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .card:not(.peek) .cardmore svg{transform:rotate(180deg)}
   .card:not(.peek) .top{padding-right:64px}
   .card.peek{padding:10px 12px;border-radius:14px;cursor:pointer}
-  .card.peek .cardbody,.card.peek .where,.card.peek .jrrow{display:none}
+  .card.peek .cardbody,.card.peek .where,.card.peek .jrbtn{display:none}
   .card.peek .tsub{display:block}
   .card.peek .top{gap:10px;padding-right:68px}
   .card.peek h2{font-size:18px}
@@ -715,7 +741,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="cardhead">
         <div class="top"><img class="flagimg" id="cFlagImg" alt="" hidden><span class="flag" id="cFlag"></span><div class="tname"><h2 id="cName"></h2><div class="tsub" id="cSub"></div></div></div>
         <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden>✓ read</span></p>
-        <div class="jrrow" id="cJr"></div>
+        <button class="jrbtn" id="cJr" type="button" aria-label="Mastery"></button>
       </div>
       <div class="cardbody" id="cBody">
         <dl id="cList"></dl>

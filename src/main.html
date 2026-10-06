@@ -111,30 +111,38 @@ function buildMid(){
 /* ---------- country journal: what you have done with each country, and how far it has come (Found, Studied, Mastered) ---------- */
 const JR_SEC=[["g","The land"],["c","People and culture"],["f","Food and dishes"],["h","A short history"],["n","Where the name comes from"]];
 function jrSecs(id){const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];return JR_SEC.filter(([k])=>k==="f"?!!(fd&&fd.x):!!L[k]).map(x=>x[0])}
-function jrDone(id){const j=S.jr[id]||{},ss=j.s||[];return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrSecs(id).filter(k=>ss.includes(k)).length}
-function jrTotal(id){return 3+jrSecs(id).length}
-function jrLevel(id){if(!S.found.has(id))return 0;const d=jrDone(id),t=jrTotal(id);return d>=t?3:d>=Math.max(4,t-2)?2:1}
+function jrObj(id){const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]});if(!j.q)j.q=[];if(!j.s)j.s=[];return j}
+const qOkC={};
+function jrQSecs(id){return jrSecs(id).filter(k=>{const c=id+k;if(!(c in qOkC))qOkC[c]=qBuild(id,k,0).length>=1;return qOkC[c]})}   // page sections that can actually be quizzed
+function jrDone(id){const j=S.jr[id]||{},q=j.q||[];return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrQSecs(id).filter(k=>q.includes(k)).length}
+function jrTotal(id){return 3+jrQSecs(id).length}
+/* Found: located. Studied: every page section read. Mastered: capital, flag and every page quiz passed. */
+function jrLevel(id){
+  if(!S.found.has(id))return 0;
+  const j=S.jr[id]||{},q=j.q||[],r=j.s||[];
+  if(j.c&&j.f&&jrQSecs(id).every(k=>q.includes(k)))return 3;
+  const secs=jrSecs(id);
+  return secs.length&&secs.every(k=>r.includes(k))?2:1;
+}
 const jrGlyph=id=>["\u25CB ","\u25CF ","\u25D1 ","\u2605 "][jrLevel(id)];
 function jrMark(id,type,key){
   if(!FACTS[id])return;
-  const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]}),before=jrLevel(id);
-  if(type==="c"){if(j.c)return;j.c=1}else if(type==="f"){if(j.f)return;j.f=1}else{if(j.s.includes(key))return;j.s.push(key)}
+  const j=jrObj(id),before=jrLevel(id);
+  if(type==="c"){if(j.c)return;j.c=1}else if(type==="f"){if(j.f)return;j.f=1}else if(type==="q"){if(j.q.includes(key))return;j.q.push(key)}else{if(j.s.includes(key))return;j.s.push(key)}
   save();
   const after=jrLevel(id);
   if($("card").classList.contains("on")&&cardId===id)jrRow(id);
-  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Every part of its journal is filled in.":"Most of its journal is filled in.",3800);
+  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and every page quiz passed.":"Every page of its journal has been read.",3800);
   if(after!==before)paint();
 }
 function jrRow(id){
-  const row=$("cJr");if(!row)return;row.innerHTML="";
-  const j=S.jr[id]||{},items=[["Located",S.found.has(id)],["Capital",!!j.c],["Flag",!!j.f],...jrSecs(id).map(k=>[JR_SEC.find(x=>x[0]===k)[1],(j.s||[]).includes(k)])];
-  items.forEach(([l,d])=>{const i=document.createElement("i");i.className="jd"+(d?" on":"");row.append(i)});
-  const lv=jrLevel(id);row.classList.toggle("m",lv===3);
-  const missing=items.filter(x=>!x[1]).map(x=>x[0]);
-  row.title=missing.length?"Still to do: "+missing.join(", "):"Journal complete";
-  if(lv>=2){const s=document.createElement("small");s.textContent=lv===3?"Mastered":"Studied";row.append(s)}
-}
-let jrObs=[],jrTimers=[];
+  const b=$("cJr");if(!b)return;
+  const d=jrDone(id),t=jrTotal(id),lv=jrLevel(id),C=2*Math.PI*9;
+  b.classList.toggle("m",lv===3);
+  b.innerHTML=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" class="tk"/><circle cx="12" cy="12" r="9" class="ar" stroke-dasharray="${(C*d/t).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 12 12)"/><path d="M12 7.6l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z" class="st"/></svg><span>Mastery ${d}/${t}</span>`;
+  b.title=["Not found yet","Found","Studied","Mastered"][lv]+": open its mastery quizzes";
+  b.onclick=()=>{sndTick();renderMastery(id)};
+}let jrObs=[],jrTimers=[];
 function jrReset(){jrObs.forEach(o=>o.disconnect());jrObs=[];jrTimers.forEach(clearTimeout);jrTimers=[]}
 function jrWatch(el0,id,key){   // a section counts as read once most of it has been on screen for a moment
   if(!window.IntersectionObserver||(S.jr[id]&&(S.jr[id].s||[]).includes(key)))return;
@@ -2091,11 +2099,139 @@ function expIds(e){
   if(e.region)return playable.filter(f=>inReg(f.id,e.region)).map(f=>f.id);
   return [...new Set(e.names.map(n=>nameId[n]).filter(Boolean))];
 }
+/* ======================================================================
+   MASTERY QUIZZES: made from each country's own pages. Pass 2 of 3 on every page quiz (plus capital and flag) to master a country.
+   ====================================================================== */
+const Q_NAMES={g:"The land",c:"People and culture",f:"Food and dishes",h:"A short history",n:"Where the name comes from"};
+const Q_ABOUT={g:"the land",c:"the people and culture",f:"the food",h:"the history",n:"the origin of the name"};
+const Q_STOP=new Set("The In It This That These Those However During After Before Since Although While When Where With Without Under Over Between Among Many Most Some Several Other Another Today Modern Ancient Early Late Its Their His Her Both Also Often Such Only There Following Throughout Within Despite According Although Because Which Who Whose Both Each Every Despite".split(" "));
+const qPick=(arr,n,rnd)=>shuffle(arr,rnd).slice(0,n);
+function qText(id,key){
+  const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];
+  const t=key==="f"?(fd&&fd.x):key==="h"?[L.h,L.m].filter(Boolean).join("\n"):L[key];
+  return paras(tidyText(t||""));
+}
+function qSents(id,key){
+  const out=[];
+  qText(id,key).forEach(p=>{if(/^[a-z]/.test(p))return;p.replace(/([.!?])\s+(?=[A-Z"\u201C])/g,"$1\u0001").split("\u0001").forEach(s=>{s=s.trim();if(s.length>=35&&s.length<=230&&!/[\[\]{}]/.test(s))out.push(s)})});
+  return out;
+}
+let qNameRx=null;
+function qMask(s,id){   // the country (and its adjective) becomes [country]; any other country named in the text becomes "another country", so options never give the answer away
+  if(!qNameRx){const names=[...new Set(playable.map(f=>FACTS[f.id].n))].sort((a,b)=>b.length-a.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));qNameRx=new RegExp("\\b("+names.join("|")+")\\b","g")}
+  const stem=FACTS[id].n.replace(/^(The|Republic of|Kingdom of)\s+/i,"").slice(0,5).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  return s.replace(new RegExp("\\b"+stem+"\\w*","gi"),"[country]").replace(qNameRx,"another country");
+}
+let qNounPool={};
+function qPool(key){
+  if(qNounPool[key])return qNounPool[key];
+  const names=new Set(playable.map(f=>FACTS[f.id].n)),pool=new Set();
+  playable.forEach(f=>qSents(f.id,key).forEach(s=>qNouns(s,f.id,names).forEach(c=>{if(c.kind==="noun")pool.add(c.t)})));
+  return qNounPool[key]=[...pool];
+}
+function qNouns(s,id,names){
+  names=names||new Set(playable.map(f=>FACTS[f.id].n));
+  const stem=FACTS[id].n.slice(0,5).toLowerCase(),out=[];
+  for(const m of s.matchAll(/\b(1[0-9]{3}|20[0-2][0-9])\b/g))out.push({t:m[1],kind:"year",i:m.index});
+  for(const m of s.matchAll(/\b\d{1,3}(?:,\d{3})+\b/g))out.push({t:m[0],kind:"num",i:m.index});
+  for(const m of s.matchAll(/\b[A-Z][a-z\u00C0-\u024F]{3,}(?:\s(?:of\s|the\s)?[A-Z][a-z\u00C0-\u024F]{2,}){0,2}\b/g)){
+    const t=m[0],first=t.split(" ")[0];
+    if(m.index<3||Q_STOP.has(first)||names.has(t)||t.toLowerCase().startsWith(stem)||/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/.test(first))continue;
+    out.push({t,kind:"noun",i:m.index});
+  }
+  return out;
+}
+function qCloze(id,key,rnd,used){
+  for(const s of shuffle(qSents(id,key),rnd)){
+    if(used.has(s))continue;
+    const cands=shuffle(qNouns(s,id).filter(c=>s.split(c.t).length===2),rnd);if(!cands.length)continue;
+    const a=cands[0],opts=new Set([a.t]);
+    const own=qText(id,key).join(" ");
+    if(a.kind==="year"){const y=+a.t;let g=0;while(opts.size<4&&g++<40){const d=(7+Math.floor(rnd()*140))*(rnd()<.5?-1:1),v=y+d;if(v>=500&&v<=2024)opts.add(String(v))}}
+    else if(a.kind==="num"){const v=+a.t.replace(/,/g,"");for(const f of shuffle([.4,.6,.75,1.3,1.6,2.1,2.8],rnd)){if(opts.size>=4)break;const w=Math.round(v*f);opts.add(fmt(w))}}
+    else{for(const n of shuffle(qPool(key),rnd)){if(opts.size>=4)break;if(!own.includes(n)&&Math.abs(n.split(" ").length-a.t.split(" ").length)<=1)opts.add(n)}}
+    if(opts.size<4)continue;
+    used.add(s);
+    const blank=s.slice(0,a.i)+"\u2009_____\u2009"+s.slice(a.i+a.t.length);
+    const arr=shuffle([...opts],rnd);
+    return {q:`Fill in the blank:\n\u201C${qMask(blank,id)}\u201D`,opts:arr,ans:arr.indexOf(a.t)};
+  }
+  return null;
+}
+function qMatch(id,key,rnd,used){
+  const mine=shuffle(qSents(id,key).filter(s=>!used.has(s)),rnd);if(!mine.length)return null;
+  const good=mine[0];used.add(good);
+  const reg=FACTS[id].r,others=shuffle(playable.map(f=>f.id).filter(o=>o!==id&&qSents(o,key).length),rnd);
+  const near=others.filter(o=>FACTS[o].r===reg),far=others.filter(o=>FACTS[o].r!==reg),pick=[...near.slice(0,2),...far].slice(0,3);
+  if(pick.length<3)return null;
+  const opts=[qMask(good,id),...pick.map(o=>qMask(qPick(qSents(o,key),1,rnd)[0],o))],arr=shuffle(opts,rnd);
+  return {q:`Which of these describes ${Q_ABOUT[key]} of ${FACTS[id].n}?`,opts:arr,ans:arr.indexOf(opts[0])};
+}
+function qBuild(id,key,attempt){
+  const rnd=seeded(`q-${id}-${key}-${attempt}`),used=new Set(),qs=[];
+  const m=qMatch(id,key,rnd,used);if(m)qs.push(m);
+  for(let k=0;k<2;k++){const c=qCloze(id,key,rnd,used);if(c)qs.push(c)}
+  while(qs.length<3){const m2=qMatch(id,key,rnd,used);if(!m2)break;qs.push(m2)}
+  return qs;
+}
+function qCapital(id,attempt){
+  const rnd=seeded(`qc-${id}-${attempt}`),f=FACTS[id],pool=playable.map(p=>p.id).filter(o=>o!==id&&FACTS[o].cap&&FACTS[o].cap!==f.cap),near=pool.filter(o=>FACTS[o].r===f.r);
+  const opts=[f.cap,...new Set([...qPick(near,2,rnd),...qPick(pool,3,rnd)].map(o=>FACTS[o].cap))].slice(0,4),arr=shuffle(opts,rnd);
+  return [{q:`What is the capital of ${f.n}?`,opts:arr,ans:arr.indexOf(f.cap)}];
+}
+function qFlag(id,attempt){
+  const rnd=seeded(`qf-${id}-${attempt}`),f=FACTS[id],pool=playable.map(p=>p.id).filter(o=>o!==id&&FLAGS[o]),near=pool.filter(o=>FACTS[o].r===f.r);
+  const ids=[id,...[...qPick(near,2,rnd),...qPick(pool,3,rnd)].filter((o,i,a)=>a.indexOf(o)===i).slice(0,3)],arr=shuffle(ids,rnd);
+  return [{q:`Which flag belongs to ${f.n}?`,opts:arr.map(o=>FLAGS[o]),flags:true,ans:arr.indexOf(id)}];
+}
+let mq=null,mqFrom=null,mqAttempt=0;
+function renderMastery(id,from){
+  mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))),
+    el("p",{style:"margin:6px 0 8px;color:var(--ink-soft);font-size:14px"},"Pass each quiz (two questions right out of three) to master a country. Reading its page makes it Studied."));
+  const row=(label,sub,done,btn)=>el("div",{class:"mrow"},el("span",{class:"mi"+(done?" on":"")},done?"\u2713":""),el("div",{class:"mt"},label,sub?el("small",{},sub):""),btn||"");
+  sh.append(row("Located",S.found.has(id)?"You found it":"Find it in Quiz, Race, or Take me somewhere",S.found.has(id)));
+  sh.append(row("Capital",j.c?"Passed":"Name its capital",!!j.c,el("button",{class:"chip",onclick:()=>{mq={id,key:"c",qs:qCapital(id,++mqAttempt),i:0,right:0,need:1,title:f.n+": capital"};showQ()}},j.c?"Again":"Quiz me")));
+  sh.append(row("Flag",j.f?"Passed":"Pick its flag",!!j.f,el("button",{class:"chip",onclick:()=>{mq={id,key:"f",qs:qFlag(id,++mqAttempt),i:0,right:0,need:1,title:f.n+": flag"};showQ()}},j.f?"Again":"Quiz me")));
+  jrQSecs(id).forEach(k=>{const done=j.q.includes(k);
+    sh.append(row(Q_NAMES[k],(done?"Passed":"Not passed yet")+((j.s||[]).includes(k)?" \u00B7 read":""),done,el("button",{class:"chip",onclick:()=>{const qs=qBuild(id,k,++mqAttempt);if(!qs.length){toast("\u{1F4D8}","Not enough text","This page is too short to quiz.",2600);return}mq={id,key:k,qs,i:0,right:0,need:Math.min(2,qs.length),title:f.n+": "+Q_NAMES[k]};showQ()}},done?"Again":"Take quiz")))});
+  if(from==="book")sh.append(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn",onclick:()=>{sndPage();renderBook("mastery")}},"Back to the book")));
+  openModal();
+}
+function showQ(){
+  const q=mq.qs[mq.i],sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},`Question ${mq.i+1} of ${mq.qs.length}`));
+  const lines=q.q.split("\n");
+  sh.append(el("p",{class:"mq"},lines[0],lines[1]?el("br"):"",lines[1]||""));
+  const box=el("div",{class:"mopts"+(q.flags?" fl":"")}),nx=el("div",{class:"row",style:"margin-top:12px"});
+  q.opts.forEach((o,k)=>box.append(el("button",{class:"mopt",onclick:e=>{
+    [...box.children].forEach((b,i)=>{b.disabled=true;if(i===q.ans)b.classList.add("ok")});
+    if(k===q.ans){mq.right++;sndHit(FACTS[mq.id].r,false)}else{e.currentTarget.classList.add("no");sndMiss()}
+    nx.append(el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish"));
+  }},q.flags?el("img",{src:o,alt:""}):o)));
+  sh.append(box,nx);openModal();
+}
+function qDone(){
+  const pass=mq.right>=mq.need,sh=$("sheet"),id=mq.id;sh.innerHTML="";
+  if(pass){if(mq.key==="c"||mq.key==="f")jrMark(id,mq.key);else jrMark(id,"q",mq.key);sndFlourish(FACTS[id].r)}
+  sh.append(closeBtn(),el("h2",{},pass?"Passed":"Not quite"),el("p",{},`${mq.right} of ${mq.qs.length} right${pass?".":`. You need ${mq.need}.`}`));
+  const key=mq.key,qid=mq.id;
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(qid,mqFrom)},"Back to mastery"),
+    pass?"":el("button",{class:"btn",onclick:()=>{const qs=key==="c"?qCapital(qid,++mqAttempt):key==="f"?qFlag(qid,++mqAttempt):qBuild(qid,key,++mqAttempt);mq={id:qid,key,qs,i:0,right:0,need:key==="c"||key==="f"?1:Math.min(2,qs.length),title:mq.title};showQ()}},"Try again")));
+  openModal();
+}
+function masteryPages(){
+  const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),half=Math.ceil(ids.length/2);
+  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
+  const grid=list=>el("div",{class:"mgrid"},list.map(tile));
+  const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
+  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`Every flag in the world. ${st} studied, ${ms} mastered. Open a flag to take its quizzes.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
+}
 function renderBook(tab){
   tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
-  const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"]];
+  const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
   const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
-  const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages})[tab]();
+  const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages,mastery:masteryPages})[tab]();
   sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"}),el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
   openModal("book");
   const pagesEl=sh.querySelector(".bkpages"),redraw=()=>requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),tab));

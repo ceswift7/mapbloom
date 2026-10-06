@@ -18,12 +18,13 @@ const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="M
 const isTouch=isIOS||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
 let LITE=false;
 const rendererPref=(location.search.match(/[?&]renderer=(canvas|svg)/)||[])[1];
-let CANVAS=rendererPref?rendererPref==="canvas":isTouch;   // the fast canvas globe: default on touch devices while the desktop look is ported across   // lite graphics: on by default for touch devices (see applyFx)
+let engineSaved=null;try{engineSaved=JSON.parse(localStorage.getItem("mapbloom")||"{}").engine}catch(e){}
+let CANVAS=rendererPref?rendererPref==="canvas":engineSaved!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introOwn=null;      // while the opening replays a returning player’s map: only these saved countries are shown so far
 const introSet=new Set();   // countries painted only for the opening sequence (never saved)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",engine:"canvas",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -51,10 +52,11 @@ try{
   if(typeof s.hints==="boolean") S.hints=s.hints;
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
   if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
+  if(["canvas","svg"].includes(s.engine)) S.engine=s.engine;
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,engine:S.engine,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -149,7 +151,7 @@ const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
 const cv=document.getElementById("gcanvas"),cctx=cv.getContext?cv.getContext("2d"):null;
 if(!cctx)CANVAS=false;
 const pcPath=d3.geoPath(projection,cctx),pcC=d3.geoPath(projC,cctx);
-let cvDpr=1,cvPA=1,cvHover=null;
+let cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
 const CV={},cvMissed=new Set(),cvFades=new Map();
 function cvColors(){
   const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
@@ -160,7 +162,7 @@ function cvColors(){
   CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
 }
 function cvResize(){
-  cvDpr=Math.min(2,window.devicePixelRatio||1);
+  cvDpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)*cvQ);
   const w=innerWidth,h=innerHeight;
   cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";
 }
@@ -177,6 +179,24 @@ function cvTweenPA(to,ms,done){
 function cvFadeIn(id){
   cvFades.set(id,performance.now());
   if(cvFades.size===1){const tick=()=>{render();if(cvFades.size)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
+}
+const cvPats={},projU=d3.geoOrthographic().clipAngle(null);   // projU: like projection but never clips, so a country whose centre is just over the horizon still has an anchor
+let cvBuild=3,cvPending=false;
+function cvExt(f){
+  let e=f._ext;if(e!=null)return e;
+  const b=d3.geoBounds(f);let w=b[1][0]-b[0][0];if(w<0)w+=360;
+  const h=b[1][1]-b[0][1],lat=(b[0][1]+b[1][1])/2*Math.PI/180;
+  return f._ext=Math.max(w*Math.PI/180*Math.max(.3,Math.cos(lat)),h*Math.PI/180);
+}
+function cvPattern(id,shown){
+  const key=artKey(id),k2=key+(shown?"w":"f");let p=cvPats[k2];
+  if(p)return p;if(p===false)return null;
+  if(!artCv[key]){if(cvBuild<=0){cvPending=true;return null}cvBuild--;ensureArt(id)}
+  const sp=artSpecs[key];if(!sp)return null;
+  const tile=shown?(artWcv[key]||(artWcv[key]=artCanvas(sp,false,true))):artCv[key];
+  p=cctx.createPattern(tile,"repeat");
+  if(!p||!p.setTransform){cvPats[k2]=false;return null}
+  p.__N=sp.N;cvPats[k2]=p;return p;
 }
 function drawFeatureCtx(g,cen,lim){
   if(g.geometry.type!=="MultiPolygon"||g.geometry.coordinates.length<5||!FX.cull||!cen){pcC(g);return}
@@ -195,6 +215,7 @@ function drawCanvas(s,cen0,lim,lvl){
   c.beginPath();pcPath(graticule);c.strokeStyle=CV.grat;c.lineWidth=.6;c.stroke();
   // land: unpainted shapes are batched by colour, painted ones drawn one by one
   const F=cf(),speed=S.mode==="speed",expl=S.mode==="wander",buckets=new Map(),special=[],painted=[];
+  cvBuild=3;projU.rotate(projection.rotate()).scale(s).translate([cxs,cys]);
   for(let i=0;i<features.length;i++){
     const f=features[i];
     if(FX.cull&&cen0&&f._c&&!(d3.geoDistance(f._c,cen0)-f._r<lim))continue;
@@ -202,7 +223,7 @@ function drawCanvas(s,cen0,lim,lvl){
     const fa=FACTS[f.id];
     if(fa){
       const found=(introOwn?introOwn.has(f.id):F.has(f.id))||introSet.has(f.id),shown=!speed&&!SESS&&!introOwn&&!found&&S.shown.has(f.id);
-      if(found||shown){painted.push([g,fa,shown,f.id]);continue}
+      if(found||shown){painted.push([g,fa,shown,f.id,f]);continue}
       if(cvMissed.has(f.id)){special.push([g,CV.miss]);continue}
       if(cvHover===f.id){special.push([g,CV.hover]);continue}
     }
@@ -215,17 +236,28 @@ function drawCanvas(s,cen0,lim,lvl){
     c.fillStyle=key==="land"?CV.land:key==="nopl"?CV.nopl:key==="EA"?CV.tintEA:CV.tint[key];c.fill();c.stroke();
   });
   special.forEach(([g,col])=>{c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()});
-  painted.forEach(([g,fa,shown,id])=>{
+  painted.forEach(([g,fa,shown,id,f])=>{
     let a=cvPA;const t=cvFades.get(id);
     if(t!=null){const k=(now-t)/1100;if(k>=1)cvFades.delete(id);else a*=k<0?0:k*k*(3-2*k)}
     if(a<=0)return;
     c.beginPath();drawFeatureCtx(g,cen0,lim);
-    c.globalAlpha=shown?a*.4:a;c.fillStyle=CV.p[fa.r];c.fill();
+    let pat=null,big=false;
+    if(FX.tiles){
+      const S2=Math.max(20,Math.min(1.7*s,cvExt(f)*s*1.05));
+      big=S2>=64;                          // a shape only a few dozen pixels wide shows no texture anyway: flat colour is identical and far cheaper
+      if(big){
+        pat=cvPattern(id,shown);
+        if(pat){const pp=projU(f._c);if(pp){const k=S2/pat.__N;pat.setTransform(new DOMMatrix([k,0,0,k,pp[0]-S2/2,pp[1]-S2/2]))}else pat=null}
+      }
+    }
+    c.globalAlpha=pat?(shown?a*.5:a*jit(id)):(shown?a*.4:(FX.tiles?a*.93:a));
+    c.fillStyle=pat||CV.p[fa.r];c.fill();
+    if(!shown&&big){c.lineWidth=3;c.globalAlpha=a*.14;c.strokeStyle=CV.pd[fa.r];c.stroke()}   // pooled pigment at the rim
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-}
-/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
+  if(cvPending){cvPending=false;requestRender()}
+}/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){
   let best=null;
   for(let i=0;i<features.length;i++){
@@ -304,6 +336,7 @@ function drawFeature(g,cen,lim){
   return out;
 }
 function renderNow(){
+  const _pS=performance.now();
   const s=baseScale*zoomK;
   projection.scale(s).translate([W/2,cy()]);
   const sp=path({type:"Sphere"});
@@ -318,6 +351,7 @@ function renderNow(){
   }
   const lvl=typeof FX.lod==="number"?FX.lod:(moving&&lodLvl===2?1:lodLvl);
   const lim=Math.min(1.5708,Math.asin(Math.min(1,Math.hypot(W/2,Math.max(cy(),H-cy()))/s)))+.04;
+  const _p0=performance.now();
   if(CANVAS)drawCanvas(s,cen0,lim,lvl);else paths.each(function(d){
     const vis=!FX.cull||!cen0||!d._c||d3.geoDistance(d._c,cen0)-d._r<lim,g=lvl===2?d:lvl===1?(d._mid||d._lo):d._lo;
     if(vis&&g){this.setAttribute("d",drawFeature(g,cen0,lim));this.__e=false}
@@ -326,10 +360,19 @@ function renderNow(){
   gLift.attr("cx",W/2).attr("cy",cy()+s*.035).attr("r",s*1.0);
   gShadow.attr("cx",W/2).attr("cy",cy()+s*1.1).attr("rx",s*.72).attr("ry",s*.06).attr("opacity",zoomK>1.3||S.mode==="speed"?0:.16);
   const cen=projection.invert([W/2,cy()]);
+  const _p1=performance.now();
   positionIslands(cen);
+  const _p2=performance.now();
   if(blooms.length)blooms.forEach(b=>{if(b.v===MV)placeBloom(b)});
   positionLabels();
   syncGrain(s);
+  renderNow.prof={pre:_p0-_pS,draw:_p1-_p0,islands:_p2-_p1,rest:performance.now()-_p2};
+  if(CANVAS&&(moving||animating)){
+    const n=performance.now();
+    if(cvLastT&&n-cvLastT<200){cvAvg=cvAvg*.92+(n-cvLastT)*.08;cvN++}
+    cvLastT=n;
+    if(cvN>45&&cvAvg>28&&cvQ>.6&&cvDpr>1){cvQ=Math.max(.6,cvQ-.2);cvN=0;cvAvg=16;cvResize()}
+  }else cvLastT=0;
 }
 let gl=[0,0,0];
 function syncGrain(s){const x=W/2,y=stageTop+cy();if(Math.abs(x-gl[0])+Math.abs(y-gl[1])+Math.abs(s-gl[2])<1)return;gl=[x,y,s];const st=document.documentElement.style;st.setProperty("--gx",x+"px");st.setProperty("--gy",y+"px");st.setProperty("--gr",s+"px")}
@@ -343,7 +386,7 @@ function paintSel(sel,landG,paintG){
     if(painted){
       if(!FX.tiles){e.style("fill",null).style("fill-opacity",null)}
       else if(!artDone[artKey(d.id)]&&artBudget--<=0){paintMore=true;e.style("fill",null).style("fill-opacity",null)}   // a big save is painted in slices so loading never stalls
-      else{const key=ensureArt(d.id);if(!found)ensureWash(key);e.style("fill",`url(#${found?"af":"aw"}-${key})`).style("fill-opacity",found?jit(d.id):.5)}
+      else{const key=ensureArt(d.id);if(found&&CANVAS)ensureArtSvg(key);if(!found)ensureWash(key);e.style("fill",`url(#${found?"af":"aw"}-${key})`).style("fill-opacity",found?jit(d.id):.5)}
     }
     else e.style("fill",null).style("fill-opacity",null);
     const parent=(painted?paintG:landG).node();
@@ -420,7 +463,7 @@ function positionIslands(cen){
 function updatePills(){
   const F=cf();
   pillList.forEach(g=>{const n=g.ids.filter(id=>F.has(id)).length;g.cnt.text(`${n}/${g.ids.length}`);g.el.classed("done",n===g.ids.length);g.dots.classed("found",id=>F.has(id)).style("fill",id=>F.has(id)?artColor(id):null).style("stroke",id=>F.has(id)?artColor(id):null)});
-  beaconList.forEach(b=>{const on=F.has(b.id);b.c.classed("found",on).style("fill",on?`url(#af-${ensureArt(b.id)})`:null)});
+  beaconList.forEach(b=>{const on=F.has(b.id);b.c.classed("found",on).style("fill",on?(()=>{const k=ensureArt(b.id);if(CANVAS)ensureArtSvg(k);return `url(#af-${k})`})():null)});
 }
 function pillTap(g){
   const p=projection(g.c);sndTick();
@@ -879,7 +922,7 @@ const TRI_S={   // speed mode: luminous pastel-neon
  Europe:[["#9CCBFF","#5EA4FF","#D4E7FF"],["#9FD8FF","#7C9BFF","#DCEBFF"]],
  Oceania:[["#D1A8FF","#B07CFF","#EBD9FF"],["#C7B2FF","#8FA0FF","#E4DDFF"]]};
 const mix=(a,b,t)=>d3.interpolateRgb(a,b)(t);
-const artDone={};
+const artDone={},artCv={},artWcv={};
 const artKey=id=>id+(S.mode==="speed"?"s":"n");
 /* Each country's painting is drawn once into a small canvas (gradient wash, pooled pigment, granulation,
    and a line motif) and used as an image tile, which the GPU can repeat far more cheaply than vector patterns. */
@@ -924,9 +967,12 @@ function defTile(pid,key,url,N){
 function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
   const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?384:a>4e5?256:192;artSpecs[key]=sp;   // bigger countries get a finer tile
-  defTile("af",key,artCanvas(sp,true,true).toDataURL("image/jpeg",.9),sp.N);
+  const cvs=artCanvas(sp,true,true);artCv[key]=cvs;
+  if(!CANVAS)defTile("af",key,cvs.toDataURL("image/jpeg",.9),sp.N);
   return key;
 }
+const svgAf={};
+function ensureArtSvg(key){if(svgAf[key]||!artCv[key])return;svgAf[key]=1;defTile("af",key,artCv[key].toDataURL("image/jpeg",.9),artSpecs[key].N)}
 const washDone={};
 function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/jpeg",.9),artSpecs[key].N)}
 function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>{const f=FACTS[id],b=(S.mode==="speed"?TRI_S:TRI)[f.r]||TRI.Europe;return b[Math.floor(seeded("tw-art-"+id)()*b.length)][1]};
@@ -1657,7 +1703,7 @@ function setSound(v){
 }
 function renderSettings(){
   const sh=sheetHead("Settings");
-  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
+  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),opt("Globe engine","Fast draws the globe on a canvas and stays smooth everywhere. Classic is the original look (reloads the page).",engineSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
   sh.append(opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
@@ -1899,14 +1945,18 @@ let fxForced=false;
 function liteMode(){if(S.fx==="full")return;fxForced=true;applyFx();paint();render(true)}   // a touch device that is visibly struggling
 /* graphics level: Auto = lite on phones/tablets, full on computers; the user can pick either */
 function applyFx(){
-  LITE=S.fx==="lite"||(S.fx==="auto"&&(isTouch||fxForced));
-  FX.wc=!LITE;FX.tiles=!LITE;FX.bloomFx=!LITE;
-  gPaint.attr("filter",LITE?null:"url(#wc)");lPaint.attr("filter",LITE?null:"url(#wc)");
-  gShadow.style("display",LITE||CANVAS?"none":null);gLift.style("display",LITE||CANVAS?"none":null);
-  projection.precision(LITE?1.2:.4);projC.precision(LITE?1.2:.5);
-  document.body.classList.toggle("lite",LITE);
+  const soft=S.fx==="lite"||(S.fx==="auto"&&(isTouch||fxForced));
+  LITE=soft;
+  FX.wc=!soft;FX.bloomFx=!soft;
+  FX.tiles=CANVAS?S.fx!=="lite":!soft;      // textures stay on with the canvas globe unless Lite is chosen
+  gPaint.attr("filter",FX.wc?"url(#wc)":null);lPaint.attr("filter",FX.wc?"url(#wc)":null);
+  gShadow.style("display",soft||CANVAS?"none":null);gLift.style("display",soft||CANVAS?"none":null);
+  projection.precision(soft?1.2:.4);projC.precision(soft?1.2:.5);
+  document.body.classList.toggle("lite",S.fx==="lite"||(soft&&!CANVAS));   // lite = no paper grain either
+  document.body.classList.toggle("noblur",soft);                          // soft = no live blur over the moving map
 }
-function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
+function engineSeg(){const w=el("div",{class:"seg2"});[["canvas","Fast"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine===k),onclick:()=>{if(S.engine===k)return;S.engine=k;save();location.reload()}},l)));return w}
+function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
 if(isTouch){
   let n=0,sum=0,last=0;
   const tick=t=>{if(last&&!document.hidden){const dt=t-last;if(dt<500){sum+=dt;n++}}last=t;if(n>=45){if(sum/n>48)liteMode();return}requestAnimationFrame(tick)};

@@ -971,22 +971,19 @@ function artSpec(id,spd){
 }
 function artCanvas(sp,motif,wash){
   const N=sp.N||ART_N,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.scale(N/100,N/100);
-  if(wash){
-    const a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
-    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,sp.tri[0]);g.addColorStop(.55,sp.tri[1]);g.addColorStop(1,sp.tri[2]);
-    x.fillStyle=g;x.fillRect(0,0,100,100);
-    sp.pools.forEach(p=>{const col=d3.color(p.c),g2=x.createRadialGradient(p.cx,p.cy,0,p.cx,p.cy,p.rad);
-      g2.addColorStop(0,col.copy({opacity:p.o}).formatRgb());g2.addColorStop(1,col.copy({opacity:0}).formatRgb());x.fillStyle=g2;x.fillRect(0,0,100,100)});
-    const rr=seeded(sp.gseed),tcol=d3.color(sp.tint),dk=d3.color(sp.tri[1]).darker(.9);
-    for(let i=0;i<3;i++){   // back-runs: a wet bloom with a slightly darker, hard-ish rim where the water dried
-      const bx=15+rr()*70,by=15+rr()*70,br=10+rr()*20,rot=rr()*3.1,sq=.6+rr()*.4;
-      x.save();x.translate(bx,by);x.rotate(rot);x.scale(1,sq);
-      x.fillStyle=tcol.copy({opacity:.1}).formatRgb();x.beginPath();x.arc(0,0,br,0,6.2832);x.fill();
-      x.lineWidth=.9;x.strokeStyle=dk.copy({opacity:.16}).formatRgb();x.stroke();x.restore()}
-    for(let i=0;i<5;i++){x.fillStyle=dk.copy({opacity:.045}).formatRgb();x.beginPath();x.arc(rr()*100,rr()*100,14+rr()*22,0,6.2832);x.fill()}   // broad value blotches
-    for(let i=0;i<620;i++){x.fillStyle=(i%3?tcol:dk).copy({opacity:.05+rr()*.07}).formatRgb();x.beginPath();x.arc(rr()*100,rr()*100,.25+rr()*.6,0,6.2832);x.fill()}   // pigment granules
-  }
-  if(motif){
+  if(wash){   // risograph print: a flat ink, a deeper halftone ink printed a hair off register, a little paper grain
+    const a=sp.ang*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a),deep=d3.color(sp.tri[1]).darker(.6);
+    x.fillStyle=sp.tri[0];x.fillRect(0,0,100,100);
+    x.fillStyle=d3.color(sp.tri[1]).copy({opacity:.92}).formatRgb();x.fillRect(-1,-1,102,102);
+    x.fillStyle=deep.copy({opacity:.5}).formatRgb();
+    for(let i=-18;i<=18;i++)for(let j=-18;j<=18;j++){
+      const gx=i*6.4,gy=j*6.4,px=50+gx*ca-gy*sa+1.3,py=50+gx*sa+gy*ca+.8;
+      if(px<-4||px>104||py<-4||py>104)continue;
+      const t=Math.min(1,Math.max(0,(px*ca+py*sa-(50*ca+50*sa))/90+.5));
+      x.beginPath();x.arc(px,py,.3+2.1*t,0,6.2832);x.fill()}
+    const rr=seeded(sp.gseed);x.fillStyle=deep.copy({opacity:.28}).formatRgb();
+    for(let i=0;i<70;i++){x.beginPath();x.arc(rr()*100,rr()*100,.25+rr()*.35,0,6.2832);x.fill()}
+  }  if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
     x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
     if(m.kind===0){for(let i=1;i<=11;i++){const rx=i*7+m.ph[i%13]*.6;x.beginPath();x.ellipse(m.cx,m.cy,rx,rx*m.sq,m.rot,0,6.2832);x.stroke()}}
@@ -1003,7 +1000,7 @@ function defTile(pid,key,url,N){
 }
 function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
-  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?384:a>4e5?256:192;artSpecs[key]=sp;   // bigger countries get a finer tile
+  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?192:a>4e5?160:128;artSpecs[key]=sp;   // bigger countries get a finer tile
   const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
   if(!CANVAS)defTile("af",key,cvs.toDataURL("image/jpeg",.9),sp.N);
   return key;

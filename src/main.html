@@ -17,14 +17,17 @@ const FX={ts:1,wc:true,bloomFx:true,tiles:true,clip:true,cull:true,lod:"auto"};
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isTouch=isIOS||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
 let LITE=false;
-const rendererPref=(location.search.match(/[?&]renderer=(canvas|svg)/)||[])[1];
-let engineSaved=null;try{engineSaved=JSON.parse(localStorage.getItem("mapbloom")||"{}").engine}catch(e){}
-let CANVAS=rendererPref?rendererPref==="canvas":engineSaved!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
+const rendererPref=(location.search.match(/[?&]renderer=(gl|canvas|svg)/)||[])[1];
+let engineSaved=null;try{const sv=JSON.parse(localStorage.getItem("mapbloom")||"{}");engineSaved=sv.engine2||(sv.engine==="svg"?"svg":null)}catch(e){}
+const ENG=rendererPref||engineSaved||"gl";                 // gl (GPU globe) > canvas (2D) > svg (classic)
+const GLWANT=ENG==="gl";
+const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw:null,paint:null,colors:null,resize:null,fade:null,whenIdle:cb=>cb()};
+let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introOwn=null;      // while the opening replays a returning player’s map: only these saved countries are shown so far
 const introSet=new Set();   // countries painted only for the opening sequence (never saved)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",autoNext:"normal",engine:"canvas",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:true,rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -53,11 +56,11 @@ try{
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
   if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
   if(["off","fast","normal","slow"].includes(s.autoNext)) S.autoNext=s.autoNext;
-  if(["canvas","svg"].includes(s.engine)) S.engine=s.engine;
+  S.engine2=["gl","canvas","svg"].includes(s.engine2)?s.engine2:(s.engine==="svg"?"svg":"gl");
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine:S.engine,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -161,10 +164,12 @@ function cvColors(){
   REGIONS.forEach(r=>{CV.p[r]=g("--c-"+r);CV.pd[r]=g("--c-"+r+"-d");CV.tint[r]=d3.interpolateRgb(CV.land,CV.p[r])(.4)});
   CV.tintEA=d3.interpolateRgb(CV.land,d3.interpolateRgb(CV.p.Europe,CV.p.Asia)(.5))(.4);
   CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
+  if(GLX.colors)GLX.colors();
 }
 function cvResize(){
   cvDpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)*cvQ);
   const w=innerWidth,h=innerHeight;
+  if(GLX.resize)GLX.resize();
   cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";cv.style.left=(-stageLeft)+"px";
 }
 function cvMiss(id,on){
@@ -178,6 +183,7 @@ function cvTweenPA(to,ms,done){
   d3.transition("cvpa").duration(ms).ease(d3.easeCubicInOut).tween("pa",()=>t=>{cvPA=from+(to-from)*t;render()}).on("end",()=>{cvPA=to;render();if(done)done()});
 }
 function cvFadeIn(id){
+  if(GLX.on){GLX.fade(id);return}
   cvFades.set(id,performance.now());
   if(cvFades.size===1){const tick=()=>{render();if(cvFades.size)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
 }
@@ -198,6 +204,16 @@ function cvPattern(id,shown){
   p=cctx.createPattern(tile,"repeat");
   if(!p||!p.setTransform){cvPats[k2]=false;return null}
   p.__N=sp.N;cvPats[k2]=p;return p;
+}
+/* GPU globe: the thin 2D canvas above it only carries the hover / wrong-guess tints */
+function drawOverlay(s,cen0,lim,lvl){
+  const c=cctx,dpr=cvDpr;
+  c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
+  if(!cvMissed.size&&cvHover==null)return;
+  c.lineWidth=.5;c.strokeStyle=CV.border;
+  const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
+  cvMissed.forEach(id=>one(id,CV.miss));
+  if(cvHover!=null&&!cvMissed.has(cvHover))one(cvHover,CV.hover);
 }
 function drawFeatureCtx(g,cen,lim){
   if(g.geometry.type!=="MultiPolygon"||g.geometry.coordinates.length<5||!FX.cull||!cen){pcC(g);return}
@@ -353,7 +369,7 @@ function renderNow(){
   const lvl=typeof FX.lod==="number"?FX.lod:(moving&&lodLvl===2?1:lodLvl);
   const lim=Math.min(1.5708,Math.asin(Math.min(1,Math.hypot(W/2,Math.max(cy(),H-cy()))/s)))+.04;
   const _p0=performance.now();
-  if(CANVAS)drawCanvas(s,cen0,lim,lvl);else paths.each(function(d){
+  if(CANVAS){if(GLX.on){GLX.draw(s,cen0);drawOverlay(s,cen0,lim,lvl)}else drawCanvas(s,cen0,lim,lvl)}else paths.each(function(d){
     const vis=!FX.cull||!cen0||!d._c||d3.geoDistance(d._c,cen0)-d._r<lim,g=lvl===2?d:lvl===1?(d._mid||d._lo):d._lo;
     if(vis&&g){this.setAttribute("d",drawFeature(g,cen0,lim));this.__e=false}
     else if(!this.__e){this.setAttribute("d","");this.__e=true}
@@ -395,7 +411,7 @@ function paintSel(sel,landG,paintG){
   });
 }
 let artBudget=0,paintMore=false;
-function paint(){artBudget=14;paintMore=false;if(CANVAS)requestRender();else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
+function paint(){artBudget=14;paintMore=false;if(CANVAS){if(GLX.hasGL&&GLX.paint)GLX.paint();requestRender()}else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
 function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(null)}
 /* ======================================================================
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
@@ -1228,7 +1244,7 @@ function success(shown,ll){
 function fadeRepaint(fn){
   const pg=document.getElementById("paint");
   if(reduced||!pg){fn();return}
-  if(CANVAS){cvTweenPA(0,350,()=>{fn();cvTweenPA(1,350)});return}
+  if(CANVAS){cvTweenPA(0,350,()=>{fn();GLX.whenIdle(()=>cvTweenPA(1,350))});return}
   pg.style.transition="opacity .35s ease";pg.style.opacity="0";
   setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
 }
@@ -1731,7 +1747,7 @@ function setSound(v){
 }
 function renderSettings(){
   const sh=sheetHead("Settings");
-  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),opt("Globe engine","Fast draws the globe on a canvas and stays smooth everywhere. Classic is the original look (reloads the page).",engineSeg()),el("h3",{},"Quiz"),opt("Auto next","After a find the next country starts by itself. Tap the map or press Enter to skip ahead; hovering the info card pauses it.",autoSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
+  sh.append(el("h3",{},"Appearance"),opt("Theme","Auto follows your system.",themeSeg()),el("h3",{},"Graphics"),opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg()),opt("Globe engine","Fast pre-renders the whole painted map on the GPU: always full detail, smooth everywhere. Compatible draws it on a 2D canvas. Classic is the original look. (Changing it reloads the page.)",engineSeg()),el("h3",{},"Quiz"),opt("Auto next","After a find the next country starts by itself. Tap the map or press Enter to skip ahead; hovering the info card pauses it.",autoSeg()),el("h3",{},"Units"),opt("Distance","Used in hints, areas and density.",unitSeg()),el("h3",{},"Sound"));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
   sh.append(opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
@@ -1817,7 +1833,7 @@ function setMode(m,quiet,noIdle){
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
-  {const gc=$("gcanvas");gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
+  for(const gid of ["gcanvas","glcanvas"]){const gc=$(gid);gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
   { const g=$("globe");g.classList.remove("dip");void g.offsetWidth;g.classList.add("dip");setTimeout(()=>g.classList.remove("dip"),900) }
   hideCard();clearMissed();
   size();paint();updateProgress();
@@ -1851,7 +1867,7 @@ function doReset(){
   if(reduced){fin();return}
   sndPage();
   const pg=document.getElementById("paint");if(CANVAS)cvTweenPA(0,700);else{pg.style.transition="opacity .7s ease";pg.style.opacity="0"}
-  setTimeout(()=>{fin();pg.style.transition="";cvPA=1;render()},760);
+  setTimeout(()=>{fin();pg.style.transition="";GLX.whenIdle(()=>{cvPA=1;render()})},760);
 }
 
 /* ======================================================================
@@ -1954,7 +1970,7 @@ function introHandoff(fast){
   };
   if(own){introOwn=null;introSet.clear();cvFades.clear();paint();document.querySelectorAll("#globe .country").forEach(n=>{n.style.animation=""});ui();return}   // the replayed countries ARE the real painted map: nothing to clear, nothing to fade
   const blank=()=>{
-    introSet.clear();cvPA=1;paint();
+    introSet.clear();paint();GLX.whenIdle(()=>{cvPA=1;render(true)});
     pg.style.transition="none";void pg.offsetWidth;pg.style.opacity="";
     requestAnimationFrame(()=>{pg.style.transition=""});
     ui();
@@ -1983,7 +1999,7 @@ function applyFx(){
   document.body.classList.toggle("lite",S.fx==="lite"||(soft&&!CANVAS));   // lite = no paper grain either
   document.body.classList.toggle("noblur",soft);                          // soft = no live blur over the moving map
 }
-function engineSeg(){const w=el("div",{class:"seg2"});[["canvas","Fast"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine===k),onclick:()=>{if(S.engine===k)return;S.engine=k;save();location.reload()}},l)));return w}
+function engineSeg(){const w=el("div",{class:"seg2"});[["gl","Fast (GPU)"],["canvas","Compatible"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine2===k),onclick:()=>{if(S.engine2===k)return;S.engine2=k;save();location.reload()}},l)));return w}
 function autoSeg(){const w=el("div",{class:"seg2"});[["off","Off"],["fast","Quick"],["normal","Normal"],["slow","Slow"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.autoNext===k),onclick:()=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()}},l)));return w}
 function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
 if(isTouch){

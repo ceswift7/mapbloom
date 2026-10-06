@@ -1321,7 +1321,7 @@ function showQuizSheet(){
   const q=el("div",{class:"row",style:"margin:0"});
   [["country","Locate"],["flag","Flag"],["capital","Capital"],["silhouette","Silhouette"]].forEach(([k,l])=>q.append(el("button",{class:"chip","aria-pressed":String(S.quiz===k),onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}},l)));
   const rc=el("div",{class:"row",style:"margin:0"});
-  ["World",...REGIONS].forEach(r=>rc.append(el("button",{class:"chip","aria-pressed":String(S.region===r),onclick:()=>{S.region=r;syncChips();updateProgress();sndTick();showQuizSheet()}},r)));
+  ["World",...REGIONS].forEach(r=>rc.append(el("button",{class:"chip","aria-pressed":String(S.region===r),onclick:()=>{S.region=r;syncChips();updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);showQuizSheet()}},r)));
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
     opt("Quiz style",S.quiz==="silhouette"?"A shape appears with the globe hidden. Type its name.":"What you are shown.",q),
     opt("Region","",rc),
@@ -1839,12 +1839,15 @@ async function tmsGo(){
   $("briefGo").disabled=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
   const dl=$("briefFacts");dl.innerHTML="";
   const rows=[];
-  if(L.p)rows.push(["Population","about "+popTxt(L.p)]);
   if(f.cap)rows.push(["Capital",f.cap]);
-  rows.push(["Distance",distTxt(km(from,LL(id)))+" away"]);
+  if(L.p)rows.push(["Population","about "+popTxt(L.p)]);
+  rows.push(["Area",areaTxt(f.a)]);
+  if(f.l&&f.l.length)rows.push([f.l.length>1?"Languages":"Language",f.l.slice(0,3).join(", ")]);
+  if(f.cur)rows.push(["Currency",f.cur]);
+  rows.push(["Borders",f.ld?"Landlocked, "+f.b.length+" neighbour"+(f.b.length===1?"":"s"):!f.b.length?"An island nation":f.b.length+" land neighbour"+(f.b.length===1?"":"s")+", and a coast"]);
   $("brief").classList.add("on");sndCard(true);
   const ms=reduced?400:3600;
-  rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*850));
+  rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*650));
   await tmsFly(LL(id),ms,f.a<30000?2.4:1.6);
   if(tms!==me)return;
   me.phase="brief";$("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
@@ -1959,7 +1962,34 @@ modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
 const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
 function guardRace(){if(raceBusy()){toast("*","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
-$("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderStamps()};
+$("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
+function renderAtlas(){
+  const sh=sheetHead("Atlas"),tot=total(),F=S.found,got=ACH.filter(a=>S.ach[a.id]).length;
+  const nFound=playable.filter(f=>F.has(f.id)).length;
+  sh.append(el("h3",{},`${nFound} of ${tot} countries discovered`));
+  const bar=el("div",{class:"bar",style:"width:100%;margin:2px 0 14px"});
+  REGIONS.forEach(r=>{const n=playable.filter(f=>F.has(f.id)&&FACTS[f.id].r===r).length;bar.append(el("span",{style:`width:${n/tot*100}%;background:var(--c-${r})`}))});
+  sh.append(bar);
+  const dl=el("dl",{class:"kv"}),add=(k,v)=>dl.append(el("dt",{},k),el("dd",{},String(v)));
+  add("Country pages read",S.learned.size);
+  add("Flags recognised",S.counts.flag||0);
+  add("Capitals recognised",S.counts.capital||0);
+  add("Silhouettes named",S.counts.sil||0);
+  add("Daily challenges completed",Object.keys(S.daily.results).length);
+  add("Daily streak",S.daily.streak||0);
+  add("Neighbour chains",(S.counts.chain||0)+((S.counts.chainPar||0)?` (${S.counts.chainPar} shortest)`:""));
+  add("Best first-try streak",S.bestStreak||0);
+  sh.append(dl,el("div",{class:"row"},el("button",{class:"btn",onclick:()=>{sndTick();renderStamps()}},`Stamp Book (${got} of ${ACH.length})`)));
+  sh.append(el("h3",{style:"margin:16px 0 4px"},"Every country"));
+  REGIONS.forEach(r=>{
+    const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
+    const n=ids.filter(id=>F.has(id)).length,rd=ids.filter(id=>S.learned.has(id)).length;
+    sh.append(el("details",{class:"adet"},
+      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${rd} read`)),
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(F.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n+(S.learned.has(id)?" \u2713":""))))));
+  });
+  openModal(true);
+}
 $("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}

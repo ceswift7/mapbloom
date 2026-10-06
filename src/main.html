@@ -29,7 +29,7 @@ const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qId
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
-  daily:{last:null,streak:0,results:{}}};
+  daily:{last:null,streak:0,results:{}},expDone:{}};
 const KEY="mapbloom",RKEY="mapbloom-records-v4";
 try{
   let raw=localStorage.getItem(KEY);
@@ -43,6 +43,7 @@ try{
   if(s.ach) S.ach=s.ach;
   if(s.counts) S.counts=Object.assign(S.counts,s.counts);
   if(s.daily) S.daily=Object.assign(S.daily,s.daily);
+  if(s.expDone) S.expDone=s.expDone;
   if(typeof s.bestStreak==="number") S.bestStreak=s.bestStreak;
   if(typeof s.sound==="boolean") S.sound=s.sound;
   if(typeof s.sfx==="boolean") S.sfx=s.sfx;
@@ -58,7 +59,7 @@ try{
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -1756,7 +1757,7 @@ function load10(){
 }
 function outlineFig(id){
   const f=FACTS[id];if(!byId[id])return null;
-  const W0=420,H0=220,key=ensureArt(id);
+  const W0=420,H0=220,key=ensureArt(id);ensureArtSvg(key);
   const svgO=d3.create("svg").attr("viewBox",`0 0 ${W0} ${H0}`).attr("role","img").attr("aria-label","Outline of "+f.n);
   const cap=el("figcaption",{},"Outline of "+f.n);
   const fig=el("figure",{class:"outline"},svgO.node(),cap);
@@ -1843,8 +1844,6 @@ async function tmsGo(){
   if(L.p)rows.push(["Population","about "+popTxt(L.p)]);
   rows.push(["Area",areaTxt(f.a)]);
   if(f.l&&f.l.length)rows.push([f.l.length>1?"Languages":"Language",f.l.slice(0,3).join(", ")]);
-  if(f.cur)rows.push(["Currency",f.cur]);
-  rows.push(["Borders",f.ld?"Landlocked, "+f.b.length+" neighbour"+(f.b.length===1?"":"s"):!f.b.length?"An island nation":f.b.length+" land neighbour"+(f.b.length===1?"":"s")+", and a coast"]);
   $("brief").classList.add("on");sndCard(true);
   const ms=reduced?400:3600;
   rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*650));
@@ -1939,7 +1938,11 @@ const ACH=[
   {id:"raceflag",n:"Flag Sprinter",i:"\u{1F3C1}",d:"Race all of Europe from flags",t:()=>!!(REC["Europe|flag"]&&REC["Europe|flag"].runs.length)},
   {id:"racecap",n:"Capital Sprinter",i:"\u{1F3D9}",d:"Race all of Europe from capitals",t:()=>!!(REC["Europe|capital"]&&REC["Europe|capital"].runs.length)}
 ];
+function checkExp(silent){
+  EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp")})}});
+}
 function checkAch(){
+  checkExp();
   ACH.forEach(a=>{if(!S.ach[a.id]&&a.t()){S.ach[a.id]=Date.now();toast(a.i,"Stamp earned: "+a.n,a.d,4600,()=>{if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){toast("*","Race in progress","Check your stamps when the race is over.");return}sndTick();renderStamps()});sndBadge();save()}});
 }
 let toastTm=null;
@@ -1956,40 +1959,14 @@ function toast(ic,title,text,ms=3800,onClick){
    ====================================================================== */
 const modal=$("modal");let modalTrap=false;
 function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:()=>{if(S.mode==="speed"&&R.phase==="idle"){closeModal()}else closeModal()}},"✕")}
-function openModal(){modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function openModal(book){$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
 function closeModal(){modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
 const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
 function guardRace(){if(raceBusy()){toast("*","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
-function renderAtlas(){
-  const sh=sheetHead("Atlas"),tot=total(),F=S.found,got=ACH.filter(a=>S.ach[a.id]).length;
-  const nFound=playable.filter(f=>F.has(f.id)).length;
-  sh.append(el("h3",{},`${nFound} of ${tot} countries discovered`));
-  const bar=el("div",{class:"bar",style:"width:100%;margin:2px 0 14px"});
-  REGIONS.forEach(r=>{const n=playable.filter(f=>F.has(f.id)&&FACTS[f.id].r===r).length;bar.append(el("span",{style:`width:${n/tot*100}%;background:var(--c-${r})`}))});
-  sh.append(bar);
-  const dl=el("dl",{class:"kv"}),add=(k,v)=>dl.append(el("dt",{},k),el("dd",{},String(v)));
-  add("Country pages read",S.learned.size);
-  add("Flags recognised",S.counts.flag||0);
-  add("Capitals recognised",S.counts.capital||0);
-  add("Silhouettes named",S.counts.sil||0);
-  add("Daily challenges completed",Object.keys(S.daily.results).length);
-  add("Daily streak",S.daily.streak||0);
-  add("Neighbour chains",(S.counts.chain||0)+((S.counts.chainPar||0)?` (${S.counts.chainPar} shortest)`:""));
-  add("Best first-try streak",S.bestStreak||0);
-  sh.append(dl,el("div",{class:"row"},el("button",{class:"btn",onclick:()=>{sndTick();renderStamps()}},`Stamp Book (${got} of ${ACH.length})`)));
-  sh.append(el("h3",{style:"margin:16px 0 4px"},"Every country"));
-  REGIONS.forEach(r=>{
-    const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
-    const n=ids.filter(id=>F.has(id)).length,rd=ids.filter(id=>S.learned.has(id)).length;
-    sh.append(el("details",{class:"adet"},
-      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${rd} read`)),
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(F.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n+(S.learned.has(id)?" \u2713":""))))));
-  });
-  openModal(true);
-}
+
 $("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
@@ -2004,12 +1981,75 @@ $("unitBtn").onclick=()=>{sndTick();setUnit(S.unit==="mi"?"km":"mi")};
 function opt(title,sub,control){return el("div",{class:"opt"},el("div",{},el("b",{},title),sub?el("small",{},sub):""),control)}
 function toggle(checked,fn,label){const i=el("input",{type:"checkbox","aria-label":label});i.checked=checked;i.onchange=()=>fn(i.checked);return el("label",{class:"sw"},i,el("i"))}
 function sheetHead(title){const sh=$("sheet");sh.innerHTML="";sh.append(closeBtn(),el("h2",{},title));return sh}
-function renderStamps(){
-  const sh=sheetHead("Stamp Book"),got=ACH.filter(a=>S.ach[a.id]).length;
-  sh.append(el("h3",{},`${got} of ${ACH.length} stamps`));
-  const g=el("div",{class:"stamps"});
-  ACH.forEach(a=>g.append(el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
-  sh.append(g);openModal();
+function renderStamps(){renderBook("stamps")}
+function renderAtlas(){renderBook("atlas")}
+/* ---- the Atlas book: three bookmark tabs, two pages ---- */
+const EXPS=[
+  {id:"grand",name:"The Grand Expedition",blurb:"Every country in the game. The whole world, painted in.",all:true},
+  {id:"silk",name:"The Silk Road",blurb:"Caravans, oases and mountain passes: the old trade routes that joined China to the Mediterranean.",names:["China","Mongolia","Kyrgyzstan","Kazakhstan","Uzbekistan","Tajikistan","Turkmenistan","Afghanistan","Pakistan","India","Iran","Iraq","Syria","Turkey","Azerbaijan","Georgia","Armenia","Italy"]},
+  {id:"fire",name:"Ring of Fire",blurb:"The great horseshoe of volcanoes and earthquakes around the Pacific.",names:["Chile","Peru","Ecuador","Colombia","Guatemala","El Salvador","Nicaragua","Costa Rica","Mexico","United States","Canada","Russia","Japan","Philippines","Indonesia","Papua New Guinea","Solomon Islands","Vanuatu","Tonga","New Zealand"]},
+  {id:"roof",name:"Roof of the World",blurb:"High plateaus and mountain kingdoms, from the Himalaya to the Andes.",names:["Nepal","Bhutan","China","India","Pakistan","Afghanistan","Tajikistan","Kyrgyzstan","Mongolia","Kazakhstan","Georgia","Armenia","Switzerland","Austria","Andorra","Ethiopia","Lesotho","Bolivia","Peru","Ecuador","Colombia"]},
+  {id:"island",name:"Island Hopper",blurb:"Countries that are entirely islands, scattered across every ocean.",names:["Japan","Philippines","Indonesia","Sri Lanka","Maldives","Madagascar","Mauritius","Seychelles","Comoros","Cabo Verde","Iceland","Ireland","Malta","Cyprus","Cuba","Jamaica","Haiti","Dominican Republic","Bahamas","Barbados","Trinidad and Tobago","Fiji","Samoa","Tonga","Vanuatu","Solomon Islands","New Zealand","Palau","Kiribati","Tuvalu","Nauru","Marshall Islands","Singapore","Bahrain"]},
+  {id:"pacific",name:"Across the Pacific",blurb:"Australia, New Zealand and the island nations of the great ocean.",region:"Oceania"}
+];
+let expSel="grand";
+function expIds(e){
+  if(e.all)return playable.map(f=>f.id);
+  if(e.region)return playable.filter(f=>inReg(f.id,e.region)).map(f=>f.id);
+  return [...new Set(e.names.map(n=>nameId[n]).filter(Boolean))];
+}
+function renderBook(tab){
+  tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
+  const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"]];
+  const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
+  const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages})[tab]();
+  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
+  openModal("book");
+}
+function atlasPages(){
+  const tot=total(),F=S.found,nFound=playable.filter(f=>F.has(f.id)).length,got=ACH.filter(a=>S.ach[a.id]).length;
+  const bar=el("div",{class:"bar",style:"width:100%;margin:2px 0 14px"});
+  REGIONS.forEach(r=>{const n=playable.filter(f=>F.has(f.id)&&FACTS[f.id].r===r).length;bar.append(el("span",{style:`width:${n/tot*100}%;background:var(--c-${r})`}))});
+  const dl=el("dl",{class:"kv"}),add=(k,v)=>dl.append(el("dt",{},k),el("dd",{},String(v)));
+  add("Country pages read",S.learned.size);
+  add("Flags recognised",S.counts.flag||0);
+  add("Capitals recognised",S.counts.capital||0);
+  add("Silhouettes named",S.counts.sil||0);
+  add("Daily challenges completed",Object.keys(S.daily.results).length);
+  add("Daily streak",S.daily.streak||0);
+  add("Neighbour chains",(S.counts.chain||0)+((S.counts.chainPar||0)?` (${S.counts.chainPar} shortest)`:""));
+  add("Best first-try streak",S.bestStreak||0);
+  add("Expeditions completed",`${EXPS.filter(e=>S.expDone[e.id]).length} of ${EXPS.length}`);
+  add("Stamps",`${got} of ${ACH.length}`);
+  const L=[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} of ${tot} countries discovered`),bar,dl];
+  const R=[el("h3",{style:"margin-top:2px"},"Every country")];
+  REGIONS.forEach(r=>{
+    const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
+    const n=ids.filter(id=>F.has(id)).length,rd=ids.filter(id=>S.learned.has(id)).length;
+    R.push(el("details",{class:"adet"},
+      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${rd} read`)),
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(F.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n+(S.learned.has(id)?" \u2713":""))))));
+  });
+  return [L,R];
+}
+function stampPages(){
+  const got=ACH.filter(a=>S.ach[a.id]).length,half=Math.ceil(ACH.length/2);
+  const grid=list=>el("div",{class:"stamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
+  return [[el("h2",{},"Stamp Book"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:6px"}),grid(ACH.slice(half))]];
+}
+function expPages(){
+  const sel=EXPS.find(e=>e.id===expSel)||EXPS[0],L=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys across the map. Every country you find counts toward each journey it belongs to.")];
+  EXPS.forEach(e=>{
+    const ids=expIds(e),n=ids.filter(id=>S.found.has(id)).length;
+    L.push(el("button",{class:"expcard"+(e.id===sel.id?" on":""),onclick:()=>{expSel=e.id;sndTick();renderBook("exp")}},el("b",{},e.name),el("small",{},`${n} of ${ids.length}`+(n===ids.length?" \u2713":"")),el("div",{class:"ebar"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`}))));
+  });
+  const ids=expIds(sel).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),n=ids.filter(id=>S.found.has(id)).length,next=ids.find(id=>!S.found.has(id));
+  const R=[el("h2",{},sel.name),el("p",{style:"margin:4px 0 12px;color:var(--ink-soft);font-size:14.5px"},sel.blurb),
+    el("h3",{style:"margin:0 0 6px"},n===ids.length?"Complete":`${n} of ${ids.length} places`),
+    el("div",{class:"ebar",style:"margin:0 0 14px"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`})),
+    el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(S.found.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n)))];
+  if(next)R.push(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn primary",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(next)}},"Visit the next place")));
+  return [L,R];
 }
 function setSound(v){
   S.sound=v;save();
@@ -2362,7 +2402,8 @@ if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged
 setTimeout(buildMid,700);
-initIntro();
+checkExp(true);
+  initIntro();
 syncZoom();
 if(!reduced){drifting=false;scheduleDrift();}
 })();

@@ -1192,6 +1192,7 @@ function speedNext(){
     if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
     else if(v==="capital"){$("sAsk").textContent="Find the country whose capital is";swell($("sTarget"),ff.cap)}
     else{$("sAsk").textContent="Find";swell($("sTarget"),ff.n)}}
+  requestAnimationFrame(()=>{const st=$("stage").getBoundingClientRect(),fp=document.querySelector(".speed-prompt").getBoundingClientRect();if(fp.bottom-st.top+(W<720?4:10)>promptBottom+6)size()});   // a taller prompt (flag/capital, small screens) must never sit over the globe
   $("sCount").textContent=`${R.found.size} / ${R.total}`;
 }
 function updatePen(pop){const e=$("sPen");e.textContent=R.pen?"+"+(R.pen/1000)+"s":"";if(pop&&!reduced){e.classList.remove("pop");void e.offsetWidth;e.classList.add("pop")}}
@@ -1672,6 +1673,11 @@ function initIntro(){
   if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";return}
   introState="wait";
   if(S.found.size){introOwn=new Set();paint()}   // a returning player’s map stays hidden until the opening reveals it
+  if(S.found.size){   // build their paintings while the splash waits, a couple at a time, so the opening never has to do it all at once
+    const order=["Africa","Europe","Asia","Americas","Oceania"],ids=[...S.found].filter(id=>FACTS[id]).sort((a,b)=>order.indexOf(FACTS[a].r)-order.indexOf(FACTS[b].r));let wi=0;
+    const step=()=>{const t0=performance.now();while(wi<ids.length&&performance.now()-t0<9)ensureArt(ids[wi++]);if(wi<ids.length)setTimeout(step,24)};
+    setTimeout(step,200);
+  }else INTRO_REGIONS.forEach(([r,a],i)=>a.slice(0,3).forEach((id,j)=>{if(FACTS[id])setTimeout(()=>warmArt(id),300+(i*3+j)*140)}));
   const ready=()=>{if(introState!=="wait")return;introState="ready";$("introBegin").hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>{$("introBegin").classList.add("on");$("introHint").classList.add("on")}));try{$("introBegin").focus({preventScroll:true})}catch(e){}};
   (document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1800))]):Promise.resolve()).then(ready);
   // the whole splash is one big button: any tap or key is the gesture the browser needs before it allows sound
@@ -1765,6 +1771,16 @@ function introHandoff(fast){
   flyTo(REGION_VIEW.World,1100,1);
   pg.style.transition="opacity .9s ease";pg.style.opacity="0";   // one clean fade of everything the demo painted
   setTimeout(blank,950);
+}
+/* ---------- phones: no page zoom, and lighter effects only if the device is visibly struggling ---------- */
+const isTouch=!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
+["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
+document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+function liteMode(){FX.bloomFx=false;document.body.classList.add("noblur","nopaper")}
+if(isTouch){
+  let n=0,sum=0,last=0;
+  const tick=t=>{if(last&&!document.hidden){const dt=t-last;if(dt<500){sum+=dt;n++}}last=t;if(n>=45){if(sum/n>48)liteMode();return}requestAnimationFrame(tick)};
+  setTimeout(()=>requestAnimationFrame(tick),2500);
 }
 /* ---------- text selection: only reading text can be selected, and a stray selection is cleared ---------- */
 const SEL_OK=".learn,.card .note,.card dd,.card dt,.sheet,.share,.attrib,input,textarea,select,.dvPanel";

@@ -158,9 +158,10 @@ void main(){
   col=mix(col,brc,bring*B2.a*0.38);       // the darker pigment line that bleeds along the front of the wash
   {   // paper grain wrapped around the globe: it is fixed to the map, so it turns with the earth (periodic around the equator: no seam)
     float cpp=1.0/(uS*max(z,0.2));                       // radians per screen pixel
-    float k1=clamp(1.0-cpp*120.0*1.1,0.0,1.0),k2=clamp(1.0-cpp*380.0*1.1,0.0,1.0);
+    float k1=clamp(1.0-cpp*420.0*0.9,0.0,1.0),k2=clamp(1.0-cpp*1300.0*0.9,0.0,1.0);
     vec2 g2=vec2(lon,lat);
-    float gr=(vnp(g2*120.0,754.0)-0.5)*k1*0.6+(vnp(g2*380.0+vec2(5.0,3.0),2388.0)-0.5)*k2*0.4;
+    float sh=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5;   // where the map grain is finer than a pixel, a pixel-fine grain takes over
+    float gr=(vnp(g2*420.0,2639.0)-0.5)*k1*0.45+(vnp(g2*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.4+sh*(1.0-k2)*0.55;
     col*=1.0+gr*0.22;
   }
   col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line

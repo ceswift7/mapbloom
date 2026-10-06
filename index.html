@@ -88,7 +88,7 @@ button,.btn,.chip,.icon-btn{-webkit-user-select:none;user-select:none}
 ::selection{background:color-mix(in srgb,var(--c-Europe-d) 38%,transparent);color:inherit}
 html,body{height:100%;margin:0}
 body{
-  background:var(--paper) var(--paper-img,none);background-size:256px 256px;
+  background:var(--paper) var(--paper-img,none);background-size:128px 128px;
   color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.45;
   overflow:hidden; -webkit-font-smoothing:antialiased;
 }
@@ -869,7 +869,7 @@ function cvColors(){
 }
 /* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
 function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
-  const dark=isDark()||S.mode==="speed",N=128,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
+  const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.04:.07);
     d[i*4]=lit?(dark?255:255):(dark?0:70);d[i*4+1]=lit?(dark?250:248):(dark?0:55);d[i*4+2]=lit?(dark?235:225):(dark?0:35);d[i*4+3]=Math.round(a*255)}
@@ -3017,9 +3017,10 @@ void main(){
   col=mix(col,brc,bring*B2.a*0.38);       // the darker pigment line that bleeds along the front of the wash
   {   // paper grain wrapped around the globe: it is fixed to the map, so it turns with the earth (periodic around the equator: no seam)
     float cpp=1.0/(uS*max(z,0.2));                       // radians per screen pixel
-    float k1=clamp(1.0-cpp*120.0*1.1,0.0,1.0),k2=clamp(1.0-cpp*380.0*1.1,0.0,1.0);
+    float k1=clamp(1.0-cpp*420.0*0.9,0.0,1.0),k2=clamp(1.0-cpp*1300.0*0.9,0.0,1.0);
     vec2 g2=vec2(lon,lat);
-    float gr=(vnp(g2*120.0,754.0)-0.5)*k1*0.6+(vnp(g2*380.0+vec2(5.0,3.0),2388.0)-0.5)*k2*0.4;
+    float sh=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5;   // where the map grain is finer than a pixel, a pixel-fine grain takes over
+    float gr=(vnp(g2*420.0,2639.0)-0.5)*k1*0.45+(vnp(g2*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.4+sh*(1.0-k2)*0.55;
     col*=1.0+gr*0.22;
   }
   col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line

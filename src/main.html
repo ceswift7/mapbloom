@@ -167,7 +167,7 @@ function cvColors(){
 }
 /* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
 function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
-  const dark=isDark()||S.mode==="speed",N=128,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
+  const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.04:.07);
     d[i*4]=lit?(dark?255:255):(dark?0:70);d[i*4+1]=lit?(dark?250:248):(dark?0:55);d[i*4+2]=lit?(dark?235:225):(dark?0:35);d[i*4+3]=Math.round(a*255)}

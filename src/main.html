@@ -961,8 +961,8 @@ const ART_N=192,artSpecs={},motifDone={};
 function artSpec(id,spd){
   const f=FACTS[id],r=seeded("tw-art-"+id),bank=(spd?TRI_S:TRI)[f.r]||TRI.Europe,tri=bank[Math.floor(r()*bank.length)];
   const ink=spd?"#EAF8FF":"#5b4a3a",ang=30+r()*120;
-  const pc=[tri[2],tri[1],"#ffffff",mix(tri[0],ink,.35)],po=[.85,.8,.42,.26];
-  const pools=pc.map((c,i)=>({cx:15+r()*70,cy:15+r()*70,rad:24+r()*32,c,o:po[i]}));
+  const pc=[tri[2],tri[1],"#ffffff",mix(tri[0],ink,.32),tri[0],mix(tri[1],ink,.22)],po=[.9,.85,.4,.34,.6,.42];   // six pigment pools: pale, mid, a lifted white, a pooled dark, the light tone and a deeper mid
+  const pools=pc.map((c,i)=>({cx:10+r()*80,cy:10+r()*80,rad:22+r()*40,c,o:po[i]}));
   const m={kind:Math.floor(r()*5),cx:30+r()*40,cy:30+r()*40,rot:r()*Math.PI,sq:.65+r()*.4,dots:[],ph:[],hatch2:false,hcx:20+r()*60,hcy:20+r()*60};
   for(let i=0;i<150;i++)m.dots.push([r()*100,r()*100,.35+r()*.85,.3+r()*.45]);
   for(let i=0;i<13;i++)m.ph.push(r()*3);
@@ -977,8 +977,14 @@ function artCanvas(sp,motif,wash){
     x.fillStyle=g;x.fillRect(0,0,100,100);
     sp.pools.forEach(p=>{const col=d3.color(p.c),g2=x.createRadialGradient(p.cx,p.cy,0,p.cx,p.cy,p.rad);
       g2.addColorStop(0,col.copy({opacity:p.o}).formatRgb());g2.addColorStop(1,col.copy({opacity:0}).formatRgb());x.fillStyle=g2;x.fillRect(0,0,100,100)});
-    x.fillStyle=d3.color(sp.tint).copy({opacity:.07}).formatRgb();
-    const rr=seeded(sp.gseed);for(let i=0;i<260;i++){x.beginPath();x.arc(rr()*100,rr()*100,.3+rr()*.55,0,6.2832);x.fill()}
+    const rr=seeded(sp.gseed),tcol=d3.color(sp.tint),dk=d3.color(sp.tri[1]).darker(.9);
+    for(let i=0;i<3;i++){   // back-runs: a wet bloom with a slightly darker, hard-ish rim where the water dried
+      const bx=15+rr()*70,by=15+rr()*70,br=10+rr()*20,rot=rr()*3.1,sq=.6+rr()*.4;
+      x.save();x.translate(bx,by);x.rotate(rot);x.scale(1,sq);
+      x.fillStyle=tcol.copy({opacity:.1}).formatRgb();x.beginPath();x.arc(0,0,br,0,6.2832);x.fill();
+      x.lineWidth=.9;x.strokeStyle=dk.copy({opacity:.16}).formatRgb();x.stroke();x.restore()}
+    for(let i=0;i<5;i++){x.fillStyle=dk.copy({opacity:.045}).formatRgb();x.beginPath();x.arc(rr()*100,rr()*100,14+rr()*22,0,6.2832);x.fill()}   // broad value blotches
+    for(let i=0;i<620;i++){x.fillStyle=(i%3?tcol:dk).copy({opacity:.05+rr()*.07}).formatRgb();x.beginPath();x.arc(rr()*100,rr()*100,.25+rr()*.6,0,6.2832);x.fill()}   // pigment granules
   }
   if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
@@ -998,7 +1004,7 @@ function defTile(pid,key,url,N){
 function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
   const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?384:a>4e5?256:192;artSpecs[key]=sp;   // bigger countries get a finer tile
-  const cvs=artCanvas(sp,true,true);artCv[key]=cvs;
+  const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
   if(!CANVAS)defTile("af",key,cvs.toDataURL("image/jpeg",.9),sp.N);
   return key;
 }

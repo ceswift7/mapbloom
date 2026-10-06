@@ -85,10 +85,18 @@ uniform vec4 uDropC[3];
 const float PI=3.14159265358979;
 float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}
-vec3 layers(vec3 col,sampler2D tL,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,float pa){
+vec3 layers(vec3 col,sampler2D tL,sampler2D tA,vec2 uv,vec2 gx,vec2 gy,float pa,vec2 gp){
   vec4 L=textureGrad(tL,uv,gx,gy);
   col=L.rgb+col*(1.0-L.a);
   vec4 A=textureGrad(tA,uv,gx,gy)*pa;
+  if(A.a>0.01){   // rough paper: pigment settles in the valleys. Anchored to the map, so it stays crisp at any zoom and never swims
+    float fw=length(fwidth(gp));
+    float k1=clamp(1.0-fw*300.0*1.1,0.0,1.0),k2=clamp(1.0-fw*900.0*1.1,0.0,1.0);
+    float gr=(vn(gp*300.0)-0.5)*k1*0.55+(vn(gp*900.0+11.0)-0.5)*k2*0.45;
+    float tn=vn(gp*34.0+3.0)-0.5;
+    A.rgb*=1.0+gr*0.5;
+    A.rgb*=vec3(1.0+tn*0.16,1.0+tn*0.03,1.0-tn*0.14);   // slow warm/cool drift across the wash
+  }
   return A.rgb+col*(1.0-A.a);
 }
 float gridLine(float v,float step){
@@ -129,12 +137,13 @@ void main(){
   float latLine=gridLine(latD,10.0)*step(abs(latD),80.5);
   col=mix(col,uGrat.rgb,max(lonLine,latLine)*uGrat.a);
   vec3 base=col;
-  col=layers(base,uLand,uArt,uv,gx,gy,uPA);
+  vec2 gpw=vec2(lon*cos(lat),lat);
+  col=layers(base,uLand,uArt,uv,gx,gy,uPA,gpw);
   float dl=lon-uP.x;dl=dl-2.0*PI*floor((dl+PI)/(2.0*PI));
   vec2 puv=vec2(dl/uP.z+0.5,0.5-(lat-uP.y)/uP.w);
   vec2 pgx=dFdx(puv),pgy=dFdy(puv);
   float pw=smoothstep(0.0,0.06,min(min(puv.x,1.0-puv.x),min(puv.y,1.0-puv.y)))*uPOn;
-  if(pw>0.0){vec3 cp=layers(base,uPLand,uPArt,puv,pgx,pgy,uPA);col=mix(col,cp,pw);}
+  if(pw>0.0){vec3 cp=layers(base,uPLand,uPArt,puv,pgx,pgy,uPA,gpw);col=mix(col,cp,pw);}
   vec4 B2=textureGrad(uArt2,uv,gx,gy);
   float bm=uFade,bring=0.0;vec3 brc=vec3(0.0);bool anyD=false;
   for(int i=0;i<3;i++){
@@ -334,7 +343,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.beginPath();pgen(f);
   ctx.globalAlpha=pat?(shown?.5:glJit(id)):(shown?.4:1);
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
-  if(!shown){ctx.lineWidth=rimW*3;ctx.globalAlpha=.14;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}
+  if(!shown){ctx.lineWidth=rimW*8;ctx.globalAlpha=.09;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke();ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.2;ctx.stroke()}   // wet edge: pigment pools where the paint meets the border
   ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
   ctx.restore();
 }

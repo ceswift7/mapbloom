@@ -253,6 +253,17 @@ html{overflow:hidden;overscroll-behavior:none}
 #globe{overflow:visible;position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block;animation:rise 1.6s cubic-bezier(.2,.7,.2,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.965)}to{opacity:1;transform:none}}
 #globe.dip{animation:dip .8s ease both}
+/* canvas globe (fast renderer): sits under the svg overlay (pills, labels, blooms) and mirrors the svg's animations */
+#gcanvas{position:absolute;left:0;top:0;pointer-events:none;display:none;animation:rise 1.6s cubic-bezier(.2,.7,.2,1) both;transition:opacity .8s ease}
+body.cv #gcanvas{display:block}
+#gcanvas.dip{animation:dip .8s ease both}
+body.cv #land,body.cv .graticule{display:none}
+body.cv #globe .sphere{fill:transparent !important}
+#globe.overland{cursor:var(--cur-cross)}
+#globe.overland:active{cursor:grabbing}
+body.introing:not(.introglobe) #gcanvas{animation:none;opacity:0}
+body.introing.introglobe #gcanvas{animation:rise 1.5s cubic-bezier(.2,.7,.2,1) both}
+.app.silmode #gcanvas{opacity:0 !important}
 @keyframes dip{0%{opacity:1}35%{opacity:.08}100%{opacity:1}}
 #globe:active{cursor:grabbing}
 #globe:focus{outline:none}
@@ -611,6 +622,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
   </header>
 
   <div id="stage">
+    <canvas id="gcanvas" aria-hidden="true"></canvas>
     <svg id="globe" tabindex="0" aria-label="Globe. Drag to turn, scroll or pinch to zoom, arrow keys also turn it."></svg>
     <div id="labels"></div>
 
@@ -720,7 +732,9 @@ const yesterdayStr=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.get
 const FX={ts:1,wc:true,bloomFx:true,tiles:true,clip:true,cull:true,lod:"auto"};
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isTouch=isIOS||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
-let LITE=false;   // lite graphics: on by default for touch devices (see applyFx)
+let LITE=false;
+const rendererPref=(location.search.match(/[?&]renderer=(canvas|svg)/)||[])[1];
+let CANVAS=rendererPref?rendererPref==="canvas":isTouch;   // the fast canvas globe: default on touch devices while the desktop look is ported across   // lite graphics: on by default for touch devices (see applyFx)
 let introOwn=null;      // while the opening replays a returning player’s map: only these saved countries are shown so far
 const introSet=new Set();   // countries painted only for the opening sequence (never saved)
 let introState="idle";
@@ -844,6 +858,101 @@ const paths=gCountries.selectAll("path").data(features).join("path")
   .attr("data-id",d=>d.id).attr("data-rr",d=>FACTS[d.id]?FACTS[d.id].r:null).attr("data-rx",d=>(FACTS[d.id]&&FACTS[d.id].x)||null);
 const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
 
+/* ======================================================================
+   CANVAS GLOBE: the land is drawn straight onto a canvas each frame (no per-frame DOM/SVG work).
+   Pills, labels and the bloom animation stay in the svg above it.
+   ====================================================================== */
+const cv=document.getElementById("gcanvas"),cctx=cv.getContext?cv.getContext("2d"):null;
+if(!cctx)CANVAS=false;
+const pcPath=d3.geoPath(projection,cctx),pcC=d3.geoPath(projC,cctx);
+let cvDpr=1,cvPA=1,cvHover=null;
+const CV={},cvMissed=new Set(),cvFades=new Map();
+function cvColors(){
+  const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
+  CV.seaIn=g("--sea-in");CV.seaMid=g("--sea-mid");CV.seaOut=g("--sea-out");CV.land=g("--land");CV.border=g("--border");CV.grat=g("--grat");CV.miss=g("--miss");
+  CV.p={};CV.pd={};CV.tint={};
+  REGIONS.forEach(r=>{CV.p[r]=g("--c-"+r);CV.pd[r]=g("--c-"+r+"-d");CV.tint[r]=d3.interpolateRgb(CV.land,CV.p[r])(.4)});
+  CV.tintEA=d3.interpolateRgb(CV.land,d3.interpolateRgb(CV.p.Europe,CV.p.Asia)(.5))(.4);
+  CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
+}
+function cvResize(){
+  cvDpr=Math.min(2,window.devicePixelRatio||1);
+  const w=innerWidth,h=innerHeight;
+  cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";
+}
+function cvMiss(id,on){
+  if(id==null){if(cvMissed.size){cvMissed.clear();if(CANVAS)requestRender()}return}
+  if(on)cvMissed.add(id);else cvMissed.delete(id);
+  if(CANVAS)requestRender();
+}
+function cvTweenPA(to,ms,done){
+  const from=cvPA;
+  if(reduced||!ms){cvPA=to;requestRender();if(done)done();return}
+  d3.transition("cvpa").duration(ms).ease(d3.easeCubicInOut).tween("pa",()=>t=>{cvPA=from+(to-from)*t;render()}).on("end",()=>{cvPA=to;render();if(done)done()});
+}
+function cvFadeIn(id){
+  cvFades.set(id,performance.now());
+  if(cvFades.size===1){const tick=()=>{render();if(cvFades.size)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
+}
+function drawFeatureCtx(g,cen,lim){
+  if(g.geometry.type!=="MultiPolygon"||g.geometry.coordinates.length<5||!FX.cull||!cen){pcC(g);return}
+  const parts=g._pp||(g._pp=makeParts(g));
+  for(let i=0;i<parts.length;i++){const p=parts[i];if(p.r>=2.5||d3.geoDistance(p.c,cen)-p.r<lim)pcC(p.f)}
+}
+function drawCanvas(s,cen0,lim,lvl){
+  const c=cctx,dpr=cvDpr,now=performance.now(),cxs=W/2,cys=cy();
+  c.setTransform(dpr,0,0,dpr,0,stageTop*dpr);c.clearRect(0,-stageTop,innerWidth,innerHeight);
+  // sea
+  c.beginPath();pcPath({type:"Sphere"});
+  const gx=cxs-s+.84*s,gy=cys-s+.72*s,gr=c.createRadialGradient(gx,gy,0,gx,gy,1.44*s);
+  gr.addColorStop(0,CV.seaIn);gr.addColorStop(.7,CV.seaMid);gr.addColorStop(1,CV.seaOut);
+  c.fillStyle=gr;c.fill();
+  // graticule
+  c.beginPath();pcPath(graticule);c.strokeStyle=CV.grat;c.lineWidth=.6;c.stroke();
+  // land: unpainted shapes are batched by colour, painted ones drawn one by one
+  const F=cf(),speed=S.mode==="speed",expl=S.mode==="wander",buckets=new Map(),special=[],painted=[];
+  for(let i=0;i<features.length;i++){
+    const f=features[i];
+    if(FX.cull&&cen0&&f._c&&!(d3.geoDistance(f._c,cen0)-f._r<lim))continue;
+    const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)continue;
+    const fa=FACTS[f.id];
+    if(fa){
+      const found=(introOwn?introOwn.has(f.id):F.has(f.id))||introSet.has(f.id),shown=!speed&&!SESS&&!introOwn&&!found&&S.shown.has(f.id);
+      if(found||shown){painted.push([g,fa,shown,f.id]);continue}
+      if(cvMissed.has(f.id)){special.push([g,CV.miss]);continue}
+      if(cvHover===f.id){special.push([g,CV.hover]);continue}
+    }
+    const key=!fa?"nopl":expl?(fa.x?"EA":fa.r):"land";
+    let b=buckets.get(key);if(!b){b=[];buckets.set(key,b)}b.push(g);
+  }
+  c.lineWidth=.5;c.strokeStyle=CV.border;
+  buckets.forEach((list,key)=>{
+    c.beginPath();for(let i=0;i<list.length;i++)drawFeatureCtx(list[i],cen0,lim);
+    c.fillStyle=key==="land"?CV.land:key==="nopl"?CV.nopl:key==="EA"?CV.tintEA:CV.tint[key];c.fill();c.stroke();
+  });
+  special.forEach(([g,col])=>{c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()});
+  painted.forEach(([g,fa,shown,id])=>{
+    let a=cvPA;const t=cvFades.get(id);
+    if(t!=null){const k=(now-t)/1100;if(k>=1)cvFades.delete(id);else a*=k<0?0:k*k*(3-2*k)}
+    if(a<=0)return;
+    c.beginPath();drawFeatureCtx(g,cen0,lim);
+    c.globalAlpha=shown?a*.4:a;c.fillStyle=CV.p[fa.r];c.fill();
+    c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
+    c.globalAlpha=1;
+  });
+}
+/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
+function hitCountry(ll){
+  let best=null;
+  for(let i=0;i<features.length;i++){
+    const f=features[i],c=f._c;if(!c||!isFinite(c[0]))continue;
+    if(best&&f._r>=best._r)continue;
+    if(d3.geoDistance(ll,c)>f._r+.01)continue;
+    if(d3.geoContains(f,ll))best=f;
+  }
+  return best;
+}
+
 let W=0,H=0,baseScale=1,zoomK=1,stageTop=0,lodLvl=0;
 function size(){
   const r=document.getElementById("stage").getBoundingClientRect();
@@ -855,6 +964,7 @@ function size(){
   const avail=H-promptBottom-8;
   baseScale=Math.max(110,Math.min(W*.45, avail*.48));
   svg.attr("viewBox",`0 0 ${W} ${H}`);
+  if(CANVAS)cvResize();
   cyVal=layoutCy();
   if(lensOpen){layoutLens();fitLens();drawLens()}
   {const wc=document.getElementById("wc");if(wc){wc.setAttribute("filterUnits","userSpaceOnUse");wc.setAttribute("x",-10);wc.setAttribute("y",-stageTop-10);wc.setAttribute("width",W+20);wc.setAttribute("height",innerHeight+20)}}   // bound the paint filter to the screen, however big the painted area gets
@@ -915,7 +1025,7 @@ function renderNow(){
   const sp=path({type:"Sphere"});
   sphere.attr("d",sp);
   edge.attr("d",sp);
-  grat.attr("d",path(graticule));
+  if(!CANVAS)grat.attr("d",path(graticule));
   const cen0=projection.invert([W/2,cy()]);
   projC.rotate(projection.rotate()).scale(s).translate([W/2,cy()]).clipExtent(FX.clip?[[-24,-stageTop-24],[W+24,innerHeight-stageTop+24]]:null);
   if(!animating){   // no geometry swaps in the middle of a fly-to; one full-quality render lands when it ends
@@ -924,7 +1034,7 @@ function renderNow(){
   }
   const lvl=typeof FX.lod==="number"?FX.lod:(moving&&lodLvl===2?1:lodLvl);
   const lim=Math.min(1.5708,Math.asin(Math.min(1,Math.hypot(W/2,Math.max(cy(),H-cy()))/s)))+.04;
-  paths.each(function(d){
+  if(CANVAS)drawCanvas(s,cen0,lim,lvl);else paths.each(function(d){
     const vis=!FX.cull||!cen0||!d._c||d3.geoDistance(d._c,cen0)-d._r<lim,g=lvl===2?d:lvl===1?(d._mid||d._lo):d._lo;
     if(vis&&g){this.setAttribute("d",drawFeature(g,cen0,lim));this.__e=false}
     else if(!this.__e){this.setAttribute("d","");this.__e=true}
@@ -957,8 +1067,8 @@ function paintSel(sel,landG,paintG){
   });
 }
 let artBudget=0,paintMore=false;
-function paint(){artBudget=14;paintMore=false;paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
-function clearMissed(){d3.selectAll(".missed").classed("missed",false)}
+function paint(){artBudget=14;paintMore=false;if(CANVAS)requestRender();else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
+function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(null)}
 /* ======================================================================
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
    each island is big enough to tap. Tiny countries outside a group get a beacon.
@@ -1199,6 +1309,20 @@ function onMove(e,d){
   hoverLabel.lonlat=ll;positionLabels();
 }
 paths.on("pointermove",onMove).on("pointerleave",clearHover);
+/* canvas globe: hover label, hover tint and the over-a-country cursor come from hit-testing the pointer position */
+let cvHQ=null,cvHRaf=0;
+sphere.on("pointermove.cv",ev=>{
+  if(!CANVAS||ev.pointerType==="touch")return;
+  cvHQ=ev;if(cvHRaf)return;
+  cvHRaf=requestAnimationFrame(()=>{
+    cvHRaf=0;const e=cvHQ,ll=projection.invert(d3.pointer(e,svg.node()));
+    const f=ll&&!moving?hitCountry(ll):null,pl=f&&FACTS[f.id]?f.id:null;
+    svg.classed("overland",!!pl);
+    if(pl)onMove(e,{id:pl});else clearHover();
+    const hv=(pl&&!cf().has(pl))?pl:null;
+    if(hv!==cvHover){cvHover=hv;requestRender()}
+  });
+}).on("pointerleave.cv",()=>{if(CANVAS){svg.classed("overland",false);if(cvHover){cvHover=null;requestRender()}}});
 function clearHover(){if(hoverLabel){const h=hoverLabel;h.el.classList.remove("on");setTimeout(()=>{h.el.remove();const i=live.indexOf(h);if(i>-1)live.splice(i,1)},500);hoverLabel=null}}
 
 /* ======================================================================
@@ -1679,7 +1803,7 @@ function guess(id,ll,other){
   S.tries++;S.streak=0;
   if(id&&FACTS[id]){
     const g=FACTS[id];
-    d3.selectAll(`[data-id="${id}"]`).classed("missed",!cf().has(id));
+    d3.selectAll(`[data-id="${id}"]`).classed("missed",!cf().has(id));cvMiss(id,!cf().has(id));
     floatLabel(g.n,ll,2600,vwOf(id));
     const d=km(LL(id),LL(T));
     const near=g.b.includes(f.n);
@@ -1749,6 +1873,7 @@ function success(shown,ll){
 function fadeRepaint(fn){
   const pg=document.getElementById("paint");
   if(reduced||!pg){fn();return}
+  if(CANVAS){cvTweenPA(0,350,()=>{fn();cvTweenPA(1,350)});return}
   pg.style.transition="opacity .35s ease";pg.style.opacity="0";
   setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
 }
@@ -1923,7 +2048,7 @@ function speedGuess(id,ll,other){
     R.pen+=2000;R.wrong++;R.streak=0;S.weak[T]=Math.min(10,(S.weak[T]||0)+1);
     updatePen(true);swell($("sHint"),`Not ${article(FACTS[id].n)}. +2s`);
     floatLabel(FACTS[id].n,ll,900,vwOf(id));
-    const sel=d3.selectAll(`[data-id="${id}"]`);if(!R.found.has(id)){sel.classed("missed",true);setTimeout(()=>sel.classed("missed",false),520)}
+    const sel=d3.selectAll(`[data-id="${id}"]`);if(!R.found.has(id)){sel.classed("missed",true);cvMiss(id,true);setTimeout(()=>{sel.classed("missed",false);cvMiss(id,false)},520)}
     $("app").classList.remove("flash");void $("app").offsetWidth;$("app").classList.add("flash");
     sndPenalty();
   }else{
@@ -2129,6 +2254,7 @@ paths.on("click",onClick);
 sphere.on("click",function(e){
   const ll=projection.invert(d3.pointer(e,svg.node()));
   if(!ll)return;
+  if(CANVAS){const f=hitCountry(ll);if(f)return tap(FACTS[f.id]?f.id:null,ll,FACTS[f.id]?false:((f.properties&&f.properties.name)||true))}
   if(S.mode==="find")guess(null,ll);else if(S.mode==="speed")speedGuess(null,ll);
 });
 
@@ -2221,13 +2347,13 @@ function guardRace(){if(raceBusy()){toast("*","Race in progress","The clock does
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderStamps()};
 $("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
-function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn()}
+function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
 function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:()=>{S.theme=k;save();applyTheme();sndTick();renderSettings()}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
 function syncUnit(){$("unitA").textContent=S.unit;$("unitB").textContent=S.unit==="mi"?"km":"mi"}
 function setUnit(u){S.unit=u;save();syncUnit();if($("card").classList.contains("on"))showCard(cardId,true)}
 $("themeBtn").onclick=()=>{S.theme=isDark()?"light":"dark";save();applyTheme();sndTick()};
-if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.theme==="auto")syncThemeBtn()});
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.theme==="auto"){syncThemeBtn();cvColors();if(CANVAS)requestRender()}});
 applyTheme();
 $("unitBtn").onclick=()=>{sndTick();setUnit(S.unit==="mi"?"km":"mi")};
 function opt(title,sub,control){return el("div",{class:"opt"},el("div",{},el("b",{},title),sub?el("small",{},sub):""),control)}
@@ -2329,10 +2455,11 @@ function setMode(m,quiet,noIdle){
   if(m!=="find"){S.qIdle=false;endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
-  document.documentElement.dataset.mode=m;
+  document.documentElement.dataset.mode=m;cvColors();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
+  {const gc=$("gcanvas");gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
   { const g=$("globe");g.classList.remove("dip");void g.offsetWidth;g.classList.add("dip");setTimeout(()=>g.classList.remove("dip"),900) }
   hideCard();clearMissed();
   size();paint();updateProgress();
@@ -2365,8 +2492,8 @@ function doReset(){
   };
   if(reduced){fin();return}
   sndPage();
-  const pg=document.getElementById("paint");pg.style.transition="opacity .7s ease";pg.style.opacity="0";
-  setTimeout(()=>{fin();pg.style.transition=""},760);
+  const pg=document.getElementById("paint");if(CANVAS)cvTweenPA(0,700);else{pg.style.transition="opacity .7s ease";pg.style.opacity="0"}
+  setTimeout(()=>{fin();pg.style.transition="";cvPA=1;render()},760);
 }
 
 /* ======================================================================
@@ -2435,7 +2562,7 @@ function introPlay(){
       introLater(()=>{
         if(introState!=="run"||!introOwn)return;
         const grp=ids.filter(id=>FACTS[id].r===rg);grp.forEach(id=>introOwn.add(id));paint();
-        grp.forEach(id=>{const n=document.querySelector(`#globe .country[data-id="${id}"]`);if(n)n.style.animation="introFade 1.1s ease both"});
+        if(CANVAS)grp.forEach(cvFadeIn);else grp.forEach(id=>{const n=document.querySelector(`#globe .country[data-id="${id}"]`);if(n)n.style.animation="introFade 1.1s ease both"});
         const c=AC();if(c)pluck(note(rg,[0,2,3,4,3][i%5]),c.currentTime+.03,.05,1.5,.6);
         sndBloom(true);
       },t);
@@ -2467,9 +2594,9 @@ function introHandoff(fast){
     scheduleDrift();render(true);
     setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   };
-  if(own){introOwn=null;introSet.clear();paint();document.querySelectorAll("#globe .country").forEach(n=>{n.style.animation=""});ui();return}   // the replayed countries ARE the real painted map: nothing to clear, nothing to fade
+  if(own){introOwn=null;introSet.clear();cvFades.clear();paint();document.querySelectorAll("#globe .country").forEach(n=>{n.style.animation=""});ui();return}   // the replayed countries ARE the real painted map: nothing to clear, nothing to fade
   const blank=()=>{
-    introSet.clear();paint();
+    introSet.clear();cvPA=1;paint();
     pg.style.transition="none";void pg.offsetWidth;pg.style.opacity="";
     requestAnimationFrame(()=>{pg.style.transition=""});
     ui();
@@ -2477,6 +2604,7 @@ function introHandoff(fast){
   };
   if(fast||!introSet.size){blank();return}
   flyTo(REGION_VIEW.World,1100,1);
+  if(CANVAS)cvTweenPA(0,900);
   pg.style.transition="opacity .9s ease";pg.style.opacity="0";   // one clean fade of everything the demo painted
   setTimeout(blank,950);
 }
@@ -2490,7 +2618,7 @@ function applyFx(){
   LITE=S.fx==="lite"||(S.fx==="auto"&&(isTouch||fxForced));
   FX.wc=!LITE;FX.tiles=!LITE;FX.bloomFx=!LITE;
   gPaint.attr("filter",LITE?null:"url(#wc)");lPaint.attr("filter",LITE?null:"url(#wc)");
-  gShadow.style("display",LITE?"none":null);gLift.style("display",LITE?"none":null);
+  gShadow.style("display",LITE||CANVAS?"none":null);gLift.style("display",LITE||CANVAS?"none":null);
   projection.precision(LITE?1.2:.4);projC.precision(LITE?1.2:.5);
   document.body.classList.toggle("lite",LITE);
 }
@@ -2591,7 +2719,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});wi
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
 try{if(localStorage.getItem("mb-dock"))$("dock").classList.remove("shimmer")}catch(e){}
-applyFx();syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();document.body.classList.toggle("cv",CANVAS);cvColors();syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
 if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged

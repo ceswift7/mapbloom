@@ -253,6 +253,17 @@ html{overflow:hidden;overscroll-behavior:none}
 #globe{overflow:visible;position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block;animation:rise 1.6s cubic-bezier(.2,.7,.2,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.965)}to{opacity:1;transform:none}}
 #globe.dip{animation:dip .8s ease both}
+/* canvas globe (fast renderer): sits under the svg overlay (pills, labels, blooms) and mirrors the svg's animations */
+#gcanvas{position:absolute;left:0;top:0;pointer-events:none;display:none;animation:rise 1.6s cubic-bezier(.2,.7,.2,1) both;transition:opacity .8s ease}
+body.cv #gcanvas{display:block}
+#gcanvas.dip{animation:dip .8s ease both}
+body.cv #land,body.cv .graticule{display:none}
+body.cv #globe .sphere{fill:transparent !important}
+#globe.overland{cursor:var(--cur-cross)}
+#globe.overland:active{cursor:grabbing}
+body.introing:not(.introglobe) #gcanvas{animation:none;opacity:0}
+body.introing.introglobe #gcanvas{animation:rise 1.5s cubic-bezier(.2,.7,.2,1) both}
+.app.silmode #gcanvas{opacity:0 !important}
 @keyframes dip{0%{opacity:1}35%{opacity:.08}100%{opacity:1}}
 #globe:active{cursor:grabbing}
 #globe:focus{outline:none}
@@ -611,6 +622,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
   </header>
 
   <div id="stage">
+    <canvas id="gcanvas" aria-hidden="true"></canvas>
     <svg id="globe" tabindex="0" aria-label="Globe. Drag to turn, scroll or pinch to zoom, arrow keys also turn it."></svg>
     <div id="labels"></div>
 

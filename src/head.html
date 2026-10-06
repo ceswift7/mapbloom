@@ -430,6 +430,12 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .card dd{margin:0;font-family:var(--serif);font-size:15.5px;line-height:1.4}
 .card .note{font-family:var(--serif);font-style:italic;color:var(--ink-soft);margin:12px 0 0;font-size:15px;line-height:1.5}
 .card .close{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2}
+.jrrow{display:flex;align-items:center;gap:4px;margin:-4px 0 10px;min-height:9px}
+.jd{width:7px;height:7px;border-radius:50%;border:1.3px solid var(--ink-faint);box-sizing:border-box;flex:none}
+.jd.on{background:var(--ink);border-color:var(--ink)}
+.jrrow small{margin-left:6px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
+.jrrow.m .jd.on{background:#C9A24B;border-color:#C9A24B}
+.jrrow.m small{color:#B08A32}
 .card .tname{min-width:0}
 .card .tsub{display:none;font-size:12.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .cardmore{display:none;position:absolute;right:40px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2;border:0;background:none;place-items:center}
@@ -584,7 +590,7 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .card:not(.peek) .cardmore svg{transform:rotate(180deg)}
   .card:not(.peek) .top{padding-right:64px}
   .card.peek{padding:10px 12px;border-radius:14px;cursor:pointer}
-  .card.peek .cardbody,.card.peek .where{display:none}
+  .card.peek .cardbody,.card.peek .where,.card.peek .jrrow{display:none}
   .card.peek .tsub{display:block}
   .card.peek .top{gap:10px;padding-right:68px}
   .card.peek h2{font-size:18px}
@@ -709,6 +715,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="cardhead">
         <div class="top"><img class="flagimg" id="cFlagImg" alt="" hidden><span class="flag" id="cFlag"></span><div class="tname"><h2 id="cName"></h2><div class="tsub" id="cSub"></div></div></div>
         <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden>✓ read</span></p>
+        <div class="jrrow" id="cJr"></div>
       </div>
       <div class="cardbody" id="cBody">
         <dl id="cList"></dl>

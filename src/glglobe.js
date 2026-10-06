@@ -352,6 +352,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
   if(!shown){ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
   ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
+  if(!shown&&tag.slice(-2)==="|m"){ctx.globalAlpha=.9;ctx.strokeStyle="#C9A24B";ctx.lineWidth=rimW*1.5;ctx.stroke()}   // mastered: a thin gold rim
   ctx.restore();
 }
 function glEnsureArt(){if(glArt)return;glArt=glMakeCanvas(glTW,glTH);glArtCtx=glArt.getContext("2d");glUploadFull(glT.art,glArt)}   // the art texture must exist at full size before any sub-rect upload
@@ -360,7 +361,7 @@ function glDesired(){
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
     const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
-    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id));
+    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;
 }
@@ -375,7 +376,7 @@ function glDoSync(){
   if(glArtRun){glArtAgain=true;return}
   const want=glDesired();
   let full=false;const adds=[];
-  glArtState.forEach((v,id)=>{if(want.get(id)!==v)full=true});
+  glArtState.forEach((v,id)=>{if(want.get(id)!==v&&!(want.has(id)&&want.get(id).replace("|m","")===v.replace("|m","")))full=true});   // a country gaining its gold rim only needs a small redraw
   want.forEach((v,id)=>{if(glArtState.get(id)!==v)adds.push(id)});
   if(!full&&!adds.length)return;
   glEnsureArt()

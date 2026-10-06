@@ -430,6 +430,12 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .card dd{margin:0;font-family:var(--serif);font-size:15.5px;line-height:1.4}
 .card .note{font-family:var(--serif);font-style:italic;color:var(--ink-soft);margin:12px 0 0;font-size:15px;line-height:1.5}
 .card .close{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2}
+.jrrow{display:flex;align-items:center;gap:4px;margin:-4px 0 10px;min-height:9px}
+.jd{width:7px;height:7px;border-radius:50%;border:1.3px solid var(--ink-faint);box-sizing:border-box;flex:none}
+.jd.on{background:var(--ink);border-color:var(--ink)}
+.jrrow small{margin-left:6px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
+.jrrow.m .jd.on{background:#C9A24B;border-color:#C9A24B}
+.jrrow.m small{color:#B08A32}
 .card .tname{min-width:0}
 .card .tsub{display:none;font-size:12.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .cardmore{display:none;position:absolute;right:40px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint);z-index:2;border:0;background:none;place-items:center}
@@ -584,7 +590,7 @@ input[type=range]{width:150px;accent-color:var(--ink)}
   .card:not(.peek) .cardmore svg{transform:rotate(180deg)}
   .card:not(.peek) .top{padding-right:64px}
   .card.peek{padding:10px 12px;border-radius:14px;cursor:pointer}
-  .card.peek .cardbody,.card.peek .where{display:none}
+  .card.peek .cardbody,.card.peek .where,.card.peek .jrrow{display:none}
   .card.peek .tsub{display:block}
   .card.peek .top{gap:10px;padding-right:68px}
   .card.peek h2{font-size:18px}
@@ -709,6 +715,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="cardhead">
         <div class="top"><img class="flagimg" id="cFlagImg" alt="" hidden><span class="flag" id="cFlag"></span><div class="tname"><h2 id="cName"></h2><div class="tsub" id="cSub"></div></div></div>
         <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden>✓ read</span></p>
+        <div class="jrrow" id="cJr"></div>
       </div>
       <div class="cardbody" id="cBody">
         <dl id="cList"></dl>
@@ -799,7 +806,7 @@ let introState="idle";
 const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
-  learned:new Set(),weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
+  learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
   daily:{last:null,streak:0,results:{}},expDone:{}};
 const KEY="mapbloom",RKEY="mapbloom-records-v4";
 try{
@@ -809,6 +816,7 @@ try{
   (s.found||[]).forEach(id=>S.found.add(id));
   (s.shown||[]).forEach(id=>S.shown.add(id));
   (s.learned||[]).forEach(id=>S.learned.add(id));
+  if(s.jr&&typeof s.jr==="object")S.jr=s.jr;
   if(s.returnQ) S.returnQ=s.returnQ;
   if(s.weak) S.weak=s.weak;
   if(s.ach) S.ach=s.ach;
@@ -830,7 +838,7 @@ try{
   if(["country","flag","capital"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -878,9 +886,47 @@ function buildMid(){
     render();
   }catch(e){}
 }
+/* ---------- country journal: what you have done with each country, and how far it has come (Found, Studied, Mastered) ---------- */
+const JR_SEC=[["g","The land"],["c","People and culture"],["f","Food and dishes"],["h","A short history"],["n","Where the name comes from"]];
+function jrSecs(id){const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];return JR_SEC.filter(([k])=>k==="f"?!!(fd&&fd.x):!!L[k]).map(x=>x[0])}
+function jrDone(id){const j=S.jr[id]||{},ss=j.s||[];return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrSecs(id).filter(k=>ss.includes(k)).length}
+function jrTotal(id){return 3+jrSecs(id).length}
+function jrLevel(id){if(!S.found.has(id))return 0;const d=jrDone(id),t=jrTotal(id);return d>=t?3:d>=Math.max(4,t-2)?2:1}
+const jrGlyph=id=>["\u25CB ","\u25CF ","\u25D1 ","\u2605 "][jrLevel(id)];
+function jrMark(id,type,key){
+  if(!FACTS[id])return;
+  const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]}),before=jrLevel(id);
+  if(type==="c"){if(j.c)return;j.c=1}else if(type==="f"){if(j.f)return;j.f=1}else{if(j.s.includes(key))return;j.s.push(key)}
+  save();
+  const after=jrLevel(id);
+  if($("card").classList.contains("on")&&cardId===id)jrRow(id);
+  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Every part of its journal is filled in.":"Most of its journal is filled in.",3800);
+  if(after!==before)paint();
+}
+function jrRow(id){
+  const row=$("cJr");if(!row)return;row.innerHTML="";
+  const j=S.jr[id]||{},items=[["Located",S.found.has(id)],["Capital",!!j.c],["Flag",!!j.f],...jrSecs(id).map(k=>[JR_SEC.find(x=>x[0]===k)[1],(j.s||[]).includes(k)])];
+  items.forEach(([l,d])=>{const i=document.createElement("i");i.className="jd"+(d?" on":"");row.append(i)});
+  const lv=jrLevel(id);row.classList.toggle("m",lv===3);
+  const missing=items.filter(x=>!x[1]).map(x=>x[0]);
+  row.title=missing.length?"Still to do: "+missing.join(", "):"Journal complete";
+  if(lv>=2){const s=document.createElement("small");s.textContent=lv===3?"Mastered":"Studied";row.append(s)}
+}
+let jrObs=[],jrTimers=[];
+function jrReset(){jrObs.forEach(o=>o.disconnect());jrObs=[];jrTimers.forEach(clearTimeout);jrTimers=[]}
+function jrWatch(el0,id,key){   // a section counts as read once most of it has been on screen for a moment
+  if(!window.IntersectionObserver||(S.jr[id]&&(S.jr[id].s||[]).includes(key)))return;
+  let tm=null;const o=new IntersectionObserver(es=>{
+    const e=es[es.length-1],rb=e.rootBounds,ok=e.isIntersecting&&(e.intersectionRatio>=.6||(rb&&e.intersectionRect.height>=rb.height*.8));
+    if(ok&&!tm){tm=setTimeout(()=>{jrMark(id,"s",key);o.disconnect()},1200);jrTimers.push(tm)}
+    else if(!ok&&tm){clearTimeout(tm);tm=null}
+  },{root:$("cBody"),threshold:[.2,.4,.6,.8,1]});
+  o.observe(el0);jrObs.push(o);
+}
 const nameId={};
 [...S.found].forEach(id=>{if(!FACTS[id])S.found.delete(id)});[...S.shown].forEach(id=>{if(!FACTS[id])S.shown.delete(id)});[...S.learned].forEach(id=>{if(!FACTS[id])S.learned.delete(id)});
 Object.keys(S.weak).forEach(id=>{if(!FACTS[id])delete S.weak[id]});S.returnQ=S.returnQ.filter(q=>FACTS[q.id]);playable.forEach(f=>nameId[FACTS[f.id].n]=f.id);
+[...S.learned].forEach(id=>{if(FACTS[id]&&!S.jr[id])S.jr[id]={c:0,f:0,s:jrSecs(id)}});   // pages already read count as read
 
 const svg=d3.select("#globe");
 const defs=svg.append("defs");
@@ -2073,9 +2119,9 @@ function success(shown,ll){
     if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
     if(S.tries>=2&&!D.active)S.returnQ.push({id:T,at:S.turn+6});
     if(first){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);if(S.weak[T])S.weak[T]=Math.max(0,S.weak[T]-1)}
-    if(S.quiz==="flag"&&!D.active)S.counts.flag++;
+    if(S.quiz==="flag"&&!D.active){S.counts.flag++;jrMark(T,"f")}
     if(S.quiz==="silhouette"&&!D.active)S.counts.sil=(S.counts.sil||0)+1;
-    if(S.quiz==="capital"&&!D.active)S.counts.capital++;
+    if(S.quiz==="capital"&&!D.active){S.counts.capital++;jrMark(T,"c")}
   }
   if(S.weak[T]===0)delete S.weak[T];
   if(D.active){D.marks.push(shown?"🟥":first?"🟩":S.tries<=2?"🟨":"🟧");D.idx++;if(D.idx>=D.ids.length&&D.t0!=null)D.tEnd=performance.now()-D.t0}
@@ -2376,6 +2422,7 @@ function speedGuess(id,ll,other){
   if(hitTest(id,ll,T)){
     R.times[T]=performance.now()-R.tTarget;R.found.add(T);R.queue.shift();R.streak++;R.cur=null;
     if(S.weak[T]&&R.times[T]<4000)S.weak[T]=Math.max(0,S.weak[T]-1);
+    if(R.variant==="flag")jrMark(T,"f");else if(R.variant==="capital")jrMark(T,"c");
     sndSpeedHit();musUpdate();updateProgress();
     swell($("sHint"),"");$("sCount").textContent=`${R.found.size} / ${R.total}`;
     const vw=vwOf(T);   // Race never moves the camera: only the player's own dragging does
@@ -2447,7 +2494,7 @@ function showCard(id,keepOpen){
   const img=$("cFlagImg"),src=typeof FLAGS!=="undefined"&&FLAGS[id];
   if(src){img.src=src;img.alt=`Flag of ${f.n}`;img.hidden=false;$("cFlag").hidden=true}
   else{img.hidden=true;img.removeAttribute("src");$("cFlag").hidden=false;$("cFlag").textContent=f.f}
-  $("cName").textContent=f.n;
+  $("cName").textContent=f.n;jrRow(id);
   $("cSub").textContent=[f.cap,f.s||f.r].filter(Boolean).join(" Â· ");
   $("cSwatch").style.background=`var(--c-${f.r})`;
   $("cWhere").textContent=f.s||f.r;
@@ -2607,7 +2654,8 @@ function renderLearn(id){
   if(!L){root.append(el("p",{},"No reading page for this country yet."));return}
   const fig=outlineFig(id);if(fig)root.append(fig);
   let i=0;
-  const sec=(title,...kids)=>{const s=el("section",{style:`--i:${i++}`},el("h3",{},el("span",{class:"dot"}),title),...kids);root.append(s);return s};
+  jrReset();
+  const sec=(title,...kids)=>{const s=el("section",{style:`--i:${i++}`},el("h3",{},el("span",{class:"dot"}),title),...kids);root.append(s);const jk=JR_SEC.find(x=>x[1]===title);if(jk)jrWatch(s,id,jk[0]);return s};
   const P=(k,t)=>blocks(id,k,t);
   if(L.o)sec("At a glance",P("o",L.o));
   const dl=el("dl",{class:"kv"});
@@ -2836,7 +2884,9 @@ function atlasPages(){
   const bar=el("div",{class:"bar",style:"width:100%;margin:2px 0 14px"});
   REGIONS.forEach(r=>{const n=playable.filter(f=>F.has(f.id)&&FACTS[f.id].r===r).length;bar.append(el("span",{style:`width:${n/tot*100}%;background:var(--c-${r})`}))});
   const dl=el("dl",{class:"kv"}),add=(k,v)=>dl.append(el("dt",{},k),el("dd",{},String(v)));
-  add("Country pages read",S.learned.size);
+  add("Countries studied",playable.filter(f=>jrLevel(f.id)>=2).length);
+  add("Countries mastered",playable.filter(f=>jrLevel(f.id)===3).length);
+  add("Country pages opened",S.learned.size);
   add("Flags recognised",S.counts.flag||0);
   add("Capitals recognised",S.counts.capital||0);
   add("Silhouettes named",S.counts.sil||0);
@@ -2850,10 +2900,10 @@ function atlasPages(){
   const R=[el("h3",{style:"margin-top:2px"},"Every country")];
   REGIONS.forEach(r=>{
     const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
-    const n=ids.filter(id=>F.has(id)).length,rd=ids.filter(id=>S.learned.has(id)).length;
+    const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
     R.push(el("details",{class:"adet"},
-      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${rd} read`)),
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(F.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n+(S.learned.has(id)?" \u2713":""))))));
+      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${st} studied \u00B7 ${ms}\u2605`)),
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))));
   });
   return [L,R];
 }
@@ -2872,7 +2922,7 @@ function expPages(){
   const R=[el("h2",{},sel.name),el("p",{style:"margin:4px 0 12px;color:var(--ink-soft);font-size:14.5px"},sel.blurb),
     el("h3",{style:"margin:0 0 6px"},n===ids.length?"Complete":`${n} of ${ids.length} places`),
     el("div",{class:"ebar",style:"margin:0 0 14px"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`})),
-    el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},(S.found.has(id)?"\u25CF ":"\u25CB ")+FACTS[id].n)))];
+    el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))];
   if(next)R.push(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn primary",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(next)}},"Visit the next place")));
   return [L,R];
 }
@@ -3585,6 +3635,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
   if(!shown){ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
   ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
+  if(!shown&&tag.slice(-2)==="|m"){ctx.globalAlpha=.9;ctx.strokeStyle="#C9A24B";ctx.lineWidth=rimW*1.5;ctx.stroke()}   // mastered: a thin gold rim
   ctx.restore();
 }
 function glEnsureArt(){if(glArt)return;glArt=glMakeCanvas(glTW,glTH);glArtCtx=glArt.getContext("2d");glUploadFull(glT.art,glArt)}   // the art texture must exist at full size before any sub-rect upload
@@ -3593,7 +3644,7 @@ function glDesired(){
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
     const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
-    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id));
+    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;
 }
@@ -3608,7 +3659,7 @@ function glDoSync(){
   if(glArtRun){glArtAgain=true;return}
   const want=glDesired();
   let full=false;const adds=[];
-  glArtState.forEach((v,id)=>{if(want.get(id)!==v)full=true});
+  glArtState.forEach((v,id)=>{if(want.get(id)!==v&&!(want.has(id)&&want.get(id).replace("|m","")===v.replace("|m","")))full=true});   // a country gaining its gold rim only needs a small redraw
   want.forEach((v,id)=>{if(glArtState.get(id)!==v)adds.push(id)});
   if(!full&&!adds.length)return;
   glEnsureArt()

@@ -295,17 +295,18 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* prompt */
 .prompt{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:2;text-align:center;width:min(560px,calc(100% - 32px));pointer-events:none}
-.prompt .ask{font-size:13px;color:var(--ink-soft);margin:0 0 7px}
+.prompt .ask{font-size:13px;color:var(--ink-soft);margin:0 0 2px}
 .prompt .target{font-family:var(--serif);font-size:clamp(34px,6vw,54px);line-height:1.05;margin:0;font-weight:400;letter-spacing:-.015em}
 .prompt .target.small{font-size:clamp(26px,4.4vw,38px)}
-.prompt .hint{margin:6px auto 0;font-size:13.5px;color:var(--ink-soft);min-height:1.45em;max-width:46ch}
-.tline{position:relative;display:inline-block;max-width:100%}
-.ghost{font:inherit;font-size:12px;line-height:1;color:var(--ink-faint);background:none;border:0;padding:3px 2px;opacity:.75;cursor:pointer;pointer-events:auto;text-shadow:var(--tsh);white-space:nowrap;transition:opacity .2s ease,color .2s ease}
-.ghost:hover{opacity:1;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px}
-.ghost[hidden]{display:none}
-.tline .ghost{position:absolute;left:100%;bottom:.5em;margin-left:10px}
+.prompt .hint{margin:3px auto 0;font-size:13.5px;color:var(--ink-soft);min-height:0;max-width:46ch}
+.prompt .hint:empty{display:none}
+.bench{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:0}
+.chip[hidden]{display:none}
+.fbtn{align-self:flex-end;margin-bottom:2px}
+.app.wander #showBtn,.app.speed #showBtn,.app:not(.speed) #restartBtn{display:none}
+.prompt .ask:empty{display:none}
 .prompt .actions{margin-top:4px;display:flex;gap:8px;justify-content:center;pointer-events:auto}
-.qflag{display:block;margin:2px auto 6px;width:clamp(110px,18vw,170px);max-height:112px;object-fit:contain;border-radius:4px;box-shadow:0 0 0 1px rgba(58,51,43,.2),0 10px 20px -10px var(--paper-shadow);transform:rotate(-1.5deg)}
+.qflag{display:block;margin:0 auto 4px;width:clamp(110px,18vw,170px);max-height:112px;object-fit:contain;border-radius:4px;box-shadow:0 0 0 1px rgba(58,51,43,.2),0 10px 20px -10px var(--paper-shadow);transform:rotate(-1.5deg)}
 .qflag[hidden]{display:none}
 .btn{padding:8px 16px;border-radius:999px;font-size:14px;font-weight:500;border:1px solid var(--panel-line);background:var(--panel);transition:transform .25s ease,box-shadow .25s ease}
 .btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px -8px var(--paper-shadow)}
@@ -574,6 +575,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 </head>
 <body class="introing">
 <div class="speedbg" aria-hidden="true"></div>
+<canvas class="bench" id="bench" aria-hidden="true"></canvas>
 <div class="intro" id="intro" role="dialog" aria-label="Welcome to Mapbloom">
   <div class="intro-stage">
     <h1 class="intro-word" aria-label="Mapbloom"><span class="guide" aria-hidden="true">Mapbloom</span><span class="ink" id="introInk" aria-hidden="true">Mapbloom</span></h1>
@@ -617,7 +619,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <p class="dclock" id="dClock" aria-live="off">0:00.0</p>
         <p class="ask" id="ask">Find</p>
         <img class="qflag" id="qFlag" alt="" hidden>
-        <div class="tline"><h2 class="target" id="target">…</h2><button class="ghost" id="showBtn">Show me</button></div>
+        <h2 class="target" id="target">…</h2>
         <p class="hint" id="hint"></p>
         <div class="actions">
           <button class="btn primary" id="nextBtn" hidden>Next place</button>
@@ -629,7 +631,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <img class="qflag" id="sFlag" alt="" hidden>
         <h2 class="target" id="sTarget"></h2>
         <p class="hint" id="sHint"></p>
-        <div class="actions"><button class="ghost" id="skipBtn">Skip · +10s</button></div>
+        <div class="actions"><button class="chip" id="skipBtn">Skip · +10s</button></div>
       </div>
     </div>
 
@@ -643,7 +645,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>
-        <div class="actions"><button class="ghost" id="silShow" type="button">Show me</button><button class="ghost" id="silSkip" type="button">Skip</button></div>
+        <div class="actions"><button class="chip" id="silShow" type="button">Reveal</button><button class="chip" id="silSkip" type="button">Skip</button></div>
       </div>
     </div>
 
@@ -679,6 +681,8 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="bar" id="bar"></div>
     </div>
     <div class="chips" role="group" aria-label="Turn the globe to a region" id="chips"></div>
+    <button class="chip fbtn" id="showBtn" type="button">Reveal</button>
+    <button class="chip fbtn" id="restartBtn" type="button" hidden>Restart</button>
   </footer>
 </div>
 <div class="modal" id="modal" aria-hidden="true"><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Mapbloom menu"></div></div>

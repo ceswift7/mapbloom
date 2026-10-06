@@ -163,13 +163,44 @@ function cvColors(){
   CV.tintEA=d3.interpolateRgb(CV.land,d3.interpolateRgb(CV.p.Europe,CV.p.Asia)(.5))(.4);
   CV.nopl=d3.interpolateRgb(CV.land,CV.seaIn)(.16);CV.hover=d3.interpolateRgb(CV.land,"#8a7b5a")(.08);
   if(GLX.colors)GLX.colors();
-  makePaperBg();
+  makePaperBg();benchSoon();
 }
 /* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
+const benchEl=document.getElementById("bench"),benchCtx=benchEl.getContext("2d");let benchTm=0;
+function benchSoon(){if(benchTm)return;benchTm=setTimeout(()=>{benchTm=0;benchDraw()},90)}
+/* the cartographer's bench: faint pencil arcs, a ruler edge, brush tests and a cup ring, plus a splatter of colour in the margins for every country you have found (drawn once, never per frame) */
+function benchDraw(){
+  const dpr=Math.min(1.25,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
+  if(benchEl.width!==Math.round(w*dpr)||benchEl.height!==Math.round(h*dpr)){benchEl.width=Math.round(w*dpr);benchEl.height=Math.round(h*dpr)}
+  const c=benchCtx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  if(S.mode==="speed"||!CV.p)return;
+  const dark=isDark(),gx=stageLeft+W/2,gy=stageTop+cy(),R0=baseScale*1.07,ink=dark?"235,225,205":"90,70,45";
+  c.lineCap="round";c.lineWidth=1;
+  c.strokeStyle=`rgba(${ink},${dark?.07:.09})`;
+  for(const k of[1.32,1.62]){c.beginPath();c.arc(gx,gy,R0*k,Math.PI*.1,Math.PI*.9);c.stroke();c.beginPath();c.arc(gx,gy,R0*k,Math.PI*1.1,Math.PI*1.9);c.stroke()}
+  c.beginPath();c.moveTo(0,gy);c.lineTo(w,gy);c.moveTo(gx,0);c.lineTo(gx,h);c.stroke();
+  c.strokeStyle=`rgba(${ink},${dark?.12:.15})`;   // ruler edge down the left side
+  for(let y=70;y<h-70;y+=10){c.beginPath();c.moveTo(0,y);c.lineTo(y%50===0?12:6,y);c.stroke()}
+  const tests=[["Africa",.1],["Europe",.2],["Asia",.3]];   // brush tests
+  tests.forEach(([r,o],i)=>{c.strokeStyle=d3.color(CV.p[r]).copy({opacity:dark?.28:.32}).formatRgb();c.lineWidth=7-i;c.beginPath();const bx=w-130,by=h*.62+i*16;c.moveTo(bx,by);c.bezierCurveTo(bx+30,by-8,bx+60,by+8,bx+100-i*14,by-2);c.stroke()});
+  c.lineWidth=2.5;c.strokeStyle=`rgba(${dark?"200,170,120":"120,80,40"},${dark?.06:.08})`;   // a cup ring
+  c.beginPath();c.arc(w*.09,h*.82,44,.2,5.9);c.stroke();c.lineWidth=1.2;c.beginPath();c.arc(w*.09+2,h*.82+1,45,.4,5.5);c.stroke();
+  [...S.found].forEach(id=>{
+    const f=FACTS[id];if(!f)return;const r=seeded("bench-"+id),col=d3.color(CV.p[f.r]);if(!col)return;
+    for(let t=0;t<14;t++){
+      const ang=r()*6.2832,dist=R0*(1.1+r()*1.4),px=gx+Math.cos(ang)*dist,py=gy+Math.sin(ang)*dist,sz=6+r()*9;
+      if(px<sz+4||px>w-sz-4||py<sz+4||py>h-sz-4)continue;
+      c.fillStyle=col.copy({opacity:dark?.5:.44}).formatRgb();c.beginPath();
+      for(let k=0;k<5;k++){const ox=px+(r()-.5)*sz*.9,oy=py+(r()-.5)*sz*.9,rr=sz*(.32+r()*.42);c.moveTo(ox+rr,oy);c.arc(ox,oy,rr,0,6.2832)}c.fill();
+      c.fillStyle=col.copy({opacity:dark?.4:.34}).formatRgb();c.beginPath();
+      for(let k=0;k<6;k++){const a2=r()*6.2832,d2=sz*(1.1+r()*1.2),rr=.8+r()*1.9;c.moveTo(px+Math.cos(a2)*d2+rr,py+Math.sin(a2)*d2);c.arc(px+Math.cos(a2)*d2,py+Math.sin(a2)*d2,rr,0,6.2832)}c.fill();
+      break}
+  });
+}
 function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
   const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.04:.07);
+  for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.09:.14);
     d[i*4]=lit?(dark?255:255):(dark?0:70);d[i*4+1]=lit?(dark?250:248):(dark?0:55);d[i*4+2]=lit?(dark?235:225):(dark?0:35);d[i*4+3]=Math.round(a*255)}
   x.putImageData(im,0,0);
   document.documentElement.style.setProperty("--paper-img",`url(${c.toDataURL("image/png")})`);
@@ -178,6 +209,7 @@ function cvResize(){
   cvDpr=Math.max(1,Math.min(1.5,window.devicePixelRatio||1)*cvQ);
   const w=innerWidth,h=innerHeight;
   if(GLX.resize)GLX.resize();
+  benchSoon();
   cv.width=Math.round(w*cvDpr);cv.height=Math.round(h*cvDpr);cv.style.width=w+"px";cv.style.height=h+"px";cv.style.top=(-stageTop)+"px";cv.style.left=(-stageLeft)+"px";
 }
 function cvMiss(id,on){
@@ -304,7 +336,7 @@ function size(){
   else{const fp=document.querySelector(S.mode==="speed"?".speed-prompt":".find-prompt").getBoundingClientRect();
   promptBottom=Math.max(70,fp.bottom-r.top+(mobile?4:6))}
   const avail=H-promptBottom-8;
-  baseScale=Math.max(110,Math.min(W*(mobile?.49:.45), avail*.49));
+  baseScale=Math.max(110,Math.min(W*(mobile?.49:.45),H*.45));   // the same size in every mode
   svg.attr("viewBox",`0 0 ${W} ${H}`);
   if(CANVAS)cvResize();
   cyVal=layoutCy();
@@ -313,10 +345,8 @@ function size(){
   render(true);
 }
 let cyVal=0,promptBottom=0;
-function layoutCy(){
-  const mob=W<720;let bottom=H-6;
-  if(mob&&document.getElementById("card").classList.contains("on"))bottom=H-document.getElementById("card").offsetHeight-14;
-  return Math.max(promptBottom+40,(promptBottom+bottom)/2);
+function layoutCy(){   // the globe sits dead centre of the stage in every mode, whatever floats over it
+  return H/2;
 }
 function cy(){return cyVal}
 function relayout(){
@@ -416,7 +446,7 @@ function paintSel(sel,landG,paintG){
   });
 }
 let artBudget=0,paintMore=false;
-function paint(){artBudget=14;paintMore=false;if(CANVAS){if(GLX.hasGL&&GLX.paint)GLX.paint();requestRender()}else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
+function paint(){benchSoon();artBudget=14;paintMore=false;if(CANVAS){if(GLX.hasGL&&GLX.paint)GLX.paint();requestRender()}else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
 function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(null)}
 /* ======================================================================
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
@@ -1138,7 +1168,7 @@ function showPrompt(id){
   img.hidden=q!=="flag";tg.classList.toggle("small",q!=="country");
   if(q==="flag"){img.src=FLAGS[id]||"";img.alt="A flag to identify";$("ask").textContent="Find the country with this flag";swell(tg,"Whose flag is this?")}
   else if(q==="capital"){$("ask").textContent="Find the country whose capital is";swell(tg,f.cap)}
-  else{$("ask").textContent="Find";swell(tg,f.n)}
+  else{$("ask").textContent="";swell(tg,f.n)}
 }
 function nextRound(){
   clearAuto();
@@ -1275,7 +1305,7 @@ function idleView(){
   clearAuto();
   S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
   hideCard();clearMissed();$("dClock").classList.remove("on");$("qFlag").hidden=true;$("target").classList.remove("small");
-  $("ask").textContent="Quiz";swell($("target"),"Ready?");swell($("hint"),"Choose how you would like to play.");
+  $("ask").textContent="";swell($("target"),"Ready?");swell($("hint"),"Choose how you would like to play.");
   $("showBtn").hidden=true;$("nextBtn").hidden=false;$("nextBtn").textContent="Choose a game";
   if(typeof silHide==="function")silHide();
   updateProgress();
@@ -1353,11 +1383,12 @@ const REGION_VIEW={World:[15,20],Africa:[18,3],Americas:[-75,8],Asia:[95,30],Eur
 const REGION_ZOOM={World:1,Africa:1.35,Americas:1.1,Asia:1.2,Europe:2.4,Oceania:1.5};
 function syncSpeedUI(){
   const b=$("skipBtn"),ph=R.phase;
-  b.className=ph==="run"?"ghost":"btn"+(ph!=="count"?" primary":"");
+  b.className=ph==="run"?"chip":"btn"+(ph!=="count"?" primary":"");
+  $("restartBtn").hidden=!(ph==="run"||ph==="count"||ph==="done");
   b.textContent=ph==="run"?"Skip · +10s":ph==="done"?"Race again":ph==="count"?"Get ready…":"Start race";
   b.disabled=ph==="count";
   $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
-  if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="Find";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
+  if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
 }
 function speedEnter(){
   R.phase="idle";R.found=new Set();R.pen=0;
@@ -1417,7 +1448,7 @@ function speedNext(){
     $("sFlag").hidden=v!=="flag";$("sTarget").classList.toggle("small",v!=="country");
     if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
     else if(v==="capital"){$("sAsk").textContent="Find the country whose capital is";swell($("sTarget"),ff.cap)}
-    else{$("sAsk").textContent="Find";swell($("sTarget"),ff.n)}}
+    else{$("sAsk").textContent="";swell($("sTarget"),ff.n)}}
   requestAnimationFrame(()=>{const st=$("stage").getBoundingClientRect(),fp=document.querySelector(".speed-prompt").getBoundingClientRect();if(fp.bottom-st.top+(W<720?4:10)>promptBottom+6)size()});   // a taller prompt (flag/capital, small screens) must never sit over the globe
   $("sCount").textContent=`${R.found.size} / ${R.total}`;
 }
@@ -1859,6 +1890,7 @@ function raceRecordsBlock(cur,cv){
 /* ---------- mode switching & buttons ---------- */
 $("showBtn").onclick=()=>{if(!S.done)success(true)};
 $("nextBtn").onclick=()=>{sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
   else if(R.phase==="done"||R.phase==="idle")speedEnter();

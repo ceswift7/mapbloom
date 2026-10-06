@@ -74,6 +74,7 @@ uniform vec3 uSeaOut;
 uniform vec4 uGrat;
 uniform vec4 uBorder;
 uniform vec4 uEdge;
+uniform sampler2D uGrain;
 uniform float uPA;
 uniform float uFade;
 uniform sampler2D uPLand;
@@ -156,13 +157,11 @@ void main(){
   vec4 B=B2*bm;
   col=B.rgb+col*(1.0-B.a);
   col=mix(col,brc,bring*B2.a*0.38);       // the darker pigment line that bleeds along the front of the wash
-  {   // paper grain wrapped around the globe: it is fixed to the map, so it turns with the earth (periodic around the equator: no seam)
-    float cpp=1.0/(uS*max(z,0.2));                       // radians per screen pixel
-    float k1=clamp(1.0-cpp*420.0*0.9,0.0,1.0),k2=clamp(1.0-cpp*1300.0*0.9,0.0,1.0);
-    vec2 g2=vec2(lon,lat);
-    float sh=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5;   // where the map grain is finer than a pixel, a pixel-fine grain takes over
-    float gr=(vnp(g2*420.0,2639.0)-0.5)*k1*0.45+(vnp(g2*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.4+sh*(1.0-k2)*0.55;
-    col*=1.0+gr*0.22;
+  {   // a separate paper-grain plane wrapped around the earth: it is fixed to the map, so it turns with every drag (mip-mapped: never aliases)
+    float cpp=1.0/(uS*max(z,0.2));
+    float k2=clamp(1.0-cpp*1300.0*0.9,0.0,1.0);
+    float gr=(textureGrad(uGrain,uv,gx,gy).r-0.5)*0.9+(vnp(vec2(lon,lat)*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.45;
+    col*=1.0+gr*0.26;
   }
   col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line
   oC=vec4(col*cov,cov);
@@ -225,10 +224,19 @@ function glInitGL(){
   GLc.bindAttribLocation(p,0,"aC");GLc.linkProgram(p);
   if(!GLc.getProgramParameter(p,GLc.LINK_STATUS))throw new Error(GLc.getProgramInfoLog(p));
   glProg=p;
-  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uEdge","uPA","uFade","uLand","uArt","uArt2","uPLand","uPArt","uPOn","uP","uDrop","uDropC"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
+  ["uRes","uView","uRot","uS","uSeaIn","uSeaMid","uSeaOut","uGrat","uBorder","uEdge","uGrain","uPA","uFade","uLand","uArt","uArt2","uPLand","uPArt","uPOn","uP","uDrop","uDropC"].forEach(n=>glU[n]=GLc.getUniformLocation(p,n));
   const vao=GLc.createVertexArray();glVao=vao;GLc.bindVertexArray(vao);
   const b=GLc.createBuffer();GLc.bindBuffer(GLc.ARRAY_BUFFER,b);GLc.bufferData(GLc.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),GLc.STATIC_DRAW);
   GLc.enableVertexAttribArray(0);GLc.vertexAttribPointer(0,2,GLc.FLOAT,false,0,0);
+  {   // the grain plane: white noise baked once, wrapped around the sphere by the shader
+    const GW=isTouch?2048:4096,GH=GW/2,data=new Uint8Array(GW*GH);let x=2463534242;
+    for(let i=0;i<data.length;i++){x^=x<<13;x^=x>>>17;x^=x<<5;data[i]=x&255}
+    const t=GLc.createTexture();GLc.bindTexture(GLc.TEXTURE_2D,t);
+    GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.CLAMP_TO_EDGE);
+    GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR_MIPMAP_LINEAR);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MAG_FILTER,GLc.LINEAR);
+    GLc.pixelStorei(GLc.UNPACK_ALIGNMENT,1);GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.R8,GW,GH,0,GLc.RED,GLc.UNSIGNED_BYTE,data);GLc.generateMipmap(GLc.TEXTURE_2D);
+    GLc.pixelStorei(GLc.UNPACK_ALIGNMENT,4);glT.grain=t;
+  }
   glT.land=glTexNew(1,1);glT.art=glTexNew(1,1);glT.art2=glTexNew(1,1);
   GP.tex={land:glTexNew(1,1),art:glTexNew(1,1)};
   GLc.disable(GLc.DEPTH_TEST);GLc.disable(GLc.BLEND);
@@ -546,6 +554,7 @@ GLX.draw=function(s,cen0){
   GLc.uniform1f(glU.uPOn,pf);
   if(usePatch){GLc.uniform4f(glU.uP,pl.lon0,pl.lat0,pl.lonSpan,pl.latSpan);if(pf<1)requestRender()}
   GLc.activeTexture(GLc.TEXTURE0);GLc.bindTexture(GLc.TEXTURE_2D,glT.land);GLc.uniform1i(glU.uLand,0);
+  GLc.activeTexture(GLc.TEXTURE1);GLc.bindTexture(GLc.TEXTURE_2D,glT.grain);GLc.uniform1i(glU.uGrain,1);
   GLc.activeTexture(GLc.TEXTURE2);GLc.bindTexture(GLc.TEXTURE_2D,glT.art);GLc.uniform1i(glU.uArt,2);
   GLc.activeTexture(GLc.TEXTURE3);GLc.bindTexture(GLc.TEXTURE_2D,glT.art2);GLc.uniform1i(glU.uArt2,3);
   GLc.activeTexture(GLc.TEXTURE4);GLc.bindTexture(GLc.TEXTURE_2D,GP.tex.land);GLc.uniform1i(glU.uPLand,4);

@@ -478,6 +478,14 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .jrbtn.m .ar{stroke:#C9A24B}.jrbtn.m .st{fill:#C9A24B;opacity:1}
 .jrbtn:hover span{color:var(--ink)}
 .sback{margin:-4px 0 10px;font-size:12.5px}
+.rdbtn{position:absolute;right:58px;top:14px;z-index:2}
+.modal .sheet{transition:transform .5s cubic-bezier(.2,.8,.2,1),margin .35s ease}
+@media (min-width:1000px){.modal.rd .sheet{margin-right:calc(min(420px,34vw) + 32px)}}
+.rdwin{position:fixed;z-index:46;top:64px;right:16px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--panel-line);border-radius:18px;box-shadow:0 24px 60px -20px var(--paper-shadow),0 0 0 1px rgba(0,0,0,.04)}
+.rdhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--panel-line)}
+.rdhead img{width:30px;height:20px;object-fit:cover;border-radius:3px}
+.rdhead b{font-family:var(--serif);font-weight:500;font-size:20px;flex:1}
+.rdbody{overflow:auto;padding:4px 18px 18px;margin:0}
 .exrev{margin:8px 0 4px;display:grid;gap:6px}.exr{margin:0;padding:8px 12px;border-radius:12px;background:var(--panel);font-size:13.5px;color:var(--ink-soft);border:1px solid var(--panel-line)}.exr.ok{opacity:.75}.exr b{color:var(--ink);font-weight:500}
 .mtree{width:100%;max-width:390px;margin:6px auto 0;display:block}
 .mtree .tl{fill:none;stroke:var(--panel-line);stroke-width:2.2;stroke-linecap:round}
@@ -3198,14 +3206,14 @@ function outlineFig(id){
     cap.textContent="Outline of "+f.n;
   };
   draw(topo10);
-  if(!topo10)load10().then(t=>{if(t&&fig.isConnected&&cardId===id)draw(t)});
+  if(!topo10)load10().then(t=>{if(t&&fig.isConnected&&(cardId===id||fig.dataset.rd))draw(t)});
   return fig;
 }
-function renderLearn(id){
-  const L=LEARN[id],f=FACTS[id],root=$("learn");root.innerHTML="";
+function renderLearn(id,rootArg,nav){
+  const L=LEARN[id],f=FACTS[id],root=rootArg||$("learn");root.innerHTML="";
   root.style.setProperty("--p",`var(--c-${f.r})`);
   if(!L){root.append(el("p",{},"No reading page for this country yet."));return}
-  const fig=outlineFig(id);if(fig)root.append(fig);
+  const fig=outlineFig(id);if(fig){if(rootArg)fig.dataset.rd="1";root.append(fig)}
   let i=0;
   jrReset();
   const sec=(title,...kids)=>{const s=el("section",{style:`--i:${i++}`},el("h3",{},el("span",{class:"dot"}),title),...kids);root.append(s);const jk=JR_SEC.find(x=>x[1]===title);if(jk)jrWatch(s,id,jk[0]);return s};
@@ -3225,7 +3233,7 @@ function renderLearn(id){
   if(L.n)sec("Where the name comes from",P("n",L.n));
   sec("Did you know",el("ul",{},funFacts(id).map(t=>el("li",{},t))));
   const nb=el("div",{class:"nchips"});
-  f.b.forEach(nm=>{const nid=nameId[nm];nb.append(nid?el("button",{onclick:()=>{sndTick();showCard(nid,true);flyTo(LL(nid),1100,Math.max(zoomK,FACTS[nid].a<30000?2.4:1.3))}},nm):el("span",{},nm))});
+  f.b.forEach(nm=>{const nid=nameId[nm];nb.append(nid?el("button",{onclick:()=>{sndTick();if(nav){nav(nid);return}showCard(nid,true);flyTo(LL(nid),1100,Math.max(zoomK,FACTS[nid].a<30000?2.4:1.3))}},nm):el("span",{},nm))});
   if(f.b.length)sec("Neighbours",nb);
   root.append(el("p",{class:"attrib"},"Text adapted from the Wikipedia article “"+L.t+"” (",el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(L.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},"read the full article"),"), licensed CC BY-SA 4.0."+(fd&&fd.x?" Food text from the Wikipedia article \u201C":" Flags from flagcdn.com."),fd&&fd.x?el("a",{href:"https://en.wikipedia.org/wiki/"+encodeURIComponent(fd.t.replace(/ /g,"_")),target:"_blank",rel:"noopener"},fd.t):"",fd&&fd.x?"\u201D, same licence. Flags from flagcdn.com.":""));
 }
@@ -3385,7 +3393,19 @@ function toast(ic,title,text,ms=3800,onClick){
 const modal=$("modal");let modalTrap=false;
 function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:()=>{if(S.mode==="speed"&&R.phase==="idle"){closeModal()}else closeModal()}},"✕")}
 function openModal(book){$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
-function closeModal(){modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
+/* ---- the reading window: the country's pages beside the mastery path, closed whenever a quiz or exam starts so answers stay from memory ---- */
+let rdWin=null;
+function closeReader(){modal.classList.remove("rd");if(rdWin){rdWin.remove();rdWin=null;jrReset()}}
+function openReader(id){
+  closeReader();
+  const f=FACTS[id],body=el("div",{class:"learn rdbody"}),win=el("aside",{class:"rdwin",role:"dialog","aria-label":"Read about "+f.n},
+    el("div",{class:"rdhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("b",{},f.n),el("button",{class:"icon-btn rdx","aria-label":"Close the pages",onclick:()=>{sndTick();closeReader()}},"✕")),body);
+  document.body.append(win);rdWin=win;modal.classList.add("rd");   // wide screens: the sheet slides left to make room beside the window
+  renderLearn(id,body,nid=>{openReader(nid)});
+  win.animate([{opacity:0,transform:"translateY(10px) scale(.98)"},{opacity:1,transform:"none"}],{duration:reduced?1:260,easing:"ease-out"});
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rdWin){e.stopPropagation();closeReader()}},true);
+function closeModal(){closeReader();modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
 const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
@@ -3697,11 +3717,13 @@ function qFlag(id,attempt){
 let mq=null,mqFrom=null,mqAttempt=0;
 const mTitle={cap:"capital",flg:"flag"};
 function mqStartExam(id,key){
+  closeReader();
   const f=FACTS[id],qs=qExam(id,key);
   if(qs.length<3){toast("\u{1F4D8}","Not enough material","This page has no exam yet.",2600);return}
   mq={id,key,qs,i:0,right:0,exam:true,rev:[],title:f.n+": "+Q_NAMES[key]+", the exam"};showQ();
 }
 function mqStart(id,key){
+  closeReader();
   const f=FACTS[id];let qs;
   if(key==="cap")qs=qCapital(id,++mqAttempt);else if(key==="flg")qs=qFlag(id,++mqAttempt);else qs=qBuild(id,key,++mqAttempt);
   if(!qs.length){toast("\u{1F4D8}","Not enough material","This page cannot be quizzed yet.",2600);return}
@@ -3738,6 +3760,7 @@ function mTree(id,j,secs){
 function renderMastery(id,from){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
+  sh.append(el("button",{class:"chip rdbtn",title:"Read the pages on "+f.n,onclick:()=>{sndTick();rdWin?closeReader():openReader(id)}},"\u{1F4D6} Read"));
   if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}},"\u2039 Back"));
   sh.append(el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))));
   const tree=mTree(id,j,secs);

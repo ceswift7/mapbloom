@@ -478,6 +478,14 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .jrbtn.m .ar{stroke:#C9A24B}.jrbtn.m .st{fill:#C9A24B;opacity:1}
 .jrbtn:hover span{color:var(--ink)}
 .sback{margin:-4px 0 10px;font-size:12.5px}
+.rdbtn{position:absolute;right:58px;top:14px;z-index:2}
+.modal .sheet{transition:transform .5s cubic-bezier(.2,.8,.2,1),margin .35s ease}
+@media (min-width:1000px){.modal.rd .sheet{margin-right:calc(min(420px,34vw) + 32px)}}
+.rdwin{position:fixed;z-index:46;top:64px;right:16px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--panel-line);border-radius:18px;box-shadow:0 24px 60px -20px var(--paper-shadow),0 0 0 1px rgba(0,0,0,.04)}
+.rdhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--panel-line)}
+.rdhead img{width:30px;height:20px;object-fit:cover;border-radius:3px}
+.rdhead b{font-family:var(--serif);font-weight:500;font-size:20px;flex:1}
+.rdbody{overflow:auto;padding:4px 18px 18px;margin:0}
 .exrev{margin:8px 0 4px;display:grid;gap:6px}.exr{margin:0;padding:8px 12px;border-radius:12px;background:var(--panel);font-size:13.5px;color:var(--ink-soft);border:1px solid var(--panel-line)}.exr.ok{opacity:.75}.exr b{color:var(--ink);font-weight:500}
 .mtree{width:100%;max-width:390px;margin:6px auto 0;display:block}
 .mtree .tl{fill:none;stroke:var(--panel-line);stroke-width:2.2;stroke-linecap:round}

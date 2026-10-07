@@ -321,6 +321,11 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
 .icon-btn,.chip,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .icon-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--panel-line);color:var(--ink-soft);transition:transform .25s ease}
 .icon-btn:hover{transform:scale(1.06)}
+#themeBtn{position:relative}
+#themeBtn.tswap svg{animation:tsSpin .86s cubic-bezier(.4,0,.3,1)}
+#themeBtn.tswap::after{content:"";position:absolute;inset:-1px;border-radius:50%;pointer-events:none;animation:tsRing .86s ease-out}
+@keyframes tsSpin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(200deg) scale(.5)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes tsRing{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ink) 35%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
 .icon-btn svg{width:17px;height:17px}
 button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
@@ -3388,7 +3393,8 @@ function guardRace(){if(raceBusy()){toast("*","Race in progress","The clock does
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
 
 $("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
-function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
+let themeSwapping=false;
+function syncThemeBtn(force){if(themeSwapping&&!force)return;const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
 /* ---- the day/night switch: a wash of the new theme spreads out from the button, the theme changes underneath it while it covers the screen,
    and it lifts once the new globe, paper and background are all ready, so the switch never shows half-redrawn layers ---- */
@@ -3404,6 +3410,10 @@ function themeAnimate(k,srcEl,after){
   const N=150,seedR=(()=>{const a=[];for(let i=0;i<N;i++)a.push(.72+Math.random()*.6);for(let p=0;p<14;p++)for(let i=0;i<N;i++)a[i]=(a[(i+N-1)%N]+a[i]*2+a[(i+1)%N])/4;const m=Math.min(...a),M=Math.max(...a);return a.map(v=>.5+(v-m)/(M-m||1)*.9)})();
   const poly=t=>{const pr=1-Math.pow(1-t,1.8),lf=Math.pow(Math.max(0,(t-.6)/.4),1.6);const out=[];for(let i=0;i<N;i++){const ang=i/N*6.2832,rr=R*(Math.pow(pr,1/seedR[i])*seedR[i]*.82)+R*.62*lf;out.push(`${(x+Math.cos(ang)*rr).toFixed(1)}px ${(y+Math.sin(ang)*rr).toFixed(1)}px`)}return `polygon(${out.join(",")})`};
   const frames=[];for(let k=0;k<=12;k++){const t=k/12;frames.push({clipPath:poly(t),offset:t})}
+  // the button itself plays along for exactly as long as the reveal: it spins, the sun and moon swap at the halfway point, and a ring pulses out
+  const tb=$("themeBtn"),TD=860;themeSwapping=true;tb.classList.remove("tswap");void tb.offsetWidth;tb.classList.add("tswap");
+  setTimeout(()=>syncThemeBtn(true),TD/2);
+  setTimeout(()=>{themeSwapping=false;tb.classList.remove("tswap");syncThemeBtn(true)},TD+40);
   const vt=document.startViewTransition(async()=>{
     apply();
     await new Promise(res=>setTimeout(res,140));   // the new screen is captured live, so the globe finishes recolouring while the reveal is already spreading

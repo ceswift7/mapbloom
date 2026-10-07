@@ -636,7 +636,11 @@ details.fold[open]>summary::after{content:"\2013"}
 .silform input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 14px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);outline:none;cursor:text !important;-webkit-user-select:text;user-select:text}
 .silform input:focus{border-color:var(--mode-acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--mode-acc) 25%,transparent)}
 .silform.shake{animation:shk .45s ease}
-.sil.nameit{place-items:end center;padding:0 12px 104px}
+.sil.nameit{position:fixed;inset:auto 0 0 0;display:grid;place-items:end center;padding:0 12px 14px;z-index:6}
+.sil.nameit[hidden]{display:none}
+.app.nameit #ask,.app.nameit #target,.app.nameit #sAsk,.app.nameit #sTarget,.app.nameit #qFlag,.app.nameit #sFlag{display:none}
+@media (min-width:900px){.app.nameit .prompt{bottom:150px}}
+@media (max-width:899px){.sil.nameit{padding-bottom:104px}}
 .sil.nameit .silcard{padding:10px 16px 12px;width:min(94%,430px)}
 .sil.nameit .silq{font-size:20px;margin:0 0 2px}
 .nb .country{stroke:none}
@@ -4004,11 +4008,11 @@ function silDraw(id){
   const sv=d3.select("#silSvg");sv.selectAll("*").remove();
   sv.append("path").attr("d",d3.geoPath(proj)(feat));
 }
-function silHide(){silOn=false;nmOn=false;hlSet(null);const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
+function silHide(){silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
 /* ---- NAME IT: the country glows on the visible globe and you type its name (Quiz and Race) ---- */
 function nameFly(id){const a=FACTS[id].a,k=a<2500?7:a<9000?5.5:a<30000?4:a<150000?2.8:a<600000?1.9:a<3e6?1.35:1;stopDrift();flyTo(LL(id),1100,Math.max(k,Math.min(zoomK,2.2)))}
 function nameBegin(id,race){
-  silOn=false;nmOn=true;nmMiss=0;hideCard();
+  silOn=false;nmOn=true;nmMiss=0;hideCard();$("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit");$("silSvg").style.display="none";
   $("silQ").textContent="Which country is glowing?";$("silIn").value="";$("silSug").innerHTML="";
   $("silHint").textContent=race?"":(D.active?`Daily ${D.idx+1} of ${D.ids.length}`:"");
@@ -4017,7 +4021,7 @@ function nameBegin(id,race){
   setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
 }
 function nameFinish(shown){
-  if(!nmOn)return;nmOn=false;hlSet(null);
+  if(!nmOn)return;nmOn=false;hlSet(null);$("app").classList.remove("nameit");
   const e=$("sil");e.classList.add("out");setTimeout(()=>{e.hidden=true;e.classList.remove("out","nameit");$("silSvg").style.display=""},420);
   success(shown);
 }

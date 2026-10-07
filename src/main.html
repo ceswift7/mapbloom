@@ -2924,11 +2924,11 @@ function silDraw(id){
   const sv=d3.select("#silSvg");sv.selectAll("*").remove();
   sv.append("path").attr("d",d3.geoPath(proj)(feat));
 }
-function silHide(){silOn=false;nmOn=false;hlSet(null);const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
+function silHide(){silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
 /* ---- NAME IT: the country glows on the visible globe and you type its name (Quiz and Race) ---- */
 function nameFly(id){const a=FACTS[id].a,k=a<2500?7:a<9000?5.5:a<30000?4:a<150000?2.8:a<600000?1.9:a<3e6?1.35:1;stopDrift();flyTo(LL(id),1100,Math.max(k,Math.min(zoomK,2.2)))}
 function nameBegin(id,race){
-  silOn=false;nmOn=true;nmMiss=0;hideCard();
+  silOn=false;nmOn=true;nmMiss=0;hideCard();$("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit");$("silSvg").style.display="none";
   $("silQ").textContent="Which country is glowing?";$("silIn").value="";$("silSug").innerHTML="";
   $("silHint").textContent=race?"":(D.active?`Daily ${D.idx+1} of ${D.ids.length}`:"");
@@ -2937,7 +2937,7 @@ function nameBegin(id,race){
   setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
 }
 function nameFinish(shown){
-  if(!nmOn)return;nmOn=false;hlSet(null);
+  if(!nmOn)return;nmOn=false;hlSet(null);$("app").classList.remove("nameit");
   const e=$("sil");e.classList.add("out");setTimeout(()=>{e.hidden=true;e.classList.remove("out","nameit");$("silSvg").style.display=""},420);
   success(shown);
 }

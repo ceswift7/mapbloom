@@ -190,12 +190,13 @@ body.introing{--gr:0px}   /* no thinned-grain hole over the globe while the open
 .intro-hint{margin:26px 0 0;font:15px var(--sans);letter-spacing:.02em;color:var(--ink-faint);opacity:0;transition:opacity .9s ease .3s}
 .intro-hint.on{opacity:1}
 .intro{cursor:pointer}
-.intro-drop{position:fixed;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50% 0 50% 50%;background:var(--c-Europe);box-shadow:inset 0 0 0 1px var(--c-Europe-d);opacity:0;pointer-events:none;z-index:2}
+.intro-drop{position:fixed;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--c-Europe);box-shadow:inset 0 0 0 1px var(--c-Europe-d);opacity:0;pointer-events:none;z-index:2}
 .intro-ring{position:fixed;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--c-Europe-d);opacity:0;pointer-events:none;transform:translate(-50%,-50%);z-index:2}
 .intro-ring.go{animation:introRing 1.7s ease-out}
 .intro-ring.r2{border-width:3px}.intro-ring.r2.go{animation:introRing 2s ease-out .12s both}
 .intro-spl{position:fixed;border-radius:50%;pointer-events:none;z-index:2;opacity:0}
-.intro-word .il{display:inline-block;transform-origin:50% 80%}
+.intro-word .il{display:inline-block;transform-origin:50% 80%;padding:.22em .14em;margin:-.22em -.14em}
+.intro-word .gl{display:inline-block;transition:opacity .45s ease}
 .intro-word .il.hit{animation:ilpop .75s cubic-bezier(.2,1.5,.4,1)}
 @keyframes ilpop{0%{transform:translateY(-6px) scale(.94,1.08)}35%{transform:translateY(3px) scale(1.1,.9)}65%{transform:translateY(-2px) scale(.98,1.03)}100%{transform:none}}
 .intro-word .il.shine{animation:ilshine 1.1s ease-in-out both}
@@ -3949,6 +3950,8 @@ function introPlay(){
   // eight drops, one per letter, each a different watercolour of the game palette in rainbow order, landing in a shuffled, staggered order
   const ink=$("introInk"),RB=[["#E0675A","#F4A08E"],["#E9984E","#F4C592"],["#DDB445","#F3DB93"],["#5FAE86","#A5D8BA"],["#4FB0AE","#A0DAD4"],["#5E8FDB","#ABC8F2"],["#7B7BD0","#B8B6EE"],["#B27BCF","#E0BFEE"]];
   ink.textContent="";
+  const guide=document.querySelector(".intro-word .guide"),guides=[];   // the faint grey word is split too, so each grey letter melts away as its colour arrives
+  if(guide){guide.textContent="";"Mapbloom".split("").forEach(ch=>{const g=document.createElement("span");g.className="gl";g.textContent=ch;guide.append(g);guides.push(g)})}
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
   const order=shuffle([0,1,2,3,4,5,6,7],Math.random),pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
   order.forEach((li,n)=>{
@@ -3957,18 +3960,18 @@ function introPlay(){
       if(introState!=="run")return;
       const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2),H0=240+Math.random()*180;
       const drop=document.createElement("i"),ring=document.createElement("i"),ring2=document.createElement("i");drop.className="intro-drop";ring.className="intro-ring";ring2.className="intro-ring r2";
-      drop.style.background=`radial-gradient(circle at 35% 30%,#fff8,transparent 45%),${RB[li][0]}`;ring.style.borderColor=RB[li][0];ring2.style.borderColor=RB[li][1];
+      drop.style.background=RB[li][0];ring.style.borderColor=RB[li][0];ring2.style.borderColor=RB[li][1];
       introEl.append(drop,ring,ring2);drop.style.opacity=1;
       const t0=performance.now(),FALL2=360+H0*.35;
       const tm=d3.timer(()=>{
         const k=Math.min(1,(performance.now()-t0)/FALL2),e=k*k*(.35+.65*k);
-        drop.style.transform=`translate(${dx}px,${dy-(1-e)*H0}px) rotate(-45deg) scale(${(1-k*.15).toFixed(3)},${(1+k*.5).toFixed(3)})`;
+        drop.style.transform=`translate(${dx}px,${dy-(1-e)*H0}px)`;
         if(k>=1){tm.stop();drop.remove();impact()}
       });      function impact(){
         if(introState!=="run")return;
         audioReady(()=>{sndIntroDrop(262*pent[n]);if(n===0)sndBloom(false)});
         ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);
-        L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");
+        L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");if(guides[li])guides[li].style.opacity=0;
         for(let q=0;q<9;q++){   // splatter: little droplets thrown up and out that fall back under gravity
           const sp=document.createElement("i");sp.className="intro-spl";const sz=3+Math.random()*6;sp.style.cssText=`width:${sz}px;height:${sz}px;left:${dx}px;top:${dy}px;background:${RB[li][q%2?0:1]}`;introEl.append(sp);
           const ang=-Math.PI/2+(Math.random()-.5)*2.6,dist=26+Math.random()*60,vx=Math.cos(ang)*dist,vy=Math.sin(ang)*dist;

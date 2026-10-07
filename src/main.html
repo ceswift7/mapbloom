@@ -150,7 +150,7 @@ function jrMark(id,type,key){
   save();
   const after=jrLevel(id);
   if($("card").classList.contains("on")&&cardId===id)jrRow(id);
-  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and a perfect score on every page quiz.":"Every page of its journal has been read.",3800);
+  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and every star earned.":"Every page of its journal has been read.",3800);
   if(after!==before)paint();
 }
 function jrRow(id){
@@ -1562,7 +1562,7 @@ function beginFree(){
   let rp=regionPool().filter(id=>S.quiz!=="capital"||FACTS[id].cap);
   const fresh=S.undisc?new Set(rp.filter(id=>!S.found.has(id))):null;
   if(fresh){
-    if(!fresh.size){toast(String.fromCodePoint(0x2728),"Nothing left to discover","You have painted every country here. Turn off the undiscovered option to keep practising.",4200);quizIdle();return}
+    if(!fresh.size){toast(String.fromCodePoint(0x2728),"Nothing left to discover","You have painted every country here. Turn off Undiscovered only to keep playing.",4200);quizIdle();return}
     rp=rp.filter(id=>fresh.has(id));
   }
   Object.assign(RD,{active:true,fresh,n:S.rlen?Math.min(S.rlen,rp.length):rp.length,done:0,first:0,miss:[],ids:new Set(),t0:performance.now()});
@@ -1591,18 +1591,18 @@ function showQuizSheet(){
   [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"],["silhouette","Silhouette"]].forEach(([k,l])=>q.append(el("button",{class:"chip","aria-pressed":String(S.quiz===k),onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}},l)));
   const rc=el("div",{class:"row",style:"margin:0"});
   ALLR.forEach(r=>rc.append(el("button",{class:"chip","aria-pressed":String(S.region===r),onclick:()=>{S.region=r;syncChips();updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{});showQuizSheet()}},r==="World"?"Earth":r)));
-  const how={country:"You are given a name and tap that country on the globe.",flag:"You are shown a flag and tap its country.",capital:"You are given a capital city and tap its country.",name:"A country glows on the globe and you type its name.",silhouette:"Only a shape is shown, with the globe hidden. Type its name."}[S.quiz];
+  const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
     step(1,"What to find",how,q),
-    step(2,"Where",S.region==="United States"?"The 50 states, on their own map. Flag and silhouette styles are not available for states, so Locate is used.":S.region==="World"?"Any country in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
-    step(3,"Round","A round starts on a blank map, so painted land never gives the answer away. Your lifetime map is kept.",(()=>{const w=el("div",{class:"row",style:"margin:0"});[[10,"10 countries"],[20,"20 countries"],[0,"Whole region"]].forEach(([n,l])=>w.append(el("button",{class:"chip","aria-pressed":String(S.rlen===n),onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}},l)));return w})()),
-    step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Only ask about countries you have not painted yet.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
+    step(2,"Where",S.region==="United States"?"The 50 states on their own map. Flag and Silhouette are not available, so Locate is used.":S.region==="World"?"Anywhere in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
+    step(3,"Round","Each round starts on a blank map. Your saved map is kept.",(()=>{const w=el("div",{class:"row",style:"margin:0"});[[10,"10 countries"],[20,"20 countries"],[0,"Whole region"]].forEach(([n,l])=>w.append(el("button",{class:"chip","aria-pressed":String(S.rlen===n),onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}},l)));return w})()),
+    step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Skip countries you have already painted.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
     el("div",{class:"qfoot"},el("button",{class:"btn primary bigstart",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Challenges"),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Today's ten"),el("small",{},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries on a clean map, the same for everyone.")),el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Neighbour chains"),el("small",{},"Join two far-apart countries through land borders, using as few as you can.")),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"Daily result":"Daily"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Practice weak spots"),el("small",{},wk?`${wk} countr${wk===1?"y":"ies"} to revisit, on a clean map.`:"Nothing here yet. Misses collect here.")),el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Today's ten"),el("small",{},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries, the same for everyone.")),el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play")),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Neighbour chains"),el("small",{},"Link two distant countries by land borders in as few steps as you can.")),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"Daily result":"Daily"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play")),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Practice weak spots"),el("small",{},wk?`${wk} countr${wk===1?"y":"ies"} to revisit.`:"No weak spots yet. Misses collect here.")),el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
   sh.append(fold("Your records",quizRecordsBlock()));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"linkbtn",onclick:askReset},"Reset progress"),el("span",{class:"grow"}),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore")));
   openModal(true);setTimeout(()=>{const s=$("qFree");if(s)s.focus({preventScroll:true})},60);
@@ -1767,7 +1767,7 @@ function showStartSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const ids=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap),b=bestOf(rkey(S.region));
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
-  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Every wrong country costs 2 seconds, a skip 10. No hints.`));
+  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
   const vchips=el("div",{class:"row",style:"margin:0"});
   [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"]].forEach(([k,l])=>vchips.append(el("button",{class:"chip","aria-pressed":String(S.rv===k),onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}},l)));
   const chips=el("div",{class:"row",style:"margin:0"});
@@ -1776,12 +1776,12 @@ function showStartSheet(){
     chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{});showStartSheet()}},
       r==="World"?"Earth":r,el("span",{class:"n"},isFinite(bb)?fmtT(bb,0):n+"")));
   });
-  const how={country:"You are given a name and tap that country.",flag:"You are shown a flag and tap its country.",capital:"You are given a capital city and tap its country.",name:"A country glows on the globe and you type its name."}[S.rv];
+  const how={country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name."}[S.rv];
   sh.append(el("div",{class:"qcard"},
     step(1,"What to find",how,vchips),
-    step(2,"Where","The number is your best time here, or how many countries there are.",chips),
-    step(3,"Options",null,opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick();showStartSheet()},"Borderless")))));
-  sh.append(el("p",{class:"bestline"},isFinite(b)?`Your best here: ${fmtT(b)}`:"No time set here yet. Be the first."));
+    step(2,"Where","Each chip shows your best time, or the country count.",chips),
+    step(3,"Options",null,opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick();showStartSheet()},"Borderless")))));
+  sh.append(el("p",{class:"bestline"},isFinite(b)?`Your best here: ${fmtT(b)}`:"No time here yet."));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{setMode("wander")}},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startRace",onclick:startRace},"Start race")));
   sh.append(fold("Your records",raceRecordsBlock(S.region,S.rv)));
   openModal(true);setTimeout(()=>{const s=$("startRace");if(s)s.focus({preventScroll:true})},60);
@@ -2526,9 +2526,9 @@ function qExam(id,key){
   const C={
     hi:()=>{const v=list("hi");if(v)add("hi",`What is the highest point in ${n}?`,v)},
     cap:()=>f.cap&&add("cap",`What is the capital of ${n}?`,[f.cap]),
-    nbr:()=>nb.length&&add("nbr",`Name any country that shares a land border with ${n}.`,nb,{open:true}),
+    nbr:()=>nb.length&&add("nbr",`Name a country bordering ${n}.`,nb,{open:true}),
     riv:()=>open("riv",`What is the best-known river in ${n}?`,"riv"),
-    area:()=>f.a&&add("area",`About how many square kilometres is ${n}? (type a number; within 25% counts)`,[f.a],{num:f.a,tol:.25,show:fmt(f.a)+" km²"}),
+    area:()=>f.a&&add("area",`About how many square kilometres is ${n}? (a number; within 25%)`,[f.a],{num:f.a,tol:.25,show:fmt(f.a)+" km²"}),
     wond:()=>open("wond",`What is a famous natural wonder or landmark in ${n}?`,"wond"),
     sea:()=>open("sea",`Name a sea or ocean that touches ${n}.`,"sea"),
     cur:()=>f.cur&&add("cur",`What currency does ${n} use?`,[f.cur]),
@@ -2537,7 +2537,7 @@ function qExam(id,key){
     lang:()=>f.l&&f.l.length&&add("lang",`Name a language spoken in ${n}.`,f.l,{open:true}),
     code:()=>L.k&&add("code",`What is the international calling code of ${n}? (digits)`,[L.k],{code:exCodeDigits(L.k)}),
     pers:()=>open("pers",`Name a famous person from ${n}.`,"pers"),
-    pop:()=>L.p&&add("pop",`About how many people live in ${n}? (type a number, such as 5 million; within 30% counts)`,[L.p],{num:L.p,tol:.3,show:popTxt(L.p)}),
+    pop:()=>L.p&&add("pop",`About how many people live in ${n}? (e.g. 5 million; within 30%)`,[L.p],{num:L.p,tol:.3,show:popTxt(L.p)}),
     dish:()=>open("dish",`What is the best-known dish of ${n}?`,"dish"),
     drk:()=>open("drk",`What is a traditional drink of ${n}?`,"drk"),
     stp:()=>open("stp",`What is a traditional staple food in ${n}?`,"stp"),
@@ -2621,10 +2621,10 @@ function renderMastery(id,from){
     if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
     if(a==="cap"||a==="flg")return mqStart(id,a);
     const [k,t]=a.split(":");if(t==="r")return mOpenPage(id,k);
-    if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("\u270F\uFE0F","Pass the quiz first","The exam unlocks once you pass this page\u2019s multiple-choice quiz.",3000);return}return mqStartExam(id,k)}
+    if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("\u270F\uFE0F","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
     mqStart(id,k);
   });
-  sh.append(tree,el("p",{class:"mwhy"},"Read each page, pass its multiple-choice quiz (4 of 5), then earn the star with a typed exam: five fixed questions, answered from memory, all five right. A star on every branch, plus the capital and the flag, masters a country. The pulsing node is your next step."));
+  sh.append(tree,el("p",{class:"mwhy"},"Read a page, pass its quiz (4 of 5), then earn its star in a typed exam (5 of 5). Every star plus Capital and Flag masters a country. The pulsing node is next."));
   openModal();
 }
 function showExamQ(){
@@ -2641,9 +2641,9 @@ function showExamQ(){
     const ok=!skip&&judge(txt);
     if(ok){mq.right++;sndHit(FACTS[id].r,false)}else sndMiss();
     mq.rev.push({q:q.q,ok,said:txt,show:q.show});
-    const msg=el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":(q.year?`Not quite. It was ${q.show}.`:q.num||q.code?`Not quite. It is ${q.show}.`:q.open?`Not on our list. Answers we accept include: ${q.show}.`:`Not quite. The answer is ${q.show}.`));
+    const msg=el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":(q.year?`Not quite. It was ${q.show}.`:q.num||q.code?`Not quite. It is ${q.show}.`:q.open?`Not on our list. Accepted: ${q.show}.`:`Not quite. The answer is ${q.show}.`));
     nx.append(msg);
-    if(!ok&&q.open&&!skip){const ov=el("button",{class:"chip",type:"button",onclick:()=>{ov.remove();mq.right++;mq.rev[mq.rev.length-1].ok=true;msg.textContent="Counted, since your answer was also right.";msg.style.color=""}},"My answer was also right");nx.append(ov)}
+    if(!ok&&q.open&&!skip){const ov=el("button",{class:"chip",type:"button",onclick:()=>{ov.remove();mq.right++;mq.rev[mq.rev.length-1].ok=true;msg.textContent="Counted.";msg.style.color=""}},"My answer was also right");nx.append(ov)}
     nx.append(el("div",{class:"row",style:"margin-top:10px"},el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish")));
     setTimeout(()=>{const b=nx.querySelector(".btn.primary");if(b)b.focus({preventScroll:true})},30);
   };  form.onsubmit=e=>{e.preventDefault();if(inp.value.trim())settle(inp.value)};
@@ -2672,7 +2672,7 @@ function qDone(){
   else{if(pass)jrMark(id,"p",key)}
   if(pass)sndFlourish(FACTS[id].r);
   sh.append(closeBtn(),el("h2",{},exam?(pass?"Star earned":"Not quite"):pass?"Passed":"Not quite"),
-    el("p",{},`${mq.right} of ${n} right.`+(exam?(pass?" Every answer was right: the star is yours.":" The exam needs all "+n+". The questions stay the same, so you can try again."):single?(pass?" Done.":` You need ${need} to pass.`):pass?" Passed. The star comes from the typed exam.":` You need ${need} to pass.`)));
+    el("p",{},`${mq.right} of ${n} right.`+(exam?(pass?" Star earned.":" You need all "+n+". The questions stay the same."):single?(pass?" Done.":` You need ${need} to pass.`):pass?" Passed. Next: the typed exam for the star.":` You need ${need} to pass.`)));
   if(exam)sh.append(el("div",{class:"exrev"},mq.rev.map(r=>el("p",{class:"exr"+(r.ok?" ok":"")},el("b",{},(r.ok?"\u2713 ":"\u2717 ")+r.q),el("br"),r.ok?"":("You said: "+(r.said||"(skipped)")+" \u00B7 answer: "+r.show)))));
   sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(id,mqFrom)},"Back to the path"),
     (exam?pass:pass&&single)?"":el("button",{class:"btn",onclick:()=>exam?mqStartExam(id,key):mqStart(id,key)},"Try again")));
@@ -2684,7 +2684,7 @@ function masteryPages(){
   const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();bookScroll=[$("sheet"),...$("sheet").querySelectorAll("*")].map((e,i)=>[i,e.scrollTop]).filter(x=>x[1]>0);renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
   const grid=list=>el("div",{class:"mgrid"},list.map(tile));
   const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
-  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`Every flag in the world. ${st} studied, ${ms} mastered. Open a flag to see its mastery path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
+  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`${st} studied, ${ms} mastered. Tap a flag to open its path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
 }function renderBook(tab){
   tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
   const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
@@ -2729,7 +2729,7 @@ function stampPages(){
   return [[el("h2",{},"Stamp Book"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]];
 }
 function expPages(){
-  const sel=EXPS.find(e=>e.id===expSel)||EXPS[0],L=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys across the map. Every country you find counts toward each journey it belongs to.")];
+  const sel=EXPS.find(e=>e.id===expSel)||EXPS[0],L=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys. Each country you find counts toward every journey it is in.")];
   EXPS.forEach(e=>{
     const ids=expIds(e),n=ids.filter(id=>S.found.has(id)).length;
     L.push(el("button",{class:"expcard"+(e.id===sel.id?" on":""),onclick:()=>{expSel=e.id;sndTick();renderBook("exp")}},el("b",{},e.name),el("small",{},`${n} of ${ids.length}`+(n===ids.length?" \u2713":"")),el("div",{class:"ebar"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`}))));
@@ -2798,24 +2798,24 @@ function renderSettings(){
   const sh=sheetHead("Settings");
   const card=(title,...rows)=>el("div",{class:"qcard"},el("h3",{},title),...rows);
   sh.append(
-    card("Look",opt("Theme","Auto follows your system.",themeSeg()),
-      fsCan()?opt("Full screen","Fills the whole screen with no browser bars. Press Esc to leave, or F to switch any time.",toggle(!!fsEl(),v=>fsToggle(v),"Full screen")):"",opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg())),
-    card("Play",opt("Auto next","After a find the next country starts by itself. Tap the map or press Enter to skip ahead; hovering the info card pauses it.",autoSeg()),opt("Distance","Used in hints, areas and density.",unitSeg()),
-      opt("Borderless in Quiz and Race","Hide the lines between countries while you play; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Quiz and Race")),
-      opt("Borderless in Explore","Hide the lines between countries while you explore. Separate from the Quiz and Race setting.",toggle(S.nbx,v=>{S.nbx=v;save();applyNb();sndTick()},"Borderless in Explore"))));
+    card("Look",opt("Theme","Auto follows your device.",themeSeg()),
+      fsCan()?opt("Full screen","Hide the browser bars. Esc exits; F toggles.",toggle(!!fsEl(),v=>fsToggle(v),"Full screen")):"",opt("Visual effects","Lite trims textures and effects for slower devices. Auto uses Lite on phones and tablets.",fxSeg())),
+    card("Play",opt("Auto next","Move on automatically after an answer. Tap or press Enter to skip ahead; hovering the card pauses.",autoSeg()),opt("Distance","For distances, areas and density.",unitSeg()),
+      opt("Borderless in Quiz and Race","Hide borders while you play. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Quiz and Race")),
+      opt("Borderless in Explore","Hide borders while exploring. Press B to toggle.",toggle(S.nbx,v=>{S.nbx=v;save();applyNb();sndTick()},"Borderless in Explore"))));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
-  sh.append(card("Sound",opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),
+  sh.append(card("Sound",opt("Sound","Master switch for all sound.",toggle(S.sound,v=>setSound(v),"Sound")),
     opt("Master volume","",vol),
     opt("Sound effects","Chimes, drops, paper rustles.",toggle(S.sfx,v=>{S.sfx=v;save();if(v)sndTick()},"Sound effects")),
     opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music"))));
-  sh.append(fold("Advanced",el("div",{style:"padding-bottom:10px"},opt("Globe engine","Fast pre-renders the whole painted map on the GPU: always full detail, smooth everywhere. Compatible draws it on a 2D canvas. Classic is the original look. (Changing it reloads the page.)",engineSeg()))));
+  sh.append(fold("Advanced",el("div",{style:"padding-bottom:10px"},opt("Globe engine","Fast uses the GPU. Compatible uses a 2D canvas. Classic is the original look. Changing it reloads the page.",engineSeg()))));
   sh.append(el("div",{class:"qcard"},el("h3",{},"Your save"),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Export save"),el("small",{},"Download your progress as a file, to back it up or move it to another device.")),el("button",{class:"btn",onclick:exportSave},"Export")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Import save"),el("small",{},"Load a file you exported before. It replaces the progress on this device.")),el("button",{class:"btn",onclick:()=>{const i=el("input",{type:"file",accept:".json,application/json",style:"display:none"});i.onchange=()=>{if(i.files&&i.files[0])importSave(i.files[0])};document.body.append(i);i.click();setTimeout(()=>i.remove(),60000)}},"Import"))));
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Export save"),el("small",{},"Download your progress as a backup file.")),el("button",{class:"btn",onclick:exportSave},"Export")),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Import save"),el("small",{},"Restore from an exported file. Replaces current progress.")),el("button",{class:"btn",onclick:()=>{const i=el("input",{type:"file",accept:".json,application/json",style:"display:none"});i.onchange=()=>{if(i.files&&i.files[0])importSave(i.files[0])};document.body.append(i);i.click();setTimeout(()=>i.remove(),60000)}},"Import"))));
   sh.append(el("div",{class:"qcard danger"},el("h3",{},"Erase"),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all paint"),el("small",{},"Clears every painted country and your weak spots. Stamps, records and settings stay.")),el("button",{class:"btn danger",onclick:askReset},"Erase paint")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all data"),el("small",{},"Deletes everything on this device: paint, journal, mastery, stamps, records and settings.")),el("button",{class:"btn danger",onclick:askEraseAll},"Erase all"))));
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all paint"),el("small",{},"Clear all painted countries and weak spots. Stamps, records and settings stay.")),el("button",{class:"btn danger",onclick:askReset},"Erase paint")),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all data"),el("small",{},"Delete all progress and settings on this device.")),el("button",{class:"btn danger",onclick:askEraseAll},"Erase all"))));
   sh.append(el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:closeModal},"Done")));
   openModal();
 }/* records now live with their game: Quiz records in the Quiz sheet, Race records in the Race sheet */
@@ -2914,7 +2914,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&S.done&&S.mode==="fi
 function askReset(){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},"Start over?"),
-    el("p",{},"This clears every country you’ve painted and your weak spots, so the globe goes back to blank paper. Your stamps, speed records, daily results, reading history and settings all stay."),
+    el("p",{},"This clears all painted countries and weak spots. Stamps, records, daily results, reading history and settings stay."),
     el("div",{class:"row"},el("button",{class:"btn",id:"rsCancel",onclick:closeModal},"Cancel"),el("button",{class:"btn danger",id:"rsGo",onclick:doReset},"Reset progress")));
   openModal();setTimeout(()=>{const c=$("rsCancel");if(c)c.focus({preventScroll:true})},60);
 }
@@ -2936,10 +2936,10 @@ function importSave(file){
     if(ok){try{const m=JSON.parse(pack.main);ok=m&&typeof m==="object"&&!Array.isArray(m)}catch(e){ok=false}}
     if(ok&&pack.records){try{JSON.parse(pack.records)}catch(e){ok=false}}
     const sh=$("sheet");sh.innerHTML="";
-    if(!ok){sh.append(closeBtn(),el("h2",{},"Not a Mapbloom save"),el("p",{},"That file could not be read as a Mapbloom save. Nothing was changed."),el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:renderSettings},"Back to Settings")));openModal();return}
+    if(!ok){sh.append(closeBtn(),el("h2",{},"Not a Mapbloom save"),el("p",{},"That is not a Mapbloom save. Nothing changed."),el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:renderSettings},"Back to Settings")));openModal();return}
     const m=JSON.parse(pack.main),n=(m.found||[]).length;
     sh.append(closeBtn(),el("h2",{},"Replace your progress?"),
-      el("p",{},`This save has ${n} painted countr${n===1?"y":"ies"}${pack.saved?", exported "+String(pack.saved).slice(0,10):""}. Importing replaces everything on this device: paint, journal, mastery, stamps, records and settings.`),
+      el("p",{},`This save has ${n} painted countr${n===1?"y":"ies"}${pack.saved?", exported "+String(pack.saved).slice(0,10):""}. Importing replaces all progress and settings on this device.`),
       el("div",{class:"row"},el("button",{class:"btn",id:"imCancel",onclick:renderSettings},"Cancel"),el("button",{class:"btn danger",onclick:()=>{
         WIPED=true;
         try{localStorage.setItem(KEY,pack.main);if(pack.records)localStorage.setItem(RKEY,pack.records);else localStorage.removeItem(RKEY)}catch(e){}
@@ -2952,7 +2952,7 @@ function importSave(file){
 function askEraseAll(){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},"Erase everything?"),
-    el("p",{},"This permanently deletes all of your progress on this device: painted countries, journal and mastery, stamps, race and daily records, and your settings. It cannot be undone."),
+    el("p",{},"This permanently deletes all progress and settings on this device. It cannot be undone."),
     el("div",{class:"row"},el("button",{class:"btn",id:"eaCancel",onclick:closeModal},"Cancel"),el("button",{class:"btn danger",onclick:doEraseAll},"Erase all data")));
   openModal();setTimeout(()=>{const c=$("eaCancel");if(c)c.focus({preventScroll:true})},60);
 }

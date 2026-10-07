@@ -5061,8 +5061,8 @@ GLX.draw=function(s,cen0){
   if(glLN){                                                      // border hairlines, always about 1 device pixel wide
     GLc.useProgram(glLProg);GLc.bindVertexArray(nbNow()?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
-    GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.25:1)/cvDpr);
-    const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[.97,.93,.82,.72]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
+    GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.6:1)/cvDpr);
+    const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[1,.96,.86,.95]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
     GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
     GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,nbNow()?glLNC:glLN);
     GLc.disable(GLc.BLEND);GLc.bindVertexArray(glVao);

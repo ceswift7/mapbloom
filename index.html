@@ -536,6 +536,20 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .cbb{transform:rotateY(180deg);background-color:var(--sheet);background-image:var(--page-img,none);background-size:128px 128px}
 @keyframes cbOpen{0%{transform:rotateY(0)}100%{transform:rotateY(-180deg)}}
 @media (max-width:719px){.cbfront{animation:none;opacity:0}.cbleft{display:none}.cbstage{animation-duration:.6s}}
+.cbhead{display:flex;align-items:center;gap:14px;margin:0 0 8px}
+.cbhead img{width:60px;max-height:42px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18);flex:none}
+.cbid h2{margin:0;font-size:26px;font-family:var(--serif);font-weight:500}.cbid small{color:var(--ink-faint);font-size:12.5px;letter-spacing:.04em}
+.cbkv{margin:0 0 6px;font-size:13px}.cbkv dd{font-size:12.5px}
+.cbtree{width:100%;max-height:min(36vh,310px);margin-top:4px}
+.rf .rfhalf{position:absolute;top:0;width:50%;height:100%;overflow:hidden;background-color:var(--sheet);background-image:var(--page-img,none);background-size:128px 128px}
+.rf .rfhalf.l{left:0}.rf .rfhalf.r{left:50%}
+.cbleafface{position:absolute;inset:0;padding:26px 30px;font:14px/1.5 var(--serif);color:var(--ink-soft);filter:blur(.7px);opacity:.8;overflow:hidden}
+.rfleaf{position:absolute;left:50%;top:0;width:50%;height:100%;transform-origin:left center;transform-style:preserve-3d;background-color:var(--sheet);background-image:var(--page-img,none);background-size:128px 128px;animation:rfFlip .5s cubic-bezier(.45,0,.3,1) both;box-shadow:inset 18px 0 24px -18px rgba(60,40,20,.4)}
+.rfleaf>.cbleafface{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.rfleaf>.cbleafface.b{transform:rotateY(180deg)}
+@keyframes rfFlip{0%{transform:rotateY(0)}100%{transform:rotateY(-180deg)}}
+.cbstage.rf{animation:rfFade 1.55s linear forwards}
+@keyframes rfFade{0%,66%{opacity:1}100%{opacity:0}}
 .mhead{display:flex;align-items:center;gap:14px;margin:0 0 6px}
 .mhead img{width:54px;max-height:40px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18)}
 .mhead h2{margin:0}
@@ -1319,7 +1333,7 @@ function jrRow(id){
   b.classList.toggle("m",lv===3);
   b.innerHTML=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" class="tk"/><circle cx="12" cy="12" r="9" class="ar" stroke-dasharray="${(C*d/t).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 12 12)"/><path d="M12 7.6l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z" class="st"/></svg><span>Mastery ${d}/${t}</span>`;
   b.title=["Not found yet","Found","Studied","Mastered"][lv]+": open its mastery path";
-  b.onclick=()=>{sndTick();renderMastery(id)};
+  b.onclick=()=>{sndTick();renderMastery(id,null,true)};
 }let jrObs=[],jrTimers=[];
 function jrReset(){jrObs.forEach(o=>o.disconnect());jrObs=[];jrTimers.forEach(clearTimeout);jrTimers=[]}
 function jrWatch(el0,id,key){   // a section counts as read once most of it has been on screen for a moment
@@ -3784,57 +3798,70 @@ function mTree(id,j,secs){
   svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
   const box=el("div",{});box.innerHTML=svg;return box;
 }
-/* ---- the country book: the cover swings open from the spine and the country's pages read as two-page spreads you can turn ---- */
-let cbTimers=[];
-function openCountryBook(id,from,startKey){
-  closeReader();cbTimers.forEach(clearTimeout);cbTimers=[];
+/* ---- the country in the journal book: opening a country riffles a few pages and lands on its section. The left page is the country
+   (flag, status, quick facts and its mastery path); the right page reads through its pages, one turn at a time ---- */
+let cbTimers=[];const cbPos={};
+const cbWords=()=>{const ids=Object.keys(LEARN),out=[];for(let i=0;i<14;i++){const L=LEARN[ids[Math.floor(Math.random()*ids.length)]]||{},t=L.g||L.c||L.h||L.o||"";if(typeof t==="string"&&t)out.push(t.slice(0,300))}return out};
+function openCountryBook(id,from,opts){
+  opts=opts||{};closeReader();cbTimers.forEach(clearTimeout);cbTimers=[];
   const f=FACTS[id],L=LEARN[id]||{},fd=typeof FOOD!=="undefined"?FOOD[id]:null,P=(k,t)=>blocks(id,k,t);
-  const quick=()=>{const dl=el("dl",{class:"kv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Capital",f.cap);add("Calling code",L.k);add("Drives on the",L.d);return dl};
-  const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["q","Quick data",quick],["g","The land",()=>L.g&&P("g",L.g)],["c","People and culture",()=>L.c&&P("c",L.c)],["f","Food and dishes",()=>fd&&fd.x&&P("f",fd.x)],
+  const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["g","The land",()=>L.g&&P("g",L.g)],["c","People and culture",()=>L.c&&P("c",L.c)],["f","Food and dishes",()=>fd&&fd.x&&P("f",fd.x)],
     ["h","A short history",()=>L.h&&[P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:""]],["n","Where the name comes from",()=>L.n&&P("n",L.n)],["d","Did you know",()=>el("ul",{},funFacts(id).map(t=>el("li",{},t)))]];
-  const secs=defs.filter(d=>d[0]==="q"||d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn}));
-  const spreads=[];for(let i=0;i<secs.length;i+=2)spreads.push(secs.slice(i,i+2));
-  let cur=Math.max(0,spreads.findIndex(sp=>sp.some(x=>x.k===startKey)));
+  const pages=defs.filter(d=>d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn}));
+  let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=i}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],pages.length-1);
   const sh=$("sheet");sh.innerHTML="";
-  const pageEl=(sec,cls)=>{const d=el("div",{class:"bkpage "+cls}),w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
-    if(sec){const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),sec.t));[sec.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s)}
+  const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book"){renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}else closeModal()};
+  const quickDl=()=>{const dl=el("dl",{class:"kv cbkv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Area",areaTxt(f.a));add("Calling code",L.k);add("Drives on the",L.d);return dl};
+  const onTree=e=>{
+    const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
+    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
+    if(a==="cap"||a==="flg")return mqStart(id,a);
+    const [k,t]=a.split(":");
+    if(t==="r"){const pi=pages.findIndex(p=>p.k===k);if(pi>=0&&pi!==cur)turnTo(pi);return}
+    if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("✏️","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
+    mqStart(id,k);
+  };
+  const leftPage=()=>{
+    const j=jrObj(id),lv=jrLevel(id),d=el("div",{class:"bkpage l cbl"}),w=el("div",{class:"learn cbwrap"});w.style.setProperty("--p",`var(--c-${f.r})`);
+    w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl());
+    const tree=mTree(id,j,jrQSecs(id));tree.addEventListener("click",onTree);tree.classList.add("cbtree");w.append(tree);
     d.append(w);return d};
-  const pages=el("div",{class:"bkpages cbpages"}),ind=el("span",{class:"cbind"});
-  const render=()=>{
-    cbTimers.forEach(clearTimeout);cbTimers=[];
-    pages.querySelectorAll(".bkpage").forEach(p=>p.remove());
-    const sp=spreads[cur];pages.prepend(pageEl(sp[1]||null,"r"));pages.prepend(pageEl(sp[0],"l"));
-    ind.textContent=`${cur+1} of ${spreads.length}`;
-    sp.forEach(x=>{if("gcfhn".includes(x.k)&&!(jrObj(id).s||[]).includes(x.k))cbTimers.push(setTimeout(()=>jrMark(id,"s",x.k),1500))});   // a page that stays open for a moment counts as read
+  const rightPage=pg=>{const d=el("div",{class:"bkpage r"}),w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
+    if(pg){const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),pg.t));[pg.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s)}
+    d.append(w);return d};
+  const bookEl=el("div",{class:"bkpages cbpages"}),ind=el("span",{class:"cbind"});
+  const prev=el("button",{class:"chip",onclick:()=>turnTo(cur-1)},"‹ Previous"),next=el("button",{class:"chip",onclick:()=>turnTo(cur+1)},"Next ›");
+  const renderRight=()=>{
+    cbTimers.forEach(clearTimeout);cbTimers=[];cbPos[id]=cur;
+    const old=bookEl.querySelector(".bkpage.r");if(old)old.remove();bookEl.append(rightPage(pages[cur]));
+    ind.textContent=`${pages[cur].t} · ${cur+1} of ${pages.length}`;prev.disabled=cur===0;next.disabled=cur===pages.length-1;next.textContent=cur===pages.length-1?"End":"Next ›";
+    const k=pages[cur].k;if("gcfhn".includes(k)&&!(jrObj(id).s||[]).includes(k))cbTimers.push(setTimeout(()=>{jrMark(id,"s",k);const l=bookEl.querySelector(".bkpage.l");if(l){const nl=leftPage();l.replaceWith(nl)}},1500));   // a page that stays open for a moment counts as read
   };
-  const turn=dir=>{
-    const to=cur+dir;if(to<0||to>=spreads.length||pages.dataset.busy)return;
-    sndPage();pages.dataset.busy="1";
-    const narrow=innerWidth<720;
-    const L0=pages.querySelector(".bkpage.l"),R0=pages.querySelector(".bkpage.r"),out=dir>0?R0:L0,ms=reduced?1:230;
-    const outKf=dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.82)"}]:[{transform:"rotateY(0)",transformOrigin:"right center"},{transform:"rotateY(88deg)",transformOrigin:"right center",filter:"brightness(.82)"}];
-    const first=narrow?out.animate([{opacity:1},{opacity:0}],{duration:ms}):out.animate(outKf,{duration:ms,easing:"ease-in",fill:"forwards"});
-    first.onfinish=()=>{
-      cur=to;render();
-      const inn=dir>0?pages.querySelector(".bkpage.l"):pages.querySelector(".bkpage.r");
-      const inKf=dir>0?[{transform:"rotateY(88deg)",transformOrigin:"right center",filter:"brightness(.82)"},{transform:"rotateY(0)",transformOrigin:"right center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.82)"},{transform:"rotateY(0)",transformOrigin:"left center"}];
-      const second=narrow?inn.animate([{opacity:0},{opacity:1}],{duration:ms}):inn.animate(inKf,{duration:ms,easing:"ease-out"});
-      second.onfinish=()=>{delete pages.dataset.busy};
-    };
+  const turnTo=to=>{
+    if(to<0||to>=pages.length||to===cur||bookEl.dataset.busy)return;
+    sndPage();bookEl.dataset.busy="1";const dir=to>cur?1:-1,ms=reduced?1:220,narrow=innerWidth<720;
+    const r0=bookEl.querySelector(".bkpage.r");
+    const a=narrow?r0.animate([{opacity:1},{opacity:0}],{duration:ms}):r0.animate(dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"}]:[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"}],{duration:ms,easing:"ease-in",fill:"forwards"});
+    a.onfinish=()=>{cur=to;renderRight();const r1=bookEl.querySelector(".bkpage.r");
+      const b=narrow?r1.animate([{opacity:0},{opacity:1}],{duration:ms}):r1.animate(dir>0?[{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}],{duration:ms,easing:"ease-out"});
+      b.onfinish=()=>{delete bookEl.dataset.busy}};
   };
-  render();
-  const prev=el("button",{class:"chip",onclick:()=>turn(-1)},"‹ Previous"),next=el("button",{class:"chip",onclick:()=>turn(1)},"Next ›");
-  const ctl=el("div",{class:"bkctl"},el("button",{class:"chip",onclick:()=>{sndPage();cbTimers.forEach(clearTimeout);renderMastery(id,from)}},"‹ Back to "+f.n),el("span",{class:"grow"}),prev,ind,next);
-  const stage=el("div",{class:"cbstage"},el("div",{class:"cbleft"}),
-    el("div",{class:"cbfront"},el("div",{class:"cbf"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("b",{},f.n),el("small",{},"A book of its pages")),el("div",{class:"cbb"})));
-  pages.append(stage);
-  sh.append(closeBtn(),el("div",{class:"bkcover"},pages,ctl));
+  bookEl.append(leftPage());renderRight();
+  const ctl=el("div",{class:"bkctl"},el("button",{class:"chip",onclick:back},"‹ Back"),el("span",{class:"grow"}),prev,ind,next);
+  sh.append(closeBtn(),el("div",{class:"bkcover"},bookEl,ctl));
   openModal("book");
-  setTimeout(()=>stage.remove(),reduced?10:2300);
-  const key=e=>{if(!document.body.contains(pages)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")turn(1);else if(e.key==="ArrowLeft")turn(-1)};
+  // the riffle: a handful of leaves, each carrying a blur of other countries' text, whip across the spine and settle on this country
+  if(opts.riffle&&!reduced&&innerWidth>=720){
+    const words=cbWords(),leaf=(i,cls)=>{const d=el("div",{class:"cbleafface "+cls});d.textContent=words[i%words.length]||"";return d};
+    const stage=el("div",{class:"cbstage rf"},el("div",{class:"rfhalf l"},leaf(0,"")),el("div",{class:"rfhalf r"},leaf(1,"")));
+    for(let i=0;i<5;i++){const lf=el("div",{class:"rfleaf"},leaf(i*2+2,"f"),el("div",{class:"cbleafface b"},words[(i*2+3)%words.length]||""));lf.style.animationDelay=(i*.14)+"s";stage.append(lf)}
+    bookEl.append(stage);setTimeout(()=>stage.remove(),1700);
+  }
+  const key=e=>{if(!document.body.contains(bookEl)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")turnTo(cur+1);else if(e.key==="ArrowLeft")turnTo(cur-1)};
   document.addEventListener("keydown",key);
 }
-function renderMastery(id,from,openKey){
+function renderMastery(id,from,riffle){mqFrom=from||null;openCountryBook(id,from,{riffle:!!riffle})}
+function renderMasteryClassic(id,from,openKey){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
 
@@ -3914,7 +3941,7 @@ function qDone(){
 let bookScroll=null;
 function masteryPages(){
   const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),half=Math.ceil(ids.length/2);
-  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();bookScroll=[$("sheet"),...$("sheet").querySelectorAll("*")].map((e,i)=>[i,e.scrollTop]).filter(x=>x[1]>0);renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
+  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();bookScroll=[$("sheet"),...$("sheet").querySelectorAll("*")].map((e,i)=>[i,e.scrollTop]).filter(x=>x[1]>0);renderMastery(id,"book",true)}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
   const grid=list=>el("div",{class:"mgrid"},list.map(tile));
   const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
   return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`${st} studied, ${ms} mastered. Tap a flag to open its path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];

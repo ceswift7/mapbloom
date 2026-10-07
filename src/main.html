@@ -25,7 +25,7 @@ const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw
 let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -52,6 +52,8 @@ try{
   if(typeof s.vol==="number") S.vol=clamp(s.vol,0,1);
   if(["country","flag","capital","silhouette","name"].includes(s.quiz)) S.quiz=s.quiz;
   if(typeof s.nb==="boolean") S.nb=s.nb;
+  if([0,10,20].includes(s.rlen)) S.rlen=s.rlen;
+  if(s.seen&&typeof s.seen==="object") S.seen=s.seen;
   if(s.view&&Array.isArray(s.view.r)) S.view=s.view;
   if(typeof s.hints==="boolean"&&s.h18) S.hints=s.hints;   // v18: hints default to off, once, for everyone
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
@@ -61,7 +63,7 @@ try{
   if(["country","flag","capital","name"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,rlen:S.rlen,seen:S.seen,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -73,6 +75,7 @@ const R={phase:"idle",region:"World",queue:[],cur:null,found:new Set(),t0:0,pen:
 const D={active:false,ids:[],idx:0,marks:[]};          // daily challenge
 const inReg=(id,r)=>FACTS[id].r===r||FACTS[id].x===r;                     // a country may sit in two continents (Russia)
 const regName=f=>f.x?f.r+" and "+f.x:(f.r==="Americas"?"the Americas":f.r);
+const RD={active:false,n:0,done:0,first:0,miss:[],ids:new Set(),t0:0};   // a free-play round: a clean map, a fixed number of countries
 let SESS=null;   // clean-slate session (daily / practice): the saved map is hidden and only this set is painted
 const cf=()=>S.mode==="speed"?R.found:(SESS||S.found);
 
@@ -1304,6 +1307,13 @@ function pool(){
 }
 function pickTarget(){
   S.turn++;
+  if(RD.active&&!D.active&&!S.practice){
+    const rp=regionPool().filter(id=>(S.quiz!=="capital"||FACTS[id].cap)&&!RD.ids.has(id));
+    let c2=rp.filter(id=>!S.recent.includes(id));if(!c2.length)c2=rp;if(!c2.length)return null;
+    const w2=c2.map(id=>{const sn=S.seen[id],stale=sn==null?2:1+Math.min(3,(S.turn-sn)/30);return Math.pow(Math.max(FACTS[id].a,2000),.2)*(S.weak[id]>0?3:1)*stale});
+    let t2=Math.random()*d3.sum(w2),pick=c2[c2.length-1];for(let i=0;i<c2.length;i++){t2-=w2[i];if(t2<=0){pick=c2[i];break}}
+    S.seen[pick]=S.turn;return pick;
+  }
   const p=pool();
   const due=!S.practice&&S.returnQ.find(q=>q.at<=S.turn&&p.includes(q.id));
   if(due){S.returnQ=S.returnQ.filter(q=>q!==due);return due.id}
@@ -1328,6 +1338,7 @@ function nextRound(){
   hideCard();
   clearMissed();
   if(D.active&&D.idx>=D.ids.length){finishDaily();return}
+  if(RD.active&&!D.active&&!S.practice&&RD.done>=RD.n){showRoundResult();return}
   if(S.practice&&!weakIds().length){S.practice=false;endSession();toast("🌿","All caught up","Your weak spots are cleared.")}
   if(D.active&&D.t0==null)D.t0=performance.now();
   $("dClock").classList.toggle("on",!!D.active);
@@ -1357,6 +1368,7 @@ function armAutoNext(){
   clearAuto();
   if(S.autoNext==="off"||S.mode!=="find"||S.qIdle)return;
   if(D.active&&D.idx>=D.ids.length)return;           // "See results" stays manual
+  if(RD.active&&!D.active&&RD.done>=RD.n)return;
   const ms=AUTO_MS[S.autoNext]||2500,b=$("nextBtn");autoLeft=ms;
   b.style.setProperty("--auto-ms",ms+"ms");void b.offsetWidth;b.classList.add("auto");
   autoT=setInterval(()=>{
@@ -1402,9 +1414,10 @@ function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
-  if(shown){if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
+  if(shown){if(RD.active&&!D.active&&!S.practice){RD.ids.add(T);RD.done++;RD.miss.push(T)}if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
   else{
-    if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
+    if(RD.active&&!D.active&&!S.practice){SESS.add(T);S.found.add(T);S.shown.delete(T);RD.ids.add(T);RD.done++;if(first)RD.first++}
+    else if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
     if(S.tries>=2&&!D.active)S.returnQ.push({id:T,at:S.turn+6});
     if(first){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);if(S.weak[T])S.weak[T]=Math.max(0,S.weak[T]-1)}
     if(S.quiz==="flag"&&!D.active){S.counts.flag++;jrMark(T,"f")}
@@ -1431,7 +1444,7 @@ function success(shown,ll){
   swell($("hint"),msg);
   if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
   $("showBtn").hidden=true;$("nextBtn").hidden=false;
-  $("nextBtn").textContent=D.active&&D.idx>=D.ids.length?"See results":"Next place";
+  $("nextBtn").textContent=(D.active&&D.idx>=D.ids.length)||(RD.active&&!D.active&&!S.practice&&RD.done>=RD.n)?"See results":"Next place";
   armAutoNext();
   if(shown&&lensOf(T)&&!(lensOpen&&lensG.ids.includes(T)))openLens(lensOf(T));
   const inLens=lensOpen&&lensG.ids.includes(T);
@@ -1457,7 +1470,7 @@ function fadeRepaint(fn){
   setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
 }
 function beginSession(){if(SESS)return;SESS=new Set();fadeRepaint(()=>{paint();updateProgress()})}
-function endSession(){if(!SESS)return;SESS=null;fadeRepaint(()=>{paint();updateProgress()})}
+function endSession(){RD.active=false;if(!SESS)return;SESS=null;fadeRepaint(()=>{paint();updateProgress()})}
 function idleView(){
   clearAuto();
   S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
@@ -1468,7 +1481,25 @@ function idleView(){
   updateProgress();
 }
 function quizIdle(){idleView();showQuizSheet()}
-function beginFree(){closeModal();D.active=false;S.qIdle=false;S.practice=false;D.active=false;endSession();nextRound()}
+function beginFree(){
+  closeModal();D.active=false;S.qIdle=false;S.practice=false;
+  const rp=regionPool().filter(id=>S.quiz!=="capital"||FACTS[id].cap);
+  Object.assign(RD,{active:true,n:S.rlen?Math.min(S.rlen,rp.length):rp.length,done:0,first:0,miss:[],ids:new Set(),t0:performance.now()});
+  SESS=new Set();fadeRepaint(()=>{paint();updateProgress()});
+  updateProgress();nextRound();
+}
+function showRoundResult(){
+  silHide();clearAuto();hideCard();
+  const sh=$("sheet");sh.innerHTML="";
+  const ms=performance.now()-RD.t0,pct=RD.n?Math.round(RD.first/RD.n*100):0,where=S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
+  sh.append(closeBtn(),el("div",{class:"hero"},el("p",{class:"sub"},`Round complete \xB7 ${RD.n} countries \xB7 ${where}`),el("div",{class:"bignum"},`${RD.first}/${RD.n}`),el("span",{class:"delta"+(pct>=80?" up":"")},`${pct}% on the first try`)));
+  const stat=(k,v)=>el("div",{class:"stat"},el("b",{},v),el("small",{},k));
+  sh.append(el("div",{class:"stats",style:"grid-template-columns:repeat(3,1fr)"},stat("Time",fmtT(ms)),stat("Revealed",String(RD.miss.length)),stat("Best streak",String(S.bestStreak||0))));
+  if(RD.miss.length)sh.append(el("h3",{},"Worth another look"),el("div",{class:"nchips"},RD.miss.map(id=>el("button",{onclick:()=>{closeModal();endSession();setMode("wander");openCountry(id)}},FACTS[id].n))));
+  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{endSession();setMode("wander")}},"Back to Explore"),el("button",{class:"btn",onclick:()=>{sndTick();quizIdle()}},"Change settings"),el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:()=>{sndTick();beginFree()}},"Another round")));
+  sndFlourish(S.region==="World"?"Europe":S.region);
+  openModal();
+}
 function leaveDailyOk(){return !D.active||confirm("Leave today’s ten? Your progress in it will be lost.")}
 function showQuizSheet(){
   chainStop();
@@ -1483,7 +1514,8 @@ function showQuizSheet(){
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
     step(1,"What to find",how,q),
     step(2,"Where",S.region==="World"?"Any country in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
-    step(3,"Options",null,el("div",{},opt("Hints","Region, distance and direction clues after a miss.",toggle(S.hints,v=>{S.hints=v;save();sndTick()},"Hints")),opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
+    step(3,"Round","A round starts on a blank map, so painted land never gives the answer away. Your lifetime map is kept.",(()=>{const w=el("div",{class:"row",style:"margin:0"});[[10,"10 countries"],[20,"20 countries"],[0,"Whole region"]].forEach(([n,l])=>w.append(el("button",{class:"chip","aria-pressed":String(S.rlen===n),onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}},l)));return w})()),
+    step(4,"Options",null,el("div",{},opt("Hints","Region, distance and direction clues after a miss.",toggle(S.hints,v=>{S.hints=v;save();sndTick()},"Hints")),opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
     el("div",{class:"qfoot"},el("button",{class:"btn primary bigstart",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Challenges"),
@@ -2063,11 +2095,11 @@ sphere.on("click",function(e){
 
 /* ---------- progress & chips ---------- */
 function updateProgress(){
-  const all=playable.map(f=>f.id),F=cf();
-  const base=S.mode==="speed"?regionPool():all;
-  $("foundN").textContent=base.filter(id=>F.has(id)).length;
-  $("totalN").textContent=base.length;
-  $("progLabel").textContent=S.mode==="speed"?"found this race":"countries painted";
+  const all=playable.map(f=>f.id),F=cf(),inRound=RD.active&&S.mode==="find"&&!D.active&&!S.practice;
+  const base=S.mode==="speed"?regionPool():inRound?regionPool():all;
+  $("foundN").textContent=inRound?RD.done:base.filter(id=>F.has(id)).length;
+  $("totalN").textContent=inRound?RD.n:base.length;
+  $("progLabel").textContent=S.mode==="speed"?"found this race":inRound?"this round":"countries painted";
   const bar=$("bar");
   REGIONS.forEach((r,i)=>{
     const n=base.filter(id=>FACTS[id].r===r&&F.has(id)).length;

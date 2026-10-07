@@ -2641,6 +2641,9 @@ function renderSettings(){
     opt("Sound effects","Chimes, drops, paper rustles.",toggle(S.sfx,v=>{S.sfx=v;save();if(v)sndTick()},"Sound effects")),
     opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music"))));
   sh.append(fold("Advanced",el("div",{style:"padding-bottom:10px"},opt("Globe engine","Fast pre-renders the whole painted map on the GPU: always full detail, smooth everywhere. Compatible draws it on a 2D canvas. Classic is the original look. (Changing it reloads the page.)",engineSeg()))));
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Your save"),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Export save"),el("small",{},"Download your progress as a file, to back it up or move it to another device.")),el("button",{class:"btn",onclick:exportSave},"Export")),
+    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Import save"),el("small",{},"Load a file you exported before. It replaces the progress on this device.")),el("button",{class:"btn",onclick:()=>{const i=el("input",{type:"file",accept:".json,application/json",style:"display:none"});i.onchange=()=>{if(i.files&&i.files[0])importSave(i.files[0])};document.body.append(i);i.click();setTimeout(()=>i.remove(),60000)}},"Import"))));
   sh.append(el("div",{class:"qcard danger"},el("h3",{},"Erase"),
     el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all paint"),el("small",{},"Clears every painted country and your weak spots. Stamps, records and settings stay.")),el("button",{class:"btn danger",onclick:askReset},"Erase paint")),
     el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Erase all data"),el("small",{},"Deletes everything on this device: paint, journal, mastery, stamps, records and settings.")),el("button",{class:"btn danger",onclick:askEraseAll},"Erase all"))));
@@ -2746,6 +2749,37 @@ function askReset(){
     el("div",{class:"row"},el("button",{class:"btn",id:"rsCancel",onclick:closeModal},"Cancel"),el("button",{class:"btn danger",id:"rsGo",onclick:doReset},"Reset progress")));
   openModal();setTimeout(()=>{const c=$("rsCancel");if(c)c.focus({preventScroll:true})},60);
 }
+function exportSave(){
+  try{
+    const pack={app:"mapbloom",v:1,saved:new Date().toISOString(),main:localStorage.getItem(KEY),records:localStorage.getItem(RKEY)};
+    if(!pack.main)save(),pack.main=localStorage.getItem(KEY);
+    const blob=new Blob([JSON.stringify(pack)],{type:"application/json"}),a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download="mapbloom-save-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+    toast("\u{1F4BE}","Save exported","Keep the file somewhere safe. Import it in Settings to restore.",4200);
+  }catch(e){toast("!","Could not export","Your browser blocked the download.",3600)}
+}
+function importSave(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let pack=null;try{pack=JSON.parse(rd.result)}catch(e){}
+    let ok=pack&&pack.app==="mapbloom"&&typeof pack.main==="string";
+    if(ok){try{const m=JSON.parse(pack.main);ok=m&&typeof m==="object"&&!Array.isArray(m)}catch(e){ok=false}}
+    if(ok&&pack.records){try{JSON.parse(pack.records)}catch(e){ok=false}}
+    const sh=$("sheet");sh.innerHTML="";
+    if(!ok){sh.append(closeBtn(),el("h2",{},"Not a Mapbloom save"),el("p",{},"That file could not be read as a Mapbloom save. Nothing was changed."),el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:renderSettings},"Back to Settings")));openModal();return}
+    const m=JSON.parse(pack.main),n=(m.found||[]).length;
+    sh.append(closeBtn(),el("h2",{},"Replace your progress?"),
+      el("p",{},`This save has ${n} painted countr${n===1?"y":"ies"}${pack.saved?", exported "+String(pack.saved).slice(0,10):""}. Importing replaces everything on this device: paint, journal, mastery, stamps, records and settings.`),
+      el("div",{class:"row"},el("button",{class:"btn",id:"imCancel",onclick:renderSettings},"Cancel"),el("button",{class:"btn danger",onclick:()=>{
+        WIPED=true;
+        try{localStorage.setItem(KEY,pack.main);if(pack.records)localStorage.setItem(RKEY,pack.records);else localStorage.removeItem(RKEY)}catch(e){}
+        location.reload();
+      }},"Replace and reload")));
+    openModal();setTimeout(()=>{const c=$("imCancel");if(c)c.focus({preventScroll:true})},60);
+  };
+  rd.readAsText(file);
+}
 function askEraseAll(){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},"Erase everything?"),
@@ -2810,29 +2844,34 @@ function introPlay(){
   const ink=$("introInk"),RB=[["#E0675A","#F4A08E"],["#E9984E","#F4C592"],["#DDB445","#F3DB93"],["#5FAE86","#A5D8BA"],["#4FB0AE","#A0DAD4"],["#5E8FDB","#ABC8F2"],["#7B7BD0","#B8B6EE"],["#B27BCF","#E0BFEE"]];
   ink.textContent="";
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
-  const order=shuffle([0,1,2,3,4,5,6,7],Math.random),pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52],FALL=420,T0=performance.now();
+  const order=shuffle([0,1,2,3,4,5,6,7],Math.random),pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
   order.forEach((li,n)=>{
-    const L=letters[li],start=n*120+Math.random()*110;
+    const L=letters[li],start=n*135+Math.random()*90;
     introLater(()=>{
       if(introState!=="run")return;
-      const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2);
-      const drop=document.createElement("i"),ring=document.createElement("i");drop.className="intro-drop";ring.className="intro-ring";
-      drop.style.background=RB[li][0];drop.style.boxShadow=`inset 0 0 0 1px ${RB[li][0]}`;ring.style.borderColor=RB[li][0];
-      introEl.append(drop,ring);drop.style.opacity=1;
-      const t0=performance.now();
+      const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2),H0=240+Math.random()*180;
+      const drop=document.createElement("i"),ring=document.createElement("i"),ring2=document.createElement("i");drop.className="intro-drop";ring.className="intro-ring";ring2.className="intro-ring r2";
+      drop.style.background=`radial-gradient(circle at 35% 30%,#fff8,transparent 45%),${RB[li][0]}`;ring.style.borderColor=RB[li][0];ring2.style.borderColor=RB[li][1];
+      introEl.append(drop,ring,ring2);drop.style.opacity=1;
+      const t0=performance.now(),FALL2=360+H0*.35;
       const tm=d3.timer(()=>{
-        const k=Math.min(1,(performance.now()-t0)/FALL),e=k*k;
-        drop.style.transform=`translate(${dx}px,${dy-(1-e)*260}px)`;
+        const k=Math.min(1,(performance.now()-t0)/FALL2),e=k*k*(.35+.65*k);
+        drop.style.transform=`translate(${dx}px,${dy-(1-e)*H0}px) rotate(-45deg) scale(${(1-k*.15).toFixed(3)},${(1+k*.5).toFixed(3)})`;
         if(k>=1){tm.stop();drop.remove();impact()}
-      });
-      function impact(){
+      });      function impact(){
         if(introState!=="run")return;
         audioReady(()=>{sndIntroDrop(262*pent[n]);if(n===0)sndBloom(false)});
-        ring.style.left=dx+"px";ring.style.top=dy+"px";ring.classList.add("go");setTimeout(()=>ring.remove(),1800);
+        ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);
+        L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");
+        for(let q=0;q<9;q++){   // splatter: little droplets thrown up and out that fall back under gravity
+          const sp=document.createElement("i");sp.className="intro-spl";const sz=3+Math.random()*6;sp.style.cssText=`width:${sz}px;height:${sz}px;left:${dx}px;top:${dy}px;background:${RB[li][q%2?0:1]}`;introEl.append(sp);
+          const ang=-Math.PI/2+(Math.random()-.5)*2.6,dist=26+Math.random()*60,vx=Math.cos(ang)*dist,vy=Math.sin(ang)*dist;
+          sp.animate([{transform:"translate(-50%,-50%) scale(1)",opacity:.95},{transform:`translate(calc(-50% + ${vx*.7}px),calc(-50% + ${vy-14}px)) scale(.9)`,opacity:.9,offset:.45},{transform:`translate(calc(-50% + ${vx}px),calc(-50% + ${vy+46}px)) scale(.2)`,opacity:0}],{duration:620+Math.random()*320,easing:"cubic-bezier(.2,.6,.4,1)"}).onfinish=()=>sp.remove();
+        }
         L.style.setProperty("--dx",(dx-lr.left)+"px");L.style.setProperty("--dy",(dy-lr.top)+"px");
         const maxR=Math.hypot(lr.width,lr.height)*1.15,t1=performance.now(),DUR=900;
         const t2=d3.timer(()=>{const k=Math.min(1,(performance.now()-t1)/DUR);L.style.setProperty("--mr",(maxR*easeOut(k))+"px");if(k>=1)t2.stop()});
-        if(n===7)introLater(()=>$("introSub").classList.add("on"),500);
+        if(n===7)introLater(()=>{$("introSub").classList.add("on");letters.forEach((l,i)=>{l.style.animationDelay=(i*70)+"ms";l.classList.add("shine")})},650);
       }
     },start);
   });
@@ -2840,7 +2879,7 @@ function introPlay(){
   introSpin();
 }/* the globe rises already turning, then eases (fast, then slower and slower) onto the saved view while wind and soft notes follow its speed */
 let spinT=null,spinFinal=null,spinG=null;
-const INTRO_HOLD=2900;   // the letters finish filling, then the globe rises
+const INTRO_HOLD=3700;   // the letters finish filling, then the globe rises
 const SPIN_MS=4300;
 function introSpin(){
   const r1=projection.rotate().slice(),k1=zoomK,D=SPIN_MS*(FX.ts||1);

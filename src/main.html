@@ -26,7 +26,7 @@ const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw
 let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
@@ -53,6 +53,7 @@ try{
   if(typeof s.vol==="number") S.vol=clamp(s.vol,0,1);
   if(["country","flag","capital","silhouette","name"].includes(s.quiz)) S.quiz=s.quiz;
   if(typeof s.nb==="boolean") S.nb=s.nb;
+  if(typeof s.nbx==="boolean") S.nbx=s.nbx;
   if(typeof s.undisc==="boolean") S.undisc=s.undisc;
   if([0,10,20].includes(s.rlen)) S.rlen=s.rlen;
   if(s.seen&&typeof s.seen==="object") S.seen=s.seen;
@@ -66,8 +67,8 @@ try{
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
 let WIPED=false;
-const nbNow=()=>!!S.nb&&S.mode!=="wander";   // Borderless is a Quiz and Race option: Explore always shows the borders
-function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+const nbNow=()=>S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
+function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -301,7 +302,15 @@ function drawBookMarks(cv,tab){
     c.beginPath();c.moveTo(x+l-5,y-13);c.lineTo(x+l+5,y-3);c.moveTo(x+l+5,y-13);c.lineTo(x+l-5,y-3);c.stroke();c.beginPath();c.arc(x,y,3,0,6.28);c.stroke()};
   const compass=(x,y)=>{pencil();c.beginPath();c.arc(x,y,16,.4,2.9);c.stroke();c.beginPath();c.arc(x,y,16,3.5,5.9);c.stroke();c.beginPath();c.arc(x,y,2,0,6.28);c.stroke();c.beginPath();c.moveTo(x,y-22);c.lineTo(x,y-10);c.moveTo(x,y+10);c.lineTo(x,y+22);c.stroke()};
   const dots=(x,y)=>{pencil();for(let k=0;k<5;k++){c.beginPath();c.arc(x+k*9,y+Math.sin(k*1.7)*3,1,0,6.28);c.stroke()}};
-  const SETS={atlas:{l:["star","tick"],r:["route"]},stamps:{l:["blot","tick"],r:["smudge","compass"]},exp:{l:["route","blot"],r:["star","dots"]}}[tab]||{l:[],r:[]};
+  /* at night the pages carry star-gazer doodles instead: constellations, a crescent moon, a shooting star and candle glow */
+  const nl="rgba(215,226,255,",sp=(x,y,r,a)=>{c.fillStyle=nl+a+")";c.strokeStyle=nl+a+")";c.lineWidth=.8;c.beginPath();c.moveTo(x,y-r);c.quadraticCurveTo(x,y,x+r,y);c.quadraticCurveTo(x,y,x,y+r);c.quadraticCurveTo(x,y,x-r,y);c.quadraticCurveTo(x,y,x,y-r);c.fill()};
+  const consts=(x,y,seed)=>{let sd=seed;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,pts=[];for(let k=0;k<6;k++)pts.push([x+k*17+r()*8,y+(r()-.5)*34]);
+    c.strokeStyle=nl+".2)";c.lineWidth=.8;c.setLineDash([]);c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();
+    pts.forEach((p,i)=>{c.fillStyle=nl+".7)";c.beginPath();c.arc(p[0],p[1],i%3===0?1.8:1.1,0,6.28);c.fill();if(i%3===0)sp(p[0],p[1],6,.45)})};
+  const moon=(x,y)=>{c.fillStyle="rgba(255,240,200,.34)";c.beginPath();c.arc(x,y,11,0,6.28);c.arc(x+5,y-3,10,0,6.28,true);c.fill("evenodd");sp(x+20,y-10,4,.5);sp(x+28,y+6,3,.4);sp(x-14,y+12,3,.35)};
+  const shoot=(x,y,l)=>{const g=c.createLinearGradient(x,y,x+l,y+l*.38);g.addColorStop(0,nl+".7)");g.addColorStop(1,nl+"0)");c.strokeStyle=g;c.lineWidth=1.4;c.lineCap="round";c.beginPath();c.moveTo(x,y);c.lineTo(x+l,y+l*.38);c.stroke();sp(x,y,5,.8)};
+  const glow=(x,y)=>{const g=c.createRadialGradient(x,y,2,x,y,70);g.addColorStop(0,"rgba(255,190,110,.09)");g.addColorStop(1,"rgba(255,190,110,0)");c.fillStyle=g;c.fillRect(x-80,y-80,160,160)};
+  const SETS=(dark?{atlas:{l:["const"],r:["moon"]},stamps:{l:["shoot","dots"],r:["glow","const"]},exp:{l:["moon","const"],r:["shoot","dots"]}}:{atlas:{l:["star","tick"],r:["route"]},stamps:{l:["blot","tick"],r:["smudge","compass"]},exp:{l:["route","blot"],r:["star","dots"]}})[tab]||{l:[],r:[]};
   [["l",bp.querySelector(".bkpage.l")],["r",bp.querySelector(".bkpage.r")]].forEach(([side,pg])=>{
     if(!pg||pg.scrollHeight>pg.clientHeight+1)return;
     const r=pg.getBoundingClientRect(),x0=r.left-br.left,y0=r.top-br.top,pw=r.width,ph=r.height;
@@ -313,6 +322,10 @@ function drawBookMarks(cv,tab){
       else if(m==="route")route(x0+36,y0+ph-26,Math.min(130,pw*.4));
       else if(m==="compass")compass(x0+44,y0+ph-30);
       else if(m==="dots")dots(x0+pw*.45,y0+ph-14);
+      else if(m==="const")consts(x0+pw*.18,y0+ph-34,Math.round(x0+y0+17));
+      else if(m==="moon")moon(x0+pw-60,y0+ph-34);
+      else if(m==="shoot")shoot(x0+pw*.5,y0+ph-46,90);
+      else if(m==="glow")glow(x0+pw*.78,y0+ph-22);
     });
   });
 }function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
@@ -2667,6 +2680,12 @@ function fsToggle(on){
   }catch(e){}
 }
 ["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,()=>{size();const i=document.querySelector("#sheet input[aria-label='Full screen']");if(i)i.checked=!!fsEl()}));
+/* B switches borders off and on while exploring */
+document.addEventListener("keydown",e=>{
+  if(e.code!=="KeyB"||e.ctrlKey||e.metaKey||e.altKey||introState!=="done"||S.mode!=="wander"||modal.classList.contains("on"))return;
+  const a=document.activeElement;if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"))return;
+  S.nbx=!S.nbx;save();applyNb();sndTick();toast(String.fromCodePoint(0x25A6),S.nbx?"Borders off":"Borders on","Press B to switch. Settings has the same option.",1800);
+});
 /* keyboard: R reveals, S skips (while typing an answer, hold Alt: Alt+R, Alt+S) */
 document.addEventListener("keydown",e=>{
   const k=e.code==="KeyR"?"r":e.code==="KeyS"?"s":"";if(!k||e.ctrlKey||e.metaKey||introState!=="done")return;
@@ -2703,7 +2722,8 @@ function renderSettings(){
     card("Look",opt("Theme","Auto follows your system.",themeSeg()),
       fsCan()?opt("Full screen","Fills the whole screen with no browser bars. Press Esc to leave, or F to switch any time.",toggle(!!fsEl(),v=>fsToggle(v),"Full screen")):"",opt("Visual effects","Lite drops textures and heavy effects so it runs smoothly on phones. Auto picks Lite on phones and tablets.",fxSeg())),
     card("Play",opt("Auto next","After a find the next country starts by itself. Tap the map or press Enter to skip ahead; hovering the info card pauses it.",autoSeg()),opt("Distance","Used in hints, areas and density.",unitSeg()),
-      opt("Borderless","Hide the lines between countries in Quiz and Race; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless"))));
+      opt("Borderless in Quiz and Race","Hide the lines between countries while you play; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Quiz and Race")),
+      opt("Borderless in Explore","Hide the lines between countries while you explore. Separate from the Quiz and Race setting.",toggle(S.nbx,v=>{S.nbx=v;save();applyNb();sndTick()},"Borderless in Explore"))));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
   sh.append(card("Sound",opt("Sound","Turns everything on or off.",toggle(S.sound,v=>setSound(v),"Sound")),

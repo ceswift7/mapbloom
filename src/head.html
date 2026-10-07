@@ -742,7 +742,8 @@ details.fold[open]>summary::after{content:"\2013"}
 .silq{margin:6px 0 2px;font-family:var(--serif);font-style:italic;font-size:22px}
 .silhint{min-height:20px;margin:0 0 8px;font-size:13.5px;color:var(--ink-soft)}
 .silform{display:flex;gap:8px;justify-content:center}
-.silform input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 14px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);outline:none;cursor:text !important;-webkit-user-select:text;user-select:text}
+.silform input::-webkit-search-cancel-button,.silform input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.silform input{-webkit-appearance:none;appearance:none;flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 14px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);outline:none;cursor:text !important;-webkit-user-select:text;user-select:text}
 .silform input:focus{border-color:var(--mode-acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--mode-acc) 25%,transparent)}
 .silform.shake{animation:shk .45s ease}
 .usmap{position:absolute;left:0;top:0;z-index:5;display:none}
@@ -776,7 +777,8 @@ details.fold[open]>summary::after{content:"\2013"}
 .sil.nameit.hot .silcard{padding:7px 10px 8px;max-height:none;overflow:visible;border-radius:16px}
 .sil.hot:not(.hotdone) .silq{display:none}
 .sil.hot .silhint{min-height:0;margin:5px 0 0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sil.hot .silform input{padding:7px 12px;font-size:16px}.sil.hot .silform .btn{padding:7px 14px}
+.sil.hot .silform input::-webkit-search-cancel-button,.silform input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.silform input{-webkit-appearance:none;appearance:none;padding:7px 12px;font-size:16px}.sil.hot .silform .btn{padding:7px 14px}
 .sil.hot .hotlist{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;max-height:none;margin:6px 0 0;scrollbar-width:none}
 .sil.hot .hotlist::-webkit-scrollbar{display:none}
 .sil.hot .hotlist li{flex:none;border:1px solid var(--panel-line);border-radius:99px;padding:3px 10px 3px 7px;gap:6px;font-size:12px}
@@ -914,7 +916,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <p class="silq" id="silQ">Which country is this?</p>
         <p class="silhint" id="silHint"></p>
         <form class="silform" id="silForm" autocomplete="off">
-          <input id="silIn" type="text" name="mb-guess" placeholder="Type a country" aria-label="Your guess" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go" data-lpignore="true" data-1p-ignore data-form-type="other">
+          <input id="silIn" type="search" name="mb-guess" placeholder="Type your guess" aria-label="Your guess" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go" data-lpignore="true" data-1p-ignore data-form-type="other">
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>

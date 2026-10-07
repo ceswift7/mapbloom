@@ -4653,8 +4653,8 @@ function hotResolve(txt){
   const ids=Object.keys(FACTS).filter(id=>byId[id]);
   for(const id of ids)if(silNames.byId[id].has(t))return id;
   if(silNames.all.has(t))return null;
-  for(const id of ids)for(const n of silNames.byId[id])if(n.length>=6&&Math.abs(n.length-t.length)<=1&&lev(t,n)<=1)return id;
-  return null;
+  const near=ids.filter(id=>[...silNames.byId[id]].some(n=>n.length>=6&&Math.abs(n.length-t.length)<=1&&lev(t,n)<=1));   // the same one-letter rule as Name it, and only when it points at a single country
+  return near.length===1?near[0]:null;
 }
 function hotEnter(){
   HOT.on=false;HC.clear();S.done=false;hideCard();clearMissed();

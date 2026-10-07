@@ -369,6 +369,14 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bk-tab::after{content:"";position:absolute;left:0;right:0;top:0;height:35%;border-radius:10px 10px 0 0;background:linear-gradient(rgba(255,255,255,.2),transparent);pointer-events:none}
 .bk-tab:hover{opacity:1}
 .bk-tab[aria-selected="true"]{opacity:1;transform:translateY(0);height:38px;margin-top:-3px;box-shadow:none}
+/* on a computer the bookmarks stick out of the right-hand edge of the book, like the tabs of a real notebook */
+@media (min-width:721px){
+  .bk-tabs{left:auto;right:-30px;top:64px;flex-direction:column;gap:7px}
+  .bk-tab{height:auto;width:33px;padding:16px 0;border-radius:0 10px 10px 0;writing-mode:vertical-rl;letter-spacing:.04em;transform:translateX(-5px);box-shadow:inset -10px 0 10px -10px rgba(0,0,0,.35)}
+  .bk-tab::before{inset:3px 0 3px 3px;border:1.2px dashed rgba(255,255,255,.45);border-left:0;border-radius:0 7px 7px 0}
+  .bk-tab::after{left:0;right:auto;top:0;bottom:0;width:38%;height:auto;border-radius:0 10px 10px 0;background:linear-gradient(90deg,rgba(255,255,255,.2),transparent)}
+  .bk-tab[aria-selected="true"]{transform:translateX(0);height:auto;width:38px;margin-top:0;box-shadow:none}
+}
 .expcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px 11px;margin:0 0 8px;cursor:pointer}
 .expcard.on{border-color:var(--ink)}
 .expcard b{font-family:var(--serif);font-weight:500;font-size:16.5px}
@@ -3413,7 +3421,7 @@ const ACH=[
   {id:"chain1",n:"Link by Link",i:"\u{1F517}",d:"Finish a neighbour chain",t:()=>(S.counts.chain||0)>=1}
 ];
 function checkExp(silent){
-  EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp")})}});
+  EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp",Math.floor((1+EXPS.indexOf(e))/2))})}});
 }
 function checkAch(){
   checkExp();
@@ -3810,7 +3818,7 @@ function openCountryBook(id,from,opts){
   const pages=defs.filter(d=>d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn}));
   let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=i}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],pages.length-1);
   const sh=$("sheet");sh.innerHTML="";
-  const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book"){renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}else closeModal()};
+  const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book")renderBook("mastery",BK.spread);else closeModal()};
   const quickDl=()=>{const dl=el("dl",{class:"kv cbkv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Area",areaTxt(f.a));add("Calling code",L.k);add("Drives on the",L.d);return dl};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
@@ -3852,9 +3860,9 @@ function openCountryBook(id,from,opts){
   openModal("book");
   // the riffle: a handful of leaves, each carrying a blur of other countries' text, whip across the spine and settle on this country
   if(opts.riffle&&!reduced&&innerWidth>=720){
-    const words=cbWords(),leaf=(i,cls)=>{const d=el("div",{class:"cbleafface "+cls});d.textContent=words[i%words.length]||"";return d};
+    const leaf=(i,cls)=>el("div",{class:"cbleafface "+cls});
     const stage=el("div",{class:"cbstage rf"},el("div",{class:"rfhalf l"},leaf(0,"")),el("div",{class:"rfhalf r"},leaf(1,"")));
-    for(let i=0;i<5;i++){const lf=el("div",{class:"rfleaf"},leaf(i*2+2,"f"),el("div",{class:"cbleafface b"},words[(i*2+3)%words.length]||""));lf.style.animationDelay=(i*.14)+"s";stage.append(lf)}
+    for(let i=0;i<5;i++){const lf=el("div",{class:"rfleaf"},leaf(i*2+2,"f"),el("div",{class:"cbleafface b"}));lf.style.animationDelay=(i*.14)+"s";stage.append(lf)}
     bookEl.append(stage);setTimeout(()=>stage.remove(),1700);
   }
   const key=e=>{if(!document.body.contains(bookEl)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")turnTo(cur+1);else if(e.key==="ArrowLeft")turnTo(cur-1)};
@@ -3939,22 +3947,99 @@ function qDone(){
   openModal();
 }
 let bookScroll=null;
-function masteryPages(){
-  const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),half=Math.ceil(ids.length/2);
-  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();bookScroll=[$("sheet"),...$("sheet").querySelectorAll("*")].map((e,i)=>[i,e.scrollTop]).filter(x=>x[1]>0);renderMastery(id,"book",true)}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
-  const grid=list=>el("div",{class:"mgrid"},list.map(tile));
-  const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
-  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`${st} studied, ${ms} mastered. Tap a flag to open its path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
-}function renderBook(tab){
-  tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
-  const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
-  const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
-  const [L,R]=({atlas:atlasPages,stamps:stampPages,exp:expPages,mastery:masteryPages})[tab]();
-  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"}),el("div",{class:"bkpage l"},L),el("div",{class:"bkpage r"},R))));
-  openModal("book");
-  const pagesEl=sh.querySelector(".bkpages"),redraw=()=>requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),tab));
-  pagesEl.addEventListener("toggle",redraw,true);redraw();
+const BK={tab:"atlas",spread:0,pages:[],labels:null};
+const BOOK_TABS=[["atlas","Atlas","#6FA27E"],["stamps","Stamps","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
+function masteryPageList(){
+  const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
+  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book",true)}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
+  const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length,pages=[],labels=[];
+  const first=18,per=24;let i=0;
+  const head=[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 8px;color:var(--ink-soft);font-size:14px"},`${st} studied, ${ms} mastered. Tap a flag to open its path.`)];
+  let take=ids.slice(0,first);i=first;pages.push([...head,el("div",{class:"mgrid"},take.map(tile))]);labels.push(take);
+  while(i<ids.length){take=ids.slice(i,i+per);i+=per;pages.push([el("div",{style:"height:6px"}),el("div",{class:"mgrid"},take.map(tile))]);labels.push(take)}
+  return {pages,labels:labels.map(t=>t.length?FACTS[t[0]].n.charAt(0)+"–"+FACTS[t[t.length-1]].n.charAt(0):"")};
 }
+function atlasPageList(){
+  const [L]=atlasPages(),F=S.found,pages=[L],labels=["Overview"];
+  REGIONS.forEach(r=>{
+    const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
+    const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
+    pages.push([el("h2",{style:"display:flex;align-items:center;gap:10px"},el("span",{class:"swatch",style:`background:var(--c-${r});width:14px;height:14px`}),r==="Americas"?"The Americas":r),
+      el("p",{style:"margin:2px 0 12px;color:var(--ink-soft);font-size:14px"},`${n} of ${ids.length} found · ${st} studied · ${ms}★`),
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))]);
+    labels.push(r);
+  });
+  return {pages,labels};
+}
+function stampPageList(){
+  const got=ACH.filter(a=>S.ach[a.id]).length,half=Math.ceil(ACH.length/2);
+  const grid=list=>el("div",{class:"stamps bkstamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
+  return {pages:[[el("h2",{},"Stamps"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]],labels:["Stamps"]};
+}
+function expPageList(){
+  const go=e=>{expSel=e.id;sndTick();const pi=1+EXPS.indexOf(e);bkGo(Math.floor(pi/2))};
+  const list=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys. Each country you find counts toward every journey it is in.")];
+  EXPS.forEach(e=>{const ids=expIds(e),n=ids.filter(id=>S.found.has(id)).length;
+    list.push(el("button",{class:"expcard"+(e.id===expSel?" on":""),onclick:()=>go(e)},el("b",{},e.name),el("small",{},`${n} of ${ids.length}`+(n===ids.length?" ✓":"")),el("div",{class:"ebar"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`}))))});
+  const pages=[list],labels=["Contents"];
+  EXPS.forEach(sel=>{
+    const ids=expIds(sel).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),n=ids.filter(id=>S.found.has(id)).length,next=ids.find(id=>!S.found.has(id));
+    const R=[el("h2",{},sel.name),el("p",{style:"margin:4px 0 12px;color:var(--ink-soft);font-size:14.5px"},sel.blurb),
+      el("h3",{style:"margin:0 0 6px"},n===ids.length?"Complete":`${n} of ${ids.length} places`),
+      el("div",{class:"ebar",style:"margin:0 0 14px"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`})),
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))];
+    if(next)R.push(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn primary",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(next)}},"Visit the next place")));
+    pages.push(R);labels.push(sel.name);
+  });
+  return {pages,labels};
+}
+const bkBuild=tab=>{const r=({atlas:atlasPageList,stamps:stampPageList,exp:expPageList,mastery:masteryPageList})[tab]();BK.pages=r.pages;BK.labels=r.labels;BK.tab=tab};
+const bkSpreads=()=>Math.max(1,Math.ceil(BK.pages.length/2));
+function bkFill(){
+  const sh=$("sheet"),pg=sh.querySelector(".bkpages");if(!pg)return;
+  pg.querySelectorAll(".bkpage").forEach(p=>p.remove());
+  const L=el("div",{class:"bkpage l"},...(BK.pages[BK.spread*2]||[])),R=el("div",{class:"bkpage r"},...(BK.pages[BK.spread*2+1]||[]));
+  pg.append(L,R);
+  const n=bkSpreads(),ind=sh.querySelector(".cbind"),prev=sh.querySelector(".bkprev"),next=sh.querySelector(".bknext"),ctl=sh.querySelector(".bkctl");
+  if(ctl)ctl.style.visibility=n>1?"visible":"hidden";
+  if(ind){const a=BK.labels&&BK.labels[BK.spread*2],b=BK.labels&&BK.labels[BK.spread*2+1];ind.textContent=BK.tab==="mastery"?`${a||""}${b?" / "+b:""} · ${BK.spread+1} of ${n}`:`${BK.spread+1} of ${n}`}
+  if(prev)prev.disabled=BK.spread===0;if(next)next.disabled=BK.spread>=n-1;
+  sh.querySelectorAll(".bk-tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.k===BK.tab)));
+  requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),BK.tab));
+}
+/* a page turn: the right page folds over the spine, the content changes, then the new page folds back out */
+function bkFlip(change,dir){
+  const pg=$("sheet").querySelector(".bkpages");if(!pg||pg.dataset.busy)return;
+  pg.dataset.busy="1";sndPage();
+  const ms=reduced?1:230,narrow=innerWidth<720,r0=pg.querySelector(".bkpage.r");
+  const out=narrow||!r0?pg.animate([{opacity:1},{opacity:0}],{duration:ms,fill:"forwards"}):r0.animate(dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"}]:[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"}],{duration:ms,easing:"ease-in",fill:"forwards"});
+  out.onfinish=()=>{
+    change();bkFill();
+    const r1=pg.querySelector(".bkpage.r"),inn=narrow?pg.animate([{opacity:0},{opacity:1}],{duration:ms}):r1.animate(dir>0?[{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}],{duration:ms,easing:"ease-out"});
+    inn.onfinish=()=>{delete pg.dataset.busy};
+  };
+}
+function bkGo(sp){if(sp===BK.spread||sp<0||sp>=bkSpreads())return;const dir=sp>BK.spread?1:-1;bkFlip(()=>{BK.spread=sp},dir)}
+function bkSwitch(k){
+  if(k===BK.tab)return;const dir=BOOK_TABS.findIndex(t=>t[0]===k)>BOOK_TABS.findIndex(t=>t[0]===BK.tab)?1:-1;
+  bkFlip(()=>{bkBuild(k);BK.spread=0},dir);
+}
+function renderBook(tab,spread){
+  tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
+  bkBuild(tab);BK.spread=Math.max(0,Math.min(spread||0,bkSpreads()-1));
+  const bar=el("div",{class:"bk-tabs",role:"tablist"},BOOK_TABS.map(([k,l,c])=>{const b=el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>bkSwitch(k)},l);b.dataset.k=k;return b}));
+  const prev=el("button",{class:"chip bkprev",onclick:()=>bkGo(BK.spread-1)},"‹ Previous"),next=el("button",{class:"chip bknext",onclick:()=>bkGo(BK.spread+1)},"Next ›");
+  const ctl=el("div",{class:"bkctl"},el("span",{class:"grow"}),prev,el("span",{class:"cbind"}),next);
+  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"})),ctl));
+  openModal("book");
+  bkFill();
+  const pagesEl=sh.querySelector(".bkpages");pagesEl.addEventListener("toggle",()=>requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),BK.tab)),true);
+}
+document.addEventListener("keydown",e=>{
+  if((e.key!=="ArrowRight"&&e.key!=="ArrowLeft")||!document.querySelector("#sheet .bkpages:not(.cbpages)"))return;
+  const a=document.activeElement;if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"))return;
+  bkGo(BK.spread+(e.key==="ArrowRight"?1:-1));
+});
 function atlasPages(){
   const tot=total(),F=S.found,nFound=playable.filter(f=>F.has(f.id)).length,got=ACH.filter(a=>S.ach[a.id]).length;
   const bar=el("div",{class:"bar",style:"width:100%;margin:2px 0 14px"});
@@ -3972,37 +4057,8 @@ function atlasPages(){
   add("Best first-try streak",S.bestStreak||0);
   add("Expeditions completed",`${EXPS.filter(e=>S.expDone[e.id]).length} of ${EXPS.length}`);
   add("Stamps",`${got} of ${ACH.length}`);
-  const L=[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} of ${tot} countries discovered`),bar,dl];
-  const R=[el("h3",{style:"margin-top:2px"},"Every country")];
-  REGIONS.forEach(r=>{
-    const ids=playable.filter(f=>inReg(f.id,r)).map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
-    const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
-    R.push(el("details",{class:"adet"},
-      el("summary",{},el("span",{class:"swatch",style:`background:var(--c-${r})`}),r,el("small",{},`${n}/${ids.length} found \u00B7 ${st} studied \u00B7 ${ms}\u2605`)),
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))));
-  });
-  return [L,R];
-}
-function stampPages(){
-  const got=ACH.filter(a=>S.ach[a.id]).length,half=Math.ceil(ACH.length/2);
-  const grid=list=>el("div",{class:"stamps bkstamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
-  return [[el("h2",{},"Stamp Book"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]];
-}
-function expPages(){
-  const sel=EXPS.find(e=>e.id===expSel)||EXPS[0],L=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys. Each country you find counts toward every journey it is in.")];
-  EXPS.forEach(e=>{
-    const ids=expIds(e),n=ids.filter(id=>S.found.has(id)).length;
-    L.push(el("button",{class:"expcard"+(e.id===sel.id?" on":""),onclick:()=>{expSel=e.id;sndTick();renderBook("exp")}},el("b",{},e.name),el("small",{},`${n} of ${ids.length}`+(n===ids.length?" \u2713":"")),el("div",{class:"ebar"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`}))));
-  });
-  const ids=expIds(sel).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),n=ids.filter(id=>S.found.has(id)).length,next=ids.find(id=>!S.found.has(id));
-  const R=[el("h2",{},sel.name),el("p",{style:"margin:4px 0 12px;color:var(--ink-soft);font-size:14.5px"},sel.blurb),
-    el("h3",{style:"margin:0 0 6px"},n===ids.length?"Complete":`${n} of ${ids.length} places`),
-    el("div",{class:"ebar",style:"margin:0 0 14px"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`})),
-    el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))];
-  if(next)R.push(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn primary",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(next)}},"Visit the next place")));
-  return [L,R];
-}
-function setSound(v){
+  return [[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} of ${tot} countries discovered`),bar,dl]];
+}function setSound(v){
   S.sound=v;save();
   if(S.sound){if(AC("mus")){if(S.mode==="speed"&&R.phase==="run")startMusic()}sndTick();audioGesture()}
   else{stopMusic();applyVol()}

@@ -369,6 +369,14 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bk-tab::after{content:"";position:absolute;left:0;right:0;top:0;height:35%;border-radius:10px 10px 0 0;background:linear-gradient(rgba(255,255,255,.2),transparent);pointer-events:none}
 .bk-tab:hover{opacity:1}
 .bk-tab[aria-selected="true"]{opacity:1;transform:translateY(0);height:38px;margin-top:-3px;box-shadow:none}
+/* on a computer the bookmarks stick out of the right-hand edge of the book, like the tabs of a real notebook */
+@media (min-width:721px){
+  .bk-tabs{left:auto;right:-30px;top:64px;flex-direction:column;gap:7px}
+  .bk-tab{height:auto;width:33px;padding:16px 0;border-radius:0 10px 10px 0;writing-mode:vertical-rl;letter-spacing:.04em;transform:translateX(-5px);box-shadow:inset -10px 0 10px -10px rgba(0,0,0,.35)}
+  .bk-tab::before{inset:3px 0 3px 3px;border:1.2px dashed rgba(255,255,255,.45);border-left:0;border-radius:0 7px 7px 0}
+  .bk-tab::after{left:0;right:auto;top:0;bottom:0;width:38%;height:auto;border-radius:0 10px 10px 0;background:linear-gradient(90deg,rgba(255,255,255,.2),transparent)}
+  .bk-tab[aria-selected="true"]{transform:translateX(0);height:auto;width:38px;margin-top:0;box-shadow:none}
+}
 .expcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px 11px;margin:0 0 8px;cursor:pointer}
 .expcard.on{border-color:var(--ink)}
 .expcard b{font-family:var(--serif);font-weight:500;font-size:16.5px}

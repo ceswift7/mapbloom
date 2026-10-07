@@ -1273,7 +1273,7 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
   const tm=d3.timer(()=>{
     const k=Math.min(1,(performance.now()-T0)/FALL),p=v.projection(ll),e=k*k;
     drop.attr("cx",p[0]).attr("cy",p[1]-(fast?36:60)*(1-e)).attr("r",6-2.5*e).attr("opacity",k<1?.95:0);
-    if(k>=1){tm.stop();drop.remove();impact()}
+    if(k>=1){tm.stop();drop.remove()}
   });
   function impact(){
     if(!fast)sndDrop();rings(ll,col,fast,v);
@@ -3017,10 +3017,10 @@ function introPlay(){
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
   const order=shuffle([0,1,2,3,4,5,6,7],Math.random),pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
   order.forEach((li,n)=>{
-    const L=letters[li],start=n*135+Math.random()*90;
+    const L=letters[li],start=n*150;   // an even tick: one drop every 150 ms, none early or late
     introLater(()=>{
       if(introState!=="run")return;
-      const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2),H0=240+Math.random()*180;
+      const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2),H0=300;
       const drop=document.createElement("i"),ring=document.createElement("i"),ring2=document.createElement("i");drop.className="intro-drop";ring.className="intro-ring";ring2.className="intro-ring r2";
       drop.style.background=RB[li][0];ring.style.borderColor=RB[li][0];ring2.style.borderColor=RB[li][1];
       introEl.append(drop,ring,ring2);drop.style.opacity=1;
@@ -3028,8 +3028,10 @@ function introPlay(){
       const tm=d3.timer(()=>{
         const k=Math.min(1,(performance.now()-t0)/FALL2),e=k*k*(.35+.65*k);
         drop.style.transform=`translate(${dx}px,${dy-(1-e)*H0}px)`;
-        if(k>=1){tm.stop();drop.remove();impact()}
-      });      function impact(){
+        if(k>=1){tm.stop();drop.remove()}
+      });
+      introLater(impact,FALL2);   // the impact and its sound are on a clock of their own, so a slow frame can never shift the beat
+      function impact(){
         if(introState!=="run")return;
         audioReady(()=>{sndIntroDrop(262*pent[n]);if(n===0)sndBloom(false)});
         ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);

@@ -1345,6 +1345,39 @@ function cvColors(){
 /* the paper: a single small tile of fibre specks and soft mottling, built once per theme and used as the body background (static: it never costs a frame) */
 const benchEl=document.getElementById("bench"),benchCtx=benchEl.getContext("2d");let benchTm=0;
 function benchSoon(){if(benchTm)return;benchTm=setTimeout(()=>{benchTm=0;benchDraw()},90)}
+/* the night bench: in the dark theme the margins become a night sky. A faint milky way, scattered stars, a crescent moon, and one star for every country you have found,
+   in its region's colour, joined to its neighbours by thin constellation lines (drawn once, never per frame) */
+function benchNight(c,w,h,gx,gy,R0){
+  let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  const spark=(x,y,r,a,col)=>{c.fillStyle=col||`rgba(225,232,255,${a})`;c.beginPath();c.moveTo(x,y-r);c.quadraticCurveTo(x,y,x+r,y);c.quadraticCurveTo(x,y,x,y+r);c.quadraticCurveTo(x,y,x-r,y);c.quadraticCurveTo(x,y,x,y-r);c.fill()};
+  // milky way: a wide soft diagonal band
+  c.save();c.translate(w*.5,h*.5);c.rotate(-.5);
+  for(let i=-6;i<=6;i++){const x=i*w*.11,g=c.createRadialGradient(x,0,0,x,0,h*.34);g.addColorStop(0,"rgba(150,165,235,.05)");g.addColorStop(.5,"rgba(130,120,210,.025)");g.addColorStop(1,"rgba(120,120,200,0)");c.fillStyle=g;c.fillRect(x-h*.4,-h*.4,h*.8,h*.8)}
+  c.restore();
+  // soft coloured clouds, one tint per continent you have found something in
+  const seen={};[...S.found].forEach(id=>{const f=FACTS[id];if(f)seen[f.r]=(seen[f.r]||0)+1});
+  Object.keys(seen).forEach((r,i)=>{const col=d3.color(CV.p[r]);if(!col)return;const a=seeded("neb-"+r),x=(.12+a()*.76)*w,y=(.1+a()*.8)*h,rad=Math.min(w,h)*(.22+Math.min(.18,seen[r]/180)),g=c.createRadialGradient(x,y,0,x,y,rad);
+    g.addColorStop(0,col.copy({opacity:.07}).formatRgb());g.addColorStop(1,col.copy({opacity:0}).formatRgb());c.fillStyle=g;c.fillRect(x-rad,y-rad,rad*2,rad*2)});
+  // scattered stars
+  for(let i=0;i<Math.round(w*h/5200);i++){const x=rnd()*w,y=rnd()*h,b=rnd();c.fillStyle=`rgba(${b>.8?"255,236,205":"215,225,255"},${.12+b*.4})`;c.beginPath();c.arc(x,y,.35+b*.9,0,6.2832);c.fill();if(b>.965)spark(x,y,3.2+b*2,.5)}
+  // crescent moon and a shooting star
+  c.fillStyle="rgba(255,240,205,.22)";c.beginPath();c.arc(w*.9,h*.13,13,0,6.2832);c.arc(w*.9+6,h*.13-4,12,0,6.2832,true);c.fill("evenodd");
+  {const x=w*.16,y=h*.2,g=c.createLinearGradient(x,y,x+90,y+34);g.addColorStop(0,"rgba(235,240,255,.55)");g.addColorStop(1,"rgba(235,240,255,0)");c.strokeStyle=g;c.lineWidth=1.3;c.lineCap="round";c.beginPath();c.moveTo(x,y);c.lineTo(x+90,y+34);c.stroke();spark(x,y,4.5,.75)}
+  // one star per found country, joined by thin lines
+  const pts=[];
+  [...S.found].forEach(id=>{
+    const f=FACTS[id];if(!f)return;const r=seeded("bench-"+id),col=d3.color(CV.p[f.r]);if(!col)return;
+    for(let t=0;t<14;t++){
+      const ang=r()*6.2832,dist=R0*(1.1+r()*1.4),px=gx+Math.cos(ang)*dist,py=gy+Math.sin(ang)*dist,sz=2+r()*3.2;
+      if(px<12||px>w-12||py<12||py>h-12)continue;
+      pts.push({x:px,y:py,col,sz});break}
+  });
+  c.lineWidth=.7;
+  pts.forEach((p,i)=>{let n=0;for(let j=i-1;j>=0&&n<2;j--){const q=pts[j],d=Math.hypot(p.x-q.x,p.y-q.y);if(d<150){c.strokeStyle=`rgba(200,214,255,${.09-d/2400})`;c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();n++}}});
+  pts.forEach(p=>{
+    const g=c.createRadialGradient(p.x,p.y,0,p.x,p.y,p.sz*5);g.addColorStop(0,p.col.copy({opacity:.3}).formatRgb());g.addColorStop(1,p.col.copy({opacity:0}).formatRgb());c.fillStyle=g;c.fillRect(p.x-p.sz*5,p.y-p.sz*5,p.sz*10,p.sz*10);
+    c.fillStyle=p.col.copy({opacity:.95}).formatRgb();c.beginPath();c.arc(p.x,p.y,p.sz*.5,0,6.2832);c.fill();if(p.sz>4.4)spark(p.x,p.y,p.sz*2,.45)});
+}
 /* the cartographer's bench: faint pencil arcs, a ruler edge, brush tests and a cup ring, plus a splatter of colour in the margins for every country you have found (drawn once, never per frame) */
 function benchDraw(){
   const dpr=Math.min(1.25,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
@@ -1352,6 +1385,7 @@ function benchDraw(){
   const c=benchCtx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
   if(S.mode==="speed"||!CV.p)return;
   const dark=isDark(),gx=stageLeft+W/2,gy=stageTop+cy(),R0=baseScale*1.07,ink=dark?"235,225,205":"90,70,45";
+  if(dark){benchNight(c,w,h,gx,gy,R0);return}
   c.lineCap="round";c.lineWidth=1;
   c.strokeStyle=`rgba(${ink},${dark?.07:.09})`;
   for(const k of[1.32,1.62]){c.beginPath();c.arc(gx,gy,R0*k,Math.PI*.1,Math.PI*.9);c.stroke();c.beginPath();c.arc(gx,gy,R0*k,Math.PI*1.1,Math.PI*1.9);c.stroke()}

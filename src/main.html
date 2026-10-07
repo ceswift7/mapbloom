@@ -2776,6 +2776,8 @@ function leafTurn(pg,dir,mkL,mkR,done){
   front.append((fwd?rp:lp).cloneNode(true));back.append(fwd?mkL():mkR());leaf.append(front,back);
   if(fwd){rp.replaceWith(mkR())}else{lp.replaceWith(mkL())}
   pg.append(leaf);
+  const sh=[{boxShadow:"0 0 0 rgba(40,25,10,0)"},{boxShadow:"0 0 28px rgba(40,25,10,.28)",offset:.18},{boxShadow:"0 0 28px rgba(40,25,10,.28)"}];   // the leaf's shadow grows in as it lifts, so nothing pops on the page beside it
+  front.animate(sh,{duration:ms,fill:"forwards"});back.animate(sh,{duration:ms,fill:"forwards"});
   const a=leaf.animate(fwd?[{transform:"rotateY(0deg)"},{transform:"rotateY(-180deg)"}]:[{transform:"rotateY(0deg)"},{transform:"rotateY(180deg)"}],{duration:ms,easing:"cubic-bezier(.45,.05,.25,1)",fill:"forwards"});
   a.onfinish=()=>{
     if(!pg.isConnected){leaf.remove();return}   // a turn that finishes after the book was closed or replaced must not touch the new one

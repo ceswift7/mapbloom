@@ -160,8 +160,8 @@ void main(){
   {   // a separate paper-grain plane wrapped around the earth: it is fixed to the map, so it turns with every drag (mip-mapped: never aliases)
     float cpp=1.0/(uS*max(z,0.2));
     float k2=clamp(1.0-cpp*1300.0*0.9,0.0,1.0);
-    float gr=(textureGrad(uGrain,uv,gx,gy).r-0.5)*0.9+(vnp(vec2(lon,lat)*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.45;
-    col*=1.0+gr*0.26;
+    float gr=(textureGrad(uGrain,uv*3.0,gx*3.0,gy*3.0).r-0.5)*0.9+(vnp(vec2(lon,lat)*1300.0+vec2(5.0,3.0),8168.0)-0.5)*k2*0.45;
+    col*=1.0+gr*0.19;
   }
   col=mix(col,uEdge.rgb,uEdge.a*clamp(1.15-(1.0-rr)*uS,0.0,1.0)*step(0.0,(1.0-rr)*uS));   // thin limb line
   oC=vec4(col*cov,cov);
@@ -232,7 +232,7 @@ function glInitGL(){
     const GW=isTouch?2048:4096,GH=GW/2,data=new Uint8Array(GW*GH);let x=2463534242;
     for(let i=0;i<data.length;i++){x^=x<<13;x^=x>>>17;x^=x<<5;data[i]=x&255}
     const t=GLc.createTexture();GLc.bindTexture(GLc.TEXTURE_2D,t);
-    GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.CLAMP_TO_EDGE);
+    GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.REPEAT);
     GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR_MIPMAP_LINEAR);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MAG_FILTER,GLc.LINEAR);
     GLc.pixelStorei(GLc.UNPACK_ALIGNMENT,1);GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.R8,GW,GH,0,GLc.RED,GLc.UNSIGNED_BYTE,data);GLc.generateMipmap(GLc.TEXTURE_2D);
     GLc.pixelStorei(GLc.UNPACK_ALIGNMENT,4);glT.grain=t;

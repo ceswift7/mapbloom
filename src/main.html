@@ -112,12 +112,13 @@ function buildMid(){
 const JR_SEC=[["g","The land"],["c","People and culture"],["f","Food and dishes"],["h","A short history"],["n","Where the name comes from"]];
 function jrSecs(id){const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];return JR_SEC.filter(([k])=>k==="f"?!!(fd&&fd.x):!!L[k]).map(x=>x[0])}
 function jrObj(id){const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]});if(!j.s)j.s=[];if(!j.p)j.p=[];if(!j.g)j.g=[];return j}
-const Q_SKIP=new Set("826:f,826:n,784:n,780:f,762:f,705:n,702:n,690:f,646:n,643:f,591:f,516:f,508:f,499:f,498:n,450:n,388:f,364:f,360:f,276:f,242:h,214:f,212:f,180:f,174:f,174:n,120:f,070:f,204:n,112:f".split(","));   // page sections with no quizzable material (filled in from the offline audit)
-function jrQSecs(id){return jrSecs(id).filter(k=>!Q_SKIP.has(id+":"+k))}
+   // page sections with no quizzable material (filled in from the offline audit)
+const qBranchC={};
+function jrQSecs(id){return ["g","c","f","h","n"].filter(k=>{const c=id+k;if(!(c in qBranchC))qBranchC[c]=qBuild(id,k,0).length>=3;return qBranchC[c]})}   // branches that have enough written questions
 /* progress counts lit nodes on the tree: Located, Capital, Flag, then Read, Passed (4/5) and Gold (5/5) for every page */
 function jrDone(id){
   const j=S.jr[id]||{},s=j.s||[],p=j.p||[],g=j.g||[];
-  return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrQSecs(id).reduce((n,k)=>n+(s.includes(k)?1:0)+((p.includes(k)||g.includes(k))?1:0)+(g.includes(k)?1:0),0);
+  const pg=jrSecs(id);return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrQSecs(id).reduce((n,k)=>n+((s.includes(k)||!pg.includes(k))?1:0)+((p.includes(k)||g.includes(k))?1:0)+(g.includes(k)?1:0),0);
 }
 function jrTotal(id){return 3+3*jrQSecs(id).length}
 /* Found: located. Studied: every page read. Mastered: capital, flag and a perfect 5/5 on every page quiz. */
@@ -291,7 +292,7 @@ function drawBookMarks(cv,tab){
     c.beginPath();c.moveTo(x+l-5,y-13);c.lineTo(x+l+5,y-3);c.moveTo(x+l+5,y-13);c.lineTo(x+l-5,y-3);c.stroke();c.beginPath();c.arc(x,y,3,0,6.28);c.stroke()};
   const compass=(x,y)=>{pencil();c.beginPath();c.arc(x,y,16,.4,2.9);c.stroke();c.beginPath();c.arc(x,y,16,3.5,5.9);c.stroke();c.beginPath();c.arc(x,y,2,0,6.28);c.stroke();c.beginPath();c.moveTo(x,y-22);c.lineTo(x,y-10);c.moveTo(x,y+10);c.lineTo(x,y+22);c.stroke()};
   const dots=(x,y)=>{pencil();for(let k=0;k<5;k++){c.beginPath();c.arc(x+k*9,y+Math.sin(k*1.7)*3,1,0,6.28);c.stroke()}};
-  const SETS={atlas:{l:["star","tick"],r:["route"]},stamps:{l:["blot","tick"],r:["smudge","compass"]},exp:{l:["route","blot"],r:["star","smudge","dots"]}}[tab]||{l:[],r:[]};
+  const SETS={atlas:{l:["star","tick"],r:["route"]},stamps:{l:["blot","tick"],r:["smudge","compass"]},exp:{l:["route","blot"],r:["star","dots"]}}[tab]||{l:[],r:[]};
   [["l",bp.querySelector(".bkpage.l")],["r",bp.querySelector(".bkpage.r")]].forEach(([side,pg])=>{
     if(!pg||pg.scrollHeight>pg.clientHeight+1)return;
     const r=pg.getBoundingClientRect(),x0=r.left-br.left,y0=r.top-br.top,pw=r.width,ph=r.height;
@@ -559,12 +560,14 @@ function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(nu
    each island is big enough to tap. Tiny countries outside a group get a beacon.
    ====================================================================== */
 const gBeacon=svg.append("g"),gPills=svg.append("g");
-const LENS_OF={Caribbean:"Caribbean",Polynesia:"Pacific",Micronesia:"Pacific",Melanesia:"Pacific"};
-const lensOf=id=>LENS_OF[FACTS[id].grp]||null;
+const LENS_IDS=new Set(["028","052","212","308","659","662","670"]);   // the tiny Lesser Antilles; every other island stands on the main map
+const lensOf=id=>LENS_IDS.has(id)?"Lesser Antilles":null;
+const PAC_IDS=playable.map(f=>f.id).filter(id=>["Polynesia","Micronesia","Melanesia"].includes(FACTS[id].grp));
 const GR={};
 playable.forEach(f=>{const g=lensOf(f.id);if(g)(GR[g]=GR[g]||{name:g,ids:[]}).ids.push(f.id)});
 Object.values(GR).forEach(g=>{g.pts=g.ids.map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]]);g.c=d3.geoCentroid({type:"MultiPoint",coordinates:g.pts});g.label=g.name});
-const BEACON=playable.map(f=>f.id).filter(id=>!lensOf(id)&&(FACTS[id].a<9000||FACTS[id].grp));
+const BEACON=playable.map(f=>f.id).filter(id=>!lensOf(id)&&FACTS[id].a<9000);
+const PAC={name:"Pacific",ids:PAC_IDS,c:d3.geoCentroid({type:"MultiPoint",coordinates:PAC_IDS.map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]])})};
 
 const lensEl=$("lens"),lensWrap=$("lensWrap"),lsvg=d3.select("#lensSvg");
 const lView=lsvg.append("g");
@@ -606,6 +609,16 @@ const pillList=Object.values(GR).map((g,gi)=>{
     .on("click",()=>tap(id,LL(id))).on("pointermove",ev=>onMove(ev,{id})).on("pointerleave",clearHover);
   return {id,g:ge,c,diam:2*Math.sqrt(FACTS[id].a/Math.PI)/6371};
 });
+{const e=gPills.append("g").attr("class","pill hide").attr("tabindex",0).attr("role","button").attr("aria-label","Zoom into the Pacific islands");
+  e.append("title").text("Pacific islands: tap to zoom in");
+  const body=e.append("g").attr("class","bub-body");
+  body.append("circle").attr("class","bub-shadow").attr("r",BR+.5).attr("cy",2.2);
+  body.append("circle").attr("class","bub-sea").attr("r",BR);
+  body.append("circle").attr("class","bub-ring").attr("r",BR-.5);
+  PAC.cnt=e.append("text").attr("class","bub-cnt").attr("y",4).attr("text-anchor","middle");
+  PAC.lab=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle").text("Pacific");
+  const go=()=>{sndTick();flyTo(PAC.c,900,3.2)};
+  e.on("click",ev=>{ev.stopPropagation();go()}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go()}});PAC.el=e}
 function positionIslands(cen){
   const s=baseScale*zoomK;
   pillList.forEach(g=>{
@@ -613,13 +626,15 @@ function positionIslands(cen){
     if(!p)return;
     g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`).classed("hide",!vis||(lensOpen&&lensG===g));
   });
+  if(PAC.el){const p=projection(PAC.c),show=cen&&p&&d3.geoDistance(PAC.c,cen)<1.2&&zoomK<2.2&&!lensOpen;PAC.show=!!show;PAC.el.classed("hide",!show);if(p)PAC.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`)}
   beaconList.forEach(b=>{
-    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16;
+    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16&&!(PAC.show&&PAC_IDS.includes(b.id));
     b.g.attr("display",vis?null:"none");if(vis)b.g.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);
   });
 }
 function updatePills(){
   const F=cf();
+  if(PAC.cnt){const n=PAC_IDS.filter(id=>F.has(id)).length;PAC.cnt.text(`${n}/${PAC_IDS.length}`);PAC.el.classed("done",n===PAC_IDS.length)}
   pillList.forEach(g=>{const n=g.ids.filter(id=>F.has(id)).length;g.cnt.text(`${n}/${g.ids.length}`);g.el.classed("done",n===g.ids.length);g.dots.classed("found",id=>F.has(id)).style("fill",id=>F.has(id)?artColor(id):null).style("stroke",id=>F.has(id)?artColor(id):null)});
   beaconList.forEach(b=>{const on=F.has(b.id);b.c.classed("found",on).style("fill",on?(()=>{const k=ensureArt(b.id);if(CANVAS)ensureArtSvg(k);return `url(#af-${k})`})():null)});
 }
@@ -717,6 +732,7 @@ const zoom=d3.zoom().scaleExtent([.8,8]).clickDistance(5)
     lastT=t;markMoving();requestRender();
   })
   .on("end",()=>{scheduleDrift()});
+zoom.wheelDelta(e=>-e.deltaY*(e.deltaMode===1?.05:e.deltaMode?1:.002)*(e.ctrlKey?10:(e.deltaMode===0&&Math.abs(e.deltaY)>=50?1.8:1)));   // mouse-wheel notches zoom faster; trackpads keep their feel
 svg.call(zoom).on("dblclick.zoom",null);
 
 svg.on("keydown",e=>{
@@ -2013,7 +2029,7 @@ let flyR=null;
 function syncChips(){document.querySelectorAll(".chip[data-r]").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.r===flyR)))}
 ["World",...REGIONS].forEach(r=>{
   const b=document.createElement("button");b.className="chip";b.dataset.r=r;b.setAttribute("aria-pressed","false");
-  b.innerHTML=(r==="World"?"":`<span class="swatch" style="background:var(--c-${r})"></span>`)+`${r==="World"?"Whole world":r} <span class="n"></span>`;
+  b.innerHTML=(r==="World"?"":`<span class="swatch" style="background:var(--c-${r})"></span>`)+`${r==="World"?"Earth":r} <span class="n"></span>`;
   b.onclick=()=>{
     if(S.mode!=="wander")return;
     sndTick();flyR=r;syncChips();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);
@@ -2167,88 +2183,104 @@ const QT_PEOPLE=[
     const w=Q_BRACKETS.map((b,i)=>i===bi?null:b[2]).filter(Boolean).sort((a,b)=>Math.abs(Q_BRACKETS.findIndex(x=>x[2]===a)-bi)-Math.abs(Q_BRACKETS.findIndex(x=>x[2]===b)-bi));
     return qMk(`About how many people live in ${qNm(id)}?`,Q_BRACKETS[bi][2],w.slice(0,3),`${qNm(id)} has about ${popTxt(p)} people.`,()=>p>=Q_BRACKETS[bi][0]&&p<Q_BRACKETS[bi][1],r)}
 ];
-/* ---- text-based templates: every answer is checked against the page text ---- */
-const qTxtC={},qWC={},qDFc={};
-function qTextOf(id,key){const c=id+key;if(c in qTxtC)return qTxtC[c];const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];const t=key==="f"?(fd&&fd.x):key==="h"?[L.h,L.m].filter(Boolean).join("\n"):L[key];return qTxtC[c]=paras(tidyText(t||"")).filter(p=>!/^[a-z]/.test(p)).join(" ")}
-const Q_GEN=new Set("traditional cuisine cuisines include includes including included their which these there other others also often among between during around about while where within history country countries people language languages first called known named origin because through under after before since another several various popular common modern ancient early late century centuries period period during region regions people's however although whose would could should being become became became later today national united state states world made makes making large largest small smaller many most more less their there then thus well such much".split(" "));
-let qStems=null;
-function qStemSet(){if(qStems)return qStems;qStems=new Set();playable.forEach(f=>{const n=FACTS[f.id].n.toLowerCase().replace(/^the\s+/,"");qStems.add(n.slice(0,5));qStems.add(n.slice(0,4))});return qStems}
-function qWordsOf(id,key){
-  const c=id+key;if(qWC[c])return qWC[c];
-  const set=new Set(),st=qStemSet();
-  (qTextOf(id,key).toLowerCase().match(/[a-z\u00E0-\u024F]{5,}/g)||[]).forEach(w=>{if(!Q_GEN.has(w)&&!st.has(w.slice(0,5))&&!st.has(w.slice(0,4)))set.add(w)});
-  return qWC[c]=set;
-}
-function qDf(key){if(qDFc[key])return qDFc[key];const m=new Map();playable.forEach(f=>qWordsOf(f.id,key).forEach(w=>m.set(w,(m.get(w)||0)+1)));return qDFc[key]=m}
-let qGlob=null;
-function qGlobal(){   // how often each word occurs across every page of every country: common words are never used as answers
-  if(qGlob)return qGlob;qGlob=new Map();
-  playable.forEach(f=>{const L=LEARN[f.id]||{},fd=typeof FOOD!=="undefined"&&FOOD[f.id];[L.o,L.n,L.h,L.m,L.g,L.c,fd&&fd.x].forEach(t=>{if(t)(tidyText(t).toLowerCase().match(/[a-z\u00E0-\u024F]{5,}/g)||[]).forEach(w=>qGlob.set(w,(qGlob.get(w)||0)+1))})});
-  return qGlob;
-}
-const qDistinct=(id,key)=>[...qWordsOf(id,key)].filter(w=>qGlobal().get(w)<=4&&qDf(key).get(w)<=3);
-const qAllText=id=>["o","n","h","m","g","c"].map(k=>tidyText((LEARN[id]||{})[k]||"")).join(" ").toLowerCase()+" "+((typeof FOOD!=="undefined"&&FOOD[id])?tidyText(FOOD[id].x).toLowerCase():"");
-function qSentsOf(id,key){const out=[];qTextOf(id,key).replace(/([.!?])\s+(?=[A-Z"\u201C])/g,"$1\u0001").split("\u0001").forEach(s=>{s=s.trim();if(s.length>=35&&s.length<=230&&!/[\[\]{}]/.test(s))out.push(s)});return out}
-let qNameRx=null;
-function qMask(s,id){
-  if(!qNameRx){const names=[...new Set(playable.map(f=>FACTS[f.id].n))].sort((a,b)=>b.length-a.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));qNameRx=new RegExp("\\b("+names.join("|")+")\\b","g")}
-  const full=FACTS[id].n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),stem=FACTS[id].n.replace(/^(The|Republic of|Kingdom of|United)\s+/i,"").slice(0,5).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-  return s.replace(new RegExp("\\b(the\\s+)?"+full+"\\b","gi"),"[country]").replace(new RegExp("\\b"+stem+"\\w*","gi"),"[country]").replace(qNameRx,"another country");
-}
-const qPropC={},Q_LOWBAD=/(ly|ing|ed|ive|ous|ful|ness|ment|ally|ies)$/;
-function qPropOf(id,key){   // words that appear capitalised in the middle of a sentence (names of places, peoples, rulers, languages)
-  const c=id+key;if(qPropC[c])return qPropC[c];const set=new Set(),t=qTextOf(id,key);
-  for(const m of t.matchAll(/\b[A-Z][a-z\u00E0-\u024F]{4,}\b/g)){const pre=t.slice(Math.max(0,m.index-2),m.index);if(m.index>1&&!/[.!?]\s$/.test(pre)&&!/["\u201C(]$/.test(pre))set.add(m[0].toLowerCase())}
-  return qPropC[c]=set;
-}
-function qWordQ(key){return (id,r,st)=>{
-  const mine=shuffle(qDistinct(id,key).filter(w=>!st.w.has(w)),r),pr=qPropOf(id,key),prop=mine.filter(w=>pr.has(w)),low=mine.filter(w=>!pr.has(w)&&!Q_LOWBAD.test(w)&&w.length>=6);
-  const useProp=prop.length>0,list=useProp?prop:low;if(!list.length)return null;
-  const w=list[0],own=qAllText(id),cand=new Set();
-  for(const o of qPeers(id,r,12,x=>qTextOf(x,key))){const po=qPropOf(o,key);for(const x of qWordsOf(o,key)){if(qGlobal().get(x)<=7&&po.has(x)===useProp&&(useProp||(!Q_LOWBAD.test(x)&&x.length>=6))&&!own.includes(x)&&!x.includes(w)&&!w.includes(x))cand.add(x)}}
-  const wr=shuffle([...cand],r).slice(0,3);if(wr.length<3)return null;st.w.add(w);
-  const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
-  return qMk(`Which of these appears on the ${qNm(id)} page about ${Q_ABOUT[key]}?`,cap(w),wr.map(cap),`\u201C${cap(w)}\u201D appears in the ${qNm(id)} page; the others do not.`,()=>qTextOf(id,key).toLowerCase().includes(w)&&wr.every(x=>!own.includes(x)),r);
-}}function qMatchQ(key){return (id,r,st)=>{
-  const mine=shuffle(qSentsOf(id,key).filter(s=>!st.s.has(s)&&qDistinct(id,key).some(w=>s.toLowerCase().includes(w))),r);if(!mine.length)return null;
-  const good=mine[0],own=qTextOf(id,key).toLowerCase(),opts=[];
-  for(const o of qPeers(id,r,10,x=>qSentsOf(x,key).length)){
-    const c=shuffle(qSentsOf(o,key).filter(s=>qDistinct(o,key).some(w=>s.toLowerCase().includes(w)&&!own.includes(w))),r);if(c.length)opts.push(qMask(c[0],o));if(opts.length>=3)break}
-  if(opts.length<3)return null;st.s.add(good);
-  return qMk(`Which of these describes ${Q_ABOUT[key]} of ${qNm(id)}?`,qMask(good,id),opts,`That sentence comes from the ${qNm(id)} page.`,()=>own.includes(good.toLowerCase().slice(0,40)),r);
-}}
-function qRevQ(key){return (id,r,st)=>{
-  const ds=qDistinct(id,key),mine=shuffle(qSentsOf(id,key).filter(s=>!st.s.has(s)&&ds.some(w=>s.toLowerCase().includes(w))),r);if(!mine.length)return null;
-  const s=mine[0],w=ds.find(x=>s.toLowerCase().includes(x));
-  const wr=qPeers(id,r,10,o=>qTextOf(o,key)&&!qTextOf(o,key).toLowerCase().includes(w)).slice(0,3);if(wr.length<3)return null;st.s.add(s);
-  return qMk(`Which country does this describe?\n\u201C${qMask(s,id)}\u201D`,qNm(id),wr.map(qNm),`That sentence comes from the ${qNm(id)} page.`,()=>qTextOf(id,key).toLowerCase().includes(w)&&wr.every(o=>!qTextOf(o,key).toLowerCase().includes(w)),r);
-}}
-/* ---- history: dated events ---- */
-function qDated(id){
-  const out=[];
-  qSentsOf(id,"h").forEach(s=>{const ys=[...new Set((s.match(/\b(1[0-9]{3}|20[0-2][0-9])\b/g)||[]))];if(ys.length===1&&s.length>=50)out.push({s,y:+ys[0],m:qMask(s.replace(ys[0],"[year]"),id)})});
-  return out;
-}
-function qPick4(list,r,gap){const sh=shuffle(list,r),out=[];for(const e of sh){if(out.every(x=>Math.abs(x.y-e.y)>=gap))out.push(e);if(out.length===4)break}return out.length===4?out:null}
-const qOrd=n=>n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
-const QT_HIST=[
-  (id,r)=>{const e=qPick4(qDated(id),r,25);if(!e)return null;const first=r()<.5,c=e.slice().sort((a,b)=>first?a.y-b.y:b.y-a.y)[0];
-    return qMk(`Which of these happened ${first?"first":"last"}?`,c.m,e.filter(x=>x!==c).map(x=>x.m),e.map(x=>x.y).sort((a,b)=>a-b).join(", ")+" (in order).",()=>e.every(x=>x===c||(first?c.y<x.y:c.y>x.y)),r)},
-  (id,r)=>{const d=shuffle(qDated(id),r);if(!d.length)return null;const e=d[0],c=Math.ceil(e.y/100),w=[c-1,c+1,c-2,c+2].filter(x=>x>=5&&x<=21);
-    return qMk(`In which century did this happen?\n\u201C${e.m}\u201D`,qOrd(c)+" century",w.map(x=>qOrd(x)+" century"),`It happened in ${e.y}.`,()=>Math.ceil(e.y/100)===c,r)},
-  (id,r)=>{const d=qDated(id);if(d.length<4)return null;const sh=shuffle(d,r),ref=sh[0],early=sh.filter(x=>x.y<=ref.y-25),late=sh.filter(x=>x.y>=ref.y+25);if(!early.length||late.length<3)return null;
-    return qMk(`Which of these happened before this? \u201C${ref.m}\u201D`,early[0].m,late.slice(0,3).map(x=>x.m),`${early[0].y} came before ${ref.y}.`,()=>early[0].y<ref.y&&late.slice(0,3).every(x=>x.y>ref.y),r)}
-];
-const QT={
-  g:[...QT_LAND,qWordQ("g"),qMatchQ("g")],
-  c:[...QT_PEOPLE,qWordQ("c"),qMatchQ("c")],
-  f:[qWordQ("f"),qWordQ("f"),qWordQ("f"),qWordQ("f"),qMatchQ("f"),qRevQ("f"),qMatchQ("f")],
-  h:[...QT_HIST,qWordQ("h"),qWordQ("h"),qMatchQ("h"),qRevQ("h")],
-  n:[qWordQ("n"),qWordQ("n"),qWordQ("n"),qWordQ("n"),qMatchQ("n"),qRevQ("n"),qMatchQ("n")]
+/* ---- written questions: facts from the authored bank QZ (quiz_*.js), wrong answers of the same type from far-off countries ---- */
+const Q_FIX={
+  cli:["Tropical rainforest","Savanna","Desert","Semi-arid","Mediterranean","Humid subtropical","Oceanic","Temperate continental","Cold continental","Subarctic","Highland / alpine","Monsoon"],
+  rel:["Christianity","Islam","Hinduism","Buddhism","Judaism","Folk religions","Non-religious"],
+  spt:["Football","Cricket","Rugby","Baseball","Basketball","Ice hockey","Volleyball","Wrestling","Tennis","Cycling","Skiing","Boxing","Athletics","Handball","Water polo","Rugby league","American football","Badminton","Gaelic football","Taekwondo"],
+  frm:["United Kingdom","France","Spain","Portugal","Netherlands","Belgium","Italy","Soviet Union","Ottoman Empire","Yugoslavia","Germany","United States","Japan","Australia","Sudan","Ethiopia","Czechoslovakia","Pakistan","Malaysia","Denmark","Sweden","Russia","Brazil","Haiti"]
 };
-function qBuild(id,key,attempt){
-  const r=seeded(`q2-${id}-${key}-${attempt}`),st={w:new Set(),s:new Set()},seen=new Set(),qs=[],T=QT[key]||[];
-  for(let pass=0;pass<4&&qs.length<5;pass++)for(const t of shuffle(T,r)){
+const Q_FAM={"Tropical rainforest":"t","Savanna":"t","Monsoon":"t","Desert":"a","Semi-arid":"a","Mediterranean":"m","Oceanic":"m","Humid subtropical":"m","Temperate continental":"c","Cold continental":"c","Subarctic":"c","Highland / alpine":"h"};
+const Q_COMMON=new Set(["Rice","Bread","Potatoes","Maize","Corn","Wheat","Beans","Fish","Cheese","Meat","Mutton","Beef","Lamb","Pork","Tea","Coffee","Wine","Beer","Football","Christianity","Islam"]);
+const qV=(id,k,t)=>{const v=(QZ[id]||{})[k];const x=v&&v[t];return x==null?null:Array.isArray(x)?x:[x]};
+const qHas=(id,k,t)=>{const v=(QZ[id]||{})[k];return !!(v&&v[t]!=null)};
+const fmtY=y=>y<0?`${-y} BC`:String(y);
+function qYears(y,r){const old=Math.abs(y)<1800,out=new Set();let g=0;while(out.size<5&&g++<80){const d=Math.round(old?15+r()*170:3+r()*38)*(r()<.5?-1:1),v=y+d;if(v!==y&&(y<0?v<0:v>0)&&v<=2025)out.add(v)}return [...out]}
+function qDist(id,k,t,r,fix){
+  const own=new Set(qV(id,k,t)||[]),bad=new Set(own);
+  qNb(id).forEach(o=>(qV(o,k,t)||[]).forEach(v=>bad.add(v)));
+  const reg=FACTS[id].r;let c=[];
+  if(fix){
+    c=shuffle(fix.filter(v=>!bad.has(v)),r);
+    const mine=[...own][0];
+    if(t==="cli"){const fam=Q_FAM[mine];c=c.filter(v=>Q_FAM[v]!==fam)}
+    if(t==="rel"){if(mine==="Christianity")c=c.filter(v=>v!=="Islam");else if(mine==="Islam")c=c.filter(v=>v!=="Christianity")}
+    if(t==="spt"&&mine!=="Football")c=c.filter(v=>v!=="Football");
+    if(t==="frm"){c=c.filter(v=>!mine.includes(v)&&!v.includes(mine))}
+  }else{
+    const nb=new Set(qNb(id));
+    qPeers(id,r,60,o=>!nb.has(o)&&qHas(o,k,t)).forEach(o=>qV(o,k,t).forEach(v=>{if(!bad.has(v)&&!c.includes(v))c.push(v)}));
+    if(t==="stp"||t==="ing"||t==="drk")c=c.filter(v=>!Q_COMMON.has(v));
+  }
+  const nmS=qNm(id).toLowerCase(),colo=/colon(y|ies|ial)|protectorate|territory|trust|trucial|condominium/i;
+  c=c.filter(v=>String(v).toLowerCase().indexOf(nmS)<0&&!(t==="emp"&&colo.test(v)));
+  if(t==="sea"){const lake=(qV(id,k,t)||[]).some(v=>/lake/i.test(v));c=c.filter(v=>/lake/i.test(v)===lake)}
+  return c.slice(0,6);
+}
+const Q_WORD={
+  hi:["What is the highest point in {n}?","The highest point in {n} is which of these?"],
+  riv:["Which of these rivers flows through {n}?","{n} is crossed by which of these rivers?"],
+  sea:["Which sea or ocean borders {n}?","{n} has a coast on which of these?"],
+  rng:["Which of these is a mountain range, desert or highland region in {n}?","Which of these natural regions lies in {n}?"],
+  wond:["Which of these natural wonders or landmarks is found in {n}?","Visitors to {n} might see which of these?"],
+  cli:["Which climate is most typical of {n}?"],
+  pers:["Which of these people is from {n}?","Which of these famous people is linked to {n}?"],
+  rel:["What is the main religion in {n}?"],
+  grp:["Which of these peoples lives in {n}?"],
+  hol:["Which of these holidays or festivals is celebrated in {n}?","{n} celebrates which of these?"],
+  spt:["Which sport is the most popular in {n}?"],
+  art:["Which of these is a traditional art, music or cultural form from {n}?","{n} is known for which of these?"],
+  dish:["Which of these is a national or signature dish of {n}?","{n} is famous for which of these dishes?"],
+  drk:["Which of these drinks is typical of {n}?","People in {n} often drink which of these?"],
+  stp:["Which of these is a traditional staple food in {n}?"],
+  des:["Which of these desserts or sweets comes from {n}?","Which of these sweet treats is linked to {n}?"],
+  snk:["Which of these snacks or street foods is popular in {n}?","You might buy which of these snacks in {n}?"],
+  ing:["Which of these ingredients is closely linked to the cooking of {n}?"],
+  frm:["From whom did {n} gain independence?"],
+  emp:["Which of these ancient civilisations, empires or kingdoms is linked to {n}?","Which of these shaped the early history of {n}?"],
+  ldr:["Which of these leaders is linked to the history of {n}?","Which of these figures is part of the history of {n}?"],
+  lng:["From which language does the name {n} come?"],
+  mng:["What does the name {n} mean?"],
+  old:["Which of these was a former name of {n}?"],
+  off:["What is the official name of {n}?"],
+  who:["After whom, or what, is {n} named?"]
+};
+const Q_FIXED={cli:"cli",rel:"rel",spt:"spt",frm:"frm"};
+function qAuth(k,t){
+  return (id,r,st)=>{
+    if(t==="cli"&&FACTS[id].a>=1.5e6)return null;
+    let mine=qV(id,k,t);if(!mine)return null;
+    if(t==="emp")mine=mine.filter(v=>!/colon(y|ies|ial)|protectorate|territory|trust|trucial|condominium/i.test(v));
+    if(t==="who"){const mg=(qV(id,"n","mng")||[]).join(" ");mine=mine.filter(v=>mg.indexOf(v)<0)}
+    if(!mine.length)return null;
+    const key=k+t,used=st.n[key]||0,words=Q_WORD[t];if(used>=words.length)return null;
+    const pool=mine.filter(v=>!st.u.has(k+t+v));if(used>0&&!pool.length)return null;
+    const c=(pool.length?pool:mine)[Math.floor(r()*(pool.length?pool.length:mine.length))];
+    let fix=Q_FIXED[t]?Q_FIX[Q_FIXED[t]]:null;
+    if(t==="lng"||t==="mng"||t==="old"||t==="off"||t==="who"){fix=null}
+    let wr=qDist(id,k,t,r,fix);
+    if(t==="lng"&&wr.length<3){wr=qP().flatMap(o=>qV(o,"n","lng")||[]).filter(v=>!mine.includes(v));wr=[...new Set(shuffle(wr,r))]}
+    if(wr.length<3)return null;
+    st.n[key]=used+1;st.u.add(k+t+c);
+    return qMk(words[used].replace("{n}",qNm(id)),c,wr,`${qNm(id)}: ${mine.join(", ")}.`,()=>mine.includes(c)&&wr.slice(0,3).every(w=>!mine.includes(w)),r);
+  };
+}
+const QT_YEAR=[
+  (id,r,st)=>{const hh=(QZ[id]||{}).h||{},y=hh.ind;if(!y||st.n.ind||(hh.evt||[]).some(e=>e.y===y))return null;st.n.ind=1;const w=qYears(y,r);if(w.length<3)return null;
+    return qMk(`In which year did ${qNm(id)} gain independence?`,String(y),w.map(String),`${qNm(id)} became independent in ${y}.`,()=>true,r)},
+  ...[0,1,2].map(i=>(id,r,st)=>{const ev=((QZ[id]||{}).h||{}).evt;if(!ev||!ev.length)return null;const free=ev.filter(e=>!st.u.has("e"+e.t));if(!free.length)return null;
+    const e=free[Math.floor(r()*free.length)],w=qYears(e.y,r);if(w.length<3)return null;st.u.add("e"+e.t);
+    return qMk(`In which year did this happen: ${e.t}?`,fmtY(e.y),w.map(fmtY),`${fmtY(e.y)}.`,()=>true,r)})
+];
+const qAuthored=k=>{
+  const types={g:["hi","riv","sea","rng","wond","cli"],c:["pers","rel","grp","hol","spt","art"],f:["dish","drk","stp","des","snk","ing"],h:["frm","emp","ldr"],n:["lng","mng","old","off","who"]}[k];
+  const out=[];types.forEach(t=>{out.push(qAuth(k,t));if(Q_WORD[t].length>1)out.push(qAuth(k,t))});
+  if(k==="h")out.push(...QT_YEAR);
+  return out;
+};
+const QT={g:[...QT_LAND,...qAuthored("g")],c:[...QT_PEOPLE,...qAuthored("c")],f:qAuthored("f"),h:qAuthored("h"),n:qAuthored("n")};function qBuild(id,key,attempt){
+  const r=seeded(`q3-${id}-${key}-${attempt}`),st={n:{},u:new Set()},seen=new Set(),qs=[],T=QT[key]||[];
+  for(let pass=0;pass<3&&qs.length<5;pass++)for(const t of shuffle(T,r)){
     if(qs.length>=5)break;let q=null;try{q=t(id,r,st)}catch(e){q=null}
     if(q&&!seen.has(q.q)){seen.add(q.q);qs.push(q)}
   }
@@ -2276,12 +2308,14 @@ function mOpenPage(id,key){
   showCard(id);setExplore(true,id);
   setTimeout(()=>{const h=[...document.querySelectorAll("#learn section")].find(s=>s.querySelector("h3")&&s.querySelector("h3").textContent===Q_NAMES[key]);if(h)h.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"})},700);
 }
+const IC_BOOK='<path d="M-7 -4.2Q-3.5 -6.2 0 -3.6Q3.5 -6.2 7 -4.2V4.8Q3.5 2.8 0 5.4Q-3.5 2.8 -7 4.8Z"/><path d="M0 -3.6V5.4"/>';
+const IC_PAPER='<rect x="-6.5" y="-6.5" width="9.5" height="12.5" rx="1"/><path d="M-4 -3H0.5M-4 0H0.5M-4 3H-1"/><path class="pen" d="M0.8 5.2L6.2 -4.6L8.4 -3.3L3 6.6L0.2 7Z"/>';
 function mTree(id,j,secs){
-  const n=secs.length,xs=secs.map((k,i)=>n===1?180:34+i*(292/(n-1))),lvl=jrLevel(id),g=j.g||[],p=j.p||[],rd=j.s||[];
+  const pageSecs=jrSecs(id),n=secs.length,xs=secs.map((k,i)=>n===1?180:34+i*(292/(n-1))),lvl=jrLevel(id),g=j.g||[],p=j.p||[],rd=j.s||[];
   const seq=[["lo"],["c"],["f"]];secs.forEach(k=>seq.push([k,"r"],[k,"p"],[k,"g"]));
-  const lit=nd=>nd.length===1?(nd[0]==="lo"?S.found.has(id):nd[0]==="c"?!!j.c:!!j.f):nd[1]==="r"?rd.includes(nd[0]):nd[1]==="p"?(p.includes(nd[0])||g.includes(nd[0])):g.includes(nd[0]);
+  const lit=nd=>nd.length===1?(nd[0]==="lo"?S.found.has(id):nd[0]==="c"?!!j.c:!!j.f):nd[1]==="r"?(rd.includes(nd[0])||!pageSecs.includes(nd[0])):nd[1]==="p"?(p.includes(nd[0])||g.includes(nd[0])):g.includes(nd[0]);
   const nx=seq.find(x=>!lit(x)),isNx=(a,b)=>nx&&nx[0]===a&&nx[1]===b;
-  const node=(a,x,y,txt,on,gold,next,act)=>`<g class="nd${gold?" g":""}${on?" on":""}${next?" nx":""}" data-a="${act}"><circle cx="${x}" cy="${y}" r="12"/><text x="${x}" y="${y}">${txt}</text></g>`;
+  const node=(a,x,y,txt,on,gold,next,act)=>`<g class="nd${gold?" g":""}${on?" on":""}${next?" nx":""}" data-a="${act}"><circle cx="${x}" cy="${y}" r="12"/>${txt.startsWith("<")?`<g class="ic" transform="translate(${x} ${y})">${txt}</g>`:`<text x="${x}" y="${y}">${txt}</text>`}</g>`;
   const line=(d,on,gd)=>`<path class="tl${on?" on":""}${gd?" gd":""}" d="${d}"/>`;
   let svg="",ln="",nodes="";
   const lo=S.found.has(id),cOn=!!j.c,fOn=!!j.f;
@@ -2290,9 +2324,9 @@ function mTree(id,j,secs){
   nodes+=node("c",180,376,"C",cOn,0,isNx("c"),"cap")+`<text class="tk" x="202" y="380">Capital</text>`;
   nodes+=node("f",180,334,"F",fOn,0,isNx("f"),"flg")+`<text class="tk" x="202" y="338">Flag</text>`;
   secs.forEach((k,i)=>{
-    const x=xs[i],r=rd.includes(k),pp=p.includes(k)||g.includes(k),gg=g.includes(k);
+    const x=xs[i],r=rd.includes(k)||!pageSecs.includes(k),pp=p.includes(k)||g.includes(k),gg=g.includes(k);
     ln+=line(`M180 300 C180 286 ${x} 288 ${x} 272`,fOn&&r)+line(`M${x} 272 L${x} 226`,r)+line(`M${x} 226 L${x} 176`,pp)+line(`M${x} 176 L${x} 126`,gg,1)+line(`M${x} 114 C${x} 92 180 96 180 76`,gg,1);
-    nodes+=`<text class="lb" x="${x}" y="262">${Q_SHORT[k]}</text>`+node(k,x,226,"R",r,0,isNx(k,"r"),k+":r")+node(k,x,176,"P",pp,0,isNx(k,"p"),k+":p")+node(k,x,126,"\u2605",gg,1,isNx(k,"g"),k+":g");
+    nodes+=`<text class="lb" x="${x}" y="262">${Q_SHORT[k]}</text>`+node(k,x,226,IC_BOOK,r,0,isNx(k,"r"),k+":r")+node(k,x,176,IC_PAPER,pp,0,isNx(k,"p"),k+":p")+node(k,x,126,"\u2605",gg,1,isNx(k,"g"),k+":g");
   });
   svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
   const box=el("div",{});box.innerHTML=svg;return box;
@@ -2300,7 +2334,7 @@ function mTree(id,j,secs){
 function renderMastery(id,from){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
-  if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery")}},"\u2039 Back"));
+  if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}},"\u2039 Back"));
   sh.append(el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))));
   const tree=mTree(id,j,secs);
   tree.addEventListener("click",e=>{
@@ -2338,9 +2372,10 @@ function qDone(){
     gold?"":el("button",{class:"btn",onclick:()=>mqStart(id,key)},"Try again")));
   openModal();
 }
+let bookScroll=null;
 function masteryPages(){
   const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n)),half=Math.ceil(ids.length/2);
-  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
+  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();bookScroll=[$("sheet"),...$("sheet").querySelectorAll("*")].map((e,i)=>[i,e.scrollTop]).filter(x=>x[1]>0);renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
   const grid=list=>el("div",{class:"mgrid"},list.map(tile));
   const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
   return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`Every flag in the world. ${st} studied, ${ms} mastered. Open a flag to see its mastery path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
@@ -2440,7 +2475,7 @@ function raceRecordsBlock(cur,cv){
   const oldN=Object.entries(OLD).filter(([k,x])=>x&&x.best);
   if(oldN.length&&cv==="country")box.append(el("p",{style:"font-size:12.5px;color:var(--ink-faint)"},"Times from the earlier country lists are kept apart. Best then: "+oldN.map(([k,x])=>k+" "+fmtT(x.best,0)).join(", ")+"."));
   const x=REC[rk(cur)];
-  box.append(el("p",{style:"margin:10px 0 4px;font-weight:500"},(cur==="World"?"Whole world":cur)+", recent runs"));
+  box.append(el("p",{style:"margin:10px 0 4px;font-weight:500"},(cur==="World"?"Earth":cur)+", recent runs"));
   if(!x||!x.runs.length)box.append(el("p",{},"No races here yet. Set a time."));
   else{
     const runs=x.runs.slice(-12),svgEl=el("div",{class:"spark"});box.append(svgEl);

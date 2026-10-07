@@ -131,6 +131,14 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
+.themewash{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.tw-star{position:absolute;border-radius:50%;background:#e9eeff;opacity:0;animation:twStar .9s ease-out forwards}
+@keyframes twStar{0%{opacity:0;transform:scale(.3)}60%{opacity:.95}100%{opacity:.55;transform:scale(1)}}
+.tw-ray{position:absolute;border-radius:50%;border:2px solid rgba(255,190,70,.5);transform:translate(-50%,-50%) scale(.2);opacity:0;animation:twRay .9s ease-out forwards}
+@keyframes twRay{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+.tw-icon{position:absolute;left:50%;top:44%;width:84px;height:84px;margin:-42px 0 0 -42px;opacity:0;animation:twIcon 1s .3s cubic-bezier(.2,1.5,.4,1) forwards}
+.tw-icon svg{width:100%;height:100%;display:block}
+@keyframes twIcon{0%{opacity:0;transform:scale(.4) rotate(-40deg)}45%{opacity:1}100%{opacity:1;transform:scale(1) rotate(0)}}
 .pill,.pill:focus,.pill:active{outline:none;-webkit-tap-highlight-color:transparent}.pill *{outline:none}
 .pill:focus-visible .bub-ring{stroke:var(--focus);stroke-width:2.2}
 .bub-shadow{fill:rgba(60,45,20,.26)}

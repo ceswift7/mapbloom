@@ -131,6 +131,14 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
+.themewash{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.tw-star{position:absolute;border-radius:50%;background:#e9eeff;opacity:0;animation:twStar .9s ease-out forwards}
+@keyframes twStar{0%{opacity:0;transform:scale(.3)}60%{opacity:.95}100%{opacity:.55;transform:scale(1)}}
+.tw-ray{position:absolute;border-radius:50%;border:2px solid rgba(255,190,70,.5);transform:translate(-50%,-50%) scale(.2);opacity:0;animation:twRay .9s ease-out forwards}
+@keyframes twRay{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+.tw-icon{position:absolute;left:50%;top:44%;width:84px;height:84px;margin:-42px 0 0 -42px;opacity:0;animation:twIcon 1s .3s cubic-bezier(.2,1.5,.4,1) forwards}
+.tw-icon svg{width:100%;height:100%;display:block}
+@keyframes twIcon{0%{opacity:0;transform:scale(.4) rotate(-40deg)}45%{opacity:1}100%{opacity:1;transform:scale(1) rotate(0)}}
 .pill,.pill:focus,.pill:active{outline:none;-webkit-tap-highlight-color:transparent}.pill *{outline:none}
 .pill:focus-visible .bub-ring{stroke:var(--focus);stroke-width:2.2}
 .bub-shadow{fill:rgba(60,45,20,.26)}
@@ -3379,11 +3387,34 @@ $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
 $("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 function syncThemeBtn(){const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
-function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:()=>{S.theme=k;save();applyTheme();sndTick();renderSettings()}},l)));return w}
+/* ---- the day/night switch: a wash of the new theme spreads out from the button, the theme changes underneath it while it covers the screen,
+   and it lifts once the new globe, paper and background are all ready, so the switch never shows half-redrawn layers ---- */
+function themeWillBeDark(k){return k==="dark"||(k==="auto"&&!!window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
+let themeBusy=false;
+function themeAnimate(k,srcEl,after){
+  const dark=themeWillBeDark(k),apply=()=>{S.theme=k;save();applyTheme();clearTimeout(benchTm);benchTm=0;benchDraw();if(after)after()};
+  if(reduced||themeBusy||dark===isDark()){apply();return}
+  themeBusy=true;
+  const r=(srcEl||$("themeBtn")).getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
+  const wash=el("div",{class:"themewash"});
+  wash.style.background=dark?"radial-gradient(120% 100% at 50% 30%,#1d1b30,#0b0a13)":"radial-gradient(120% 100% at 50% 30%,#fff4d8,#efe1be)";
+  if(dark){for(let i=0;i<46;i++){const st=el("i",{class:"tw-star"}),sz=1+Math.random()*2.2;st.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;animation-delay:${(Math.random()*.5).toFixed(2)}s`;wash.append(st)}}
+  else{for(let i=0;i<5;i++){const rg=el("i",{class:"tw-ray"});rg.style.cssText=`left:${x}px;top:${y}px;animation-delay:${(i*.07).toFixed(2)}s;width:${(160+i*150)}px;height:${(160+i*150)}px`;wash.append(rg)}}
+  const ic=el("div",{class:"tw-icon"});
+  ic.innerHTML=dark?'<svg viewBox="0 0 64 64"><path fill="#fff1c9" d="M44 8a26 26 0 1 0 12 40A22 22 0 0 1 44 8z"/></svg>':'<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#ffb73b"/><g stroke="#ffb73b" stroke-width="4" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.6 5.6M44.8 44.8l5.6 5.6M13.6 50.4l5.6-5.6M44.8 19.2l5.6-5.6"/></g></svg>';
+  wash.append(ic);document.body.append(wash);
+  wash.animate([{clipPath:`circle(0px at ${x}px ${y}px)`},{clipPath:`circle(${R}px at ${x}px ${y}px)`}],{duration:620,easing:"cubic-bezier(.55,0,.25,1)",fill:"forwards"}).onfinish=()=>{
+    apply();
+    const lift=()=>{wash.animate([{opacity:1},{opacity:0}],{duration:560,easing:"ease-out",fill:"forwards"}).onfinish=()=>{wash.remove();themeBusy=false}};
+    const done=()=>setTimeout(lift,380);
+    if(GLX&&GLX.whenIdle)GLX.whenIdle(done);else done();
+  };
+}
+function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
 function syncUnit(){$("unitA").textContent=S.unit;$("unitB").textContent=S.unit==="mi"?"km":"mi"}
 function setUnit(u){S.unit=u;save();syncUnit();if($("card").classList.contains("on"))showCard(cardId,true)}
-$("themeBtn").onclick=()=>{S.theme=isDark()?"light":"dark";save();applyTheme();sndTick()};
+$("themeBtn").onclick=()=>{sndTick();themeAnimate(isDark()?"light":"dark",$("themeBtn"))};
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.theme==="auto"){syncThemeBtn();cvColors();if(CANVAS)requestRender()}});
 applyTheme();
 $("unitBtn").onclick=()=>{sndTick();setUnit(S.unit==="mi"?"km":"mi")};
@@ -5061,7 +5092,7 @@ GLX.draw=function(s,cen0){
   if(glLN){                                                      // border hairlines, always about 1 device pixel wide
     GLc.useProgram(glLProg);GLc.bindVertexArray(nbNow()?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
-    GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.6:1)/cvDpr);
+    GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.25:1)/cvDpr);
     const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[1,.96,.86,.95]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
     GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
     GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,nbNow()?glLNC:glLN);

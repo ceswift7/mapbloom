@@ -1635,10 +1635,19 @@ function drawOverlay(s,cen0,lim,lvl){
   if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
-  HC.forEach((col,id)=>one(id,col));
+  HC.forEach((col,id)=>one(id,col));hcDots(c,s);
   cvMissed.forEach(id=>one(id,CV.miss));
   if(cvHover!=null&&!cvMissed.has(cvHover)&&!HC.has(cvHover))one(cvHover,CV.hover);
   hlDraw(c,s,cen0,lim,lvl);
+}
+/* hot and cold: a guessed country too small to see gets a coloured dot, so a guess like Tonga is never invisible */
+function hcDots(c,s){
+  if(!HC.size)return;const r=projection.rotate(),cen=[-r[0],-r[1]];
+  HC.forEach((col,id)=>{
+    const px=2*Math.sqrt(FACTS[id].a/Math.PI)/6371*s;if(px>=24)return;
+    const ll=LL(id);if(d3.geoDistance(ll,cen)>1.5)return;const p=projection(ll);if(!p)return;
+    c.save();c.beginPath();c.arc(p[0],p[1],10,0,6.2832);c.fillStyle=col;c.fill();c.lineWidth=2.4;c.strokeStyle="rgba(255,255,255,.92)";c.stroke();c.restore();
+  });
 }
 /* the country a "Name it" round asks about: a soft pulsing glow, plus a ring when it is only a few pixels wide */
 function hlDraw(c,s,cen0,lim,lvl){
@@ -1715,7 +1724,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);
+  hlDraw(c,s,cen0,lim,lvl);hcDots(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){

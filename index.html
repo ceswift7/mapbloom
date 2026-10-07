@@ -3975,7 +3975,11 @@ function leafTurn(pg,dir,mkL,mkR,done){
   if(fwd){rp.replaceWith(mkR())}else{lp.replaceWith(mkL())}
   pg.append(leaf);
   const a=leaf.animate(fwd?[{transform:"rotateY(0deg)"},{transform:"rotateY(-180deg)"}]:[{transform:"rotateY(0deg)"},{transform:"rotateY(180deg)"}],{duration:ms,easing:"cubic-bezier(.45,.05,.25,1)",fill:"forwards"});
-  a.onfinish=()=>{leaf.remove();if(pg.isConnected)done()};   // a turn that finishes after the book was closed or replaced must not touch the new one
+  a.onfinish=()=>{
+    if(!pg.isConnected){leaf.remove();return}   // a turn that finishes after the book was closed or replaced must not touch the new one
+    done();   // the real pages are put in place underneath, then the leaf melts away over them, so there is no flash or texture jump at the landing
+    leaf.animate([{opacity:1},{opacity:0}],{duration:200,easing:"ease-out",fill:"forwards"}).onfinish=()=>leaf.remove();
+  };
 }
 const BOOK_TABS=[["atlas","Atlas","#6FA27E"],["stamps","Stamps","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
 function masteryPageList(){

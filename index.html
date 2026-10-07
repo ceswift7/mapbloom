@@ -794,7 +794,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>
-        <div class="actions"><button class="chip" id="silShow" type="button">Reveal</button><button class="chip" id="silSkip" type="button">Skip</button></div>
+        <div class="actions"><button class="chip" id="silShow" type="button" title="Reveal (Alt+R)">Reveal</button><button class="chip" id="silSkip" type="button" title="Skip (Alt+S)">Skip</button></div>
       </div>
     </div>
 
@@ -850,7 +850,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <img class="qflag" id="sFlag" alt="" hidden>
         <h2 class="target" id="sTarget"></h2>
         <p class="hint" id="sHint"></p>
-        <div class="actions"><button class="chip" id="skipBtn">Skip · +10s</button></div>
+        <div class="actions"><button class="chip" id="skipBtn" title="Skip (S, or Alt+S while typing)">Skip · +10s</button></div>
       </div>
     </div>
 
@@ -859,7 +859,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="bar" id="bar"></div>
     </div>
     <div class="chips" role="group" aria-label="Turn the globe to a region" id="chips"></div>
-    <button class="chip fbtn" id="showBtn" type="button">Reveal</button>
+    <button class="chip fbtn" id="showBtn" type="button" title="Reveal (R)">Reveal</button>
     <button class="chip fbtn" id="restartBtn" type="button" hidden>Restart</button>
   </footer>
 </div>
@@ -3746,6 +3746,29 @@ function fsToggle(on){
   }catch(e){}
 }
 ["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,()=>{size();const i=document.querySelector("#sheet input[aria-label='Full screen']");if(i)i.checked=!!fsEl()}));
+/* keyboard: R reveals, S skips (while typing an answer, hold Alt: Alt+R, Alt+S) */
+document.addEventListener("keydown",e=>{
+  const k=e.code==="KeyR"?"r":e.code==="KeyS"?"s":"";if(!k||e.ctrlKey||e.metaKey||introState!=="done")return;
+  if(modal.classList.contains("on"))return;
+  const a=document.activeElement,typing=!!(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"));
+  if(typing!==e.altKey)return;
+  const vis=el=>el&&!el.hidden&&el.offsetParent!==null;
+  if(S.mode==="speed"){
+    if(k==="s"&&R.phase==="run"){e.preventDefault();speedSkip()}
+    return;
+  }
+  if(S.mode!=="find"||S.qIdle)return;
+  e.preventDefault();
+  if(k==="r"){
+    if(vis($("silShow")))$("silShow").click();
+    else if(vis($("showBtn")))$("showBtn").click();
+  }else{
+    if(S.done&&vis($("nextBtn")))$("nextBtn").click();
+    else if(C.active)return;
+    else if(!S.done&&!D.active){sndTick();nextRound()}
+    else if(!S.done&&vis($("silShow")))$("silShow").click();
+  }
+});
 document.addEventListener("keydown",e=>{
   if((e.key==="f"||e.key==="F")&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&fsCan()&&introState==="done"){
     const a=document.activeElement,t=a&&a.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;

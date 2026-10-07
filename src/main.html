@@ -2645,6 +2645,29 @@ function fsToggle(on){
   }catch(e){}
 }
 ["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,()=>{size();const i=document.querySelector("#sheet input[aria-label='Full screen']");if(i)i.checked=!!fsEl()}));
+/* keyboard: R reveals, S skips (while typing an answer, hold Alt: Alt+R, Alt+S) */
+document.addEventListener("keydown",e=>{
+  const k=e.code==="KeyR"?"r":e.code==="KeyS"?"s":"";if(!k||e.ctrlKey||e.metaKey||introState!=="done")return;
+  if(modal.classList.contains("on"))return;
+  const a=document.activeElement,typing=!!(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"));
+  if(typing!==e.altKey)return;
+  const vis=el=>el&&!el.hidden&&el.offsetParent!==null;
+  if(S.mode==="speed"){
+    if(k==="s"&&R.phase==="run"){e.preventDefault();speedSkip()}
+    return;
+  }
+  if(S.mode!=="find"||S.qIdle)return;
+  e.preventDefault();
+  if(k==="r"){
+    if(vis($("silShow")))$("silShow").click();
+    else if(vis($("showBtn")))$("showBtn").click();
+  }else{
+    if(S.done&&vis($("nextBtn")))$("nextBtn").click();
+    else if(C.active)return;
+    else if(!S.done&&!D.active){sndTick();nextRound()}
+    else if(!S.done&&vis($("silShow")))$("silShow").click();
+  }
+});
 document.addEventListener("keydown",e=>{
   if((e.key==="f"||e.key==="F")&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&fsCan()&&introState==="done"){
     const a=document.activeElement,t=a&&a.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;

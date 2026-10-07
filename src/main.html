@@ -2663,8 +2663,8 @@ function openCountryBook(id,from,opts){
   const fill=()=>{
     cbTimers.forEach(clearTimeout);cbTimers=[];cbPos[id]=cur;
     bookEl.querySelectorAll(".bkpage").forEach(p=>p.remove());bookEl.prepend(mk(cur,1));bookEl.prepend(mk(cur,0));
-    bkCorners(bookEl,pages[cur*2]&&pages[cur*2].t,pages[cur*2+1]&&pages[cur*2+1].t);
-    ind.textContent=`${cur+1} of ${N}`;prev.disabled=cur===0;next.disabled=cur>=N-1;first.disabled=cur===0;
+    bkCorners(bookEl,String(cur*2+1),pages[cur*2+1]?String(cur*2+2):"");
+    prev.disabled=cur===0;next.disabled=cur>=N-1;first.disabled=cur===0;
     [cur*2,cur*2+1].forEach(i=>{const pg=pages[i];if(pg&&"gcfhn".includes(pg.k)&&pg.k!=="country"&&!(jrObj(id).s||[]).includes(pg.k))cbTimers.push(setTimeout(()=>{jrMark(id,"s",pg.k);if(cur===0){const l=bookEl.querySelector(".bkpage.l");if(l)l.replaceWith(mk(0,0))}},1500))});   // a page that stays open for a moment counts as read
   };
   const moveTo=to=>{
@@ -2672,9 +2672,9 @@ function openCountryBook(id,from,opts){
     bookEl.dataset.busy="1";sndPage();const dir=to>cur?1:-1;
     leafTurn(bookEl,dir,()=>mk(to,0),()=>mk(to,1),()=>{cur=to;fill();delete bookEl.dataset.busy});
   };
-  const first=el("button",{class:"chip",onclick:()=>moveTo(0)},"⌂ First page of "+f.n);
-  const ctl=el("div",{class:"bkctl"},prev,el("div",{class:"bkmid"},el("button",{class:"chip",onclick:back},"‹ Back to the book"),ind,first),next);
-  sh.append(closeBtn(),bkTabsBar("mastery",k=>{sndPage();cbTimers.forEach(clearTimeout);renderBook(k,k==="mastery"?BK.spread:0)}),el("div",{class:"bkcover"},bookEl,ctl));
+  const first=el("button",{class:"chip",onclick:()=>moveTo(0)},"Return");
+  const ctl=el("div",{class:"bkctl"},prev,first,next);
+  sh.append(closeBtn(),bkTabsBar("mastery",k=>{sndPage();cbTimers.forEach(clearTimeout);renderBook(k,BKpos[k]||0)}),el("div",{class:"bkcover"},bookEl,ctl));
   fill();
   openModal("book");bkFit();
   // the riffle: a handful of blank leaves whip across the spine and settle on this country
@@ -2766,7 +2766,7 @@ function qDone(){
   openModal();
 }
 let bookScroll=null;
-const BK={tab:"atlas",spread:0,pages:[],labels:null};
+const BK={tab:"atlas",spread:0,pages:[],labels:null},BKpos={};   // BKpos remembers the last spread of each tab
 /* a real page turn: the page swings right over the spine (or left back over it), its far side showing the other new page, and the next two pages lie open underneath */
 function leafTurn(pg,dir,mkL,mkR,done){
   const ms=reduced?1:780,lp=pg.querySelector(".bkpage.l"),rp=pg.querySelector(".bkpage.r");
@@ -2836,14 +2836,14 @@ function bkFill(){
   pg.querySelectorAll(".bkpage").forEach(p=>p.remove());
   pg.append(bkPage(BK,0),bkPage(BK,1));
   const n=bkSpreads(),ind=sh.querySelector(".cbind"),prev=sh.querySelector(".bkprev"),next=sh.querySelector(".bknext");
-  bkCorners(pg,BK.labels&&BK.labels[BK.spread*2],BK.labels&&BK.labels[BK.spread*2+1]);
-  if(ind)ind.textContent=n>1?`${BK.spread+1} of ${n}`:"";
+  BKpos[BK.tab]=BK.spread;
+  bkCorners(pg,String(BK.spread*2+1),BK.pages[BK.spread*2+1]?String(BK.spread*2+2):"");
   if(prev){prev.disabled=BK.spread===0;prev.style.visibility=n>1?"visible":"hidden"}
   if(next){next.disabled=BK.spread>=n-1;next.style.visibility=n>1?"visible":"hidden"}
   sh.querySelectorAll(".bk-tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.k===BK.tab)));
   requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),BK.tab));
 }
-function bkTarget(tab,spread){const r=({atlas:atlasPageList,stamps:stampPageList,exp:expPageList,mastery:masteryPageList})[tab]();return {tab,spread,pages:r.pages,labels:r.labels}}
+function bkTarget(tab,spread){const r=({atlas:atlasPageList,stamps:stampPageList,exp:expPageList,mastery:masteryPageList})[tab]();return {tab,spread:Math.max(0,Math.min(spread||0,Math.ceil(r.pages.length/2)-1)),pages:r.pages,labels:r.labels}}
 function bkMove(t,dir){
   const pg=$("sheet").querySelector(".bkpages");if(!pg||pg.dataset.busy)return;
   pg.dataset.busy="1";sndPage();
@@ -2853,13 +2853,13 @@ function bkMove(t,dir){
 function bkGo(sp){if(sp===BK.spread||sp<0||sp>=bkSpreads())return;bkMove({tab:BK.tab,spread:sp,pages:BK.pages,labels:BK.labels},sp>BK.spread?1:-1)}
 function bkSwitch(k){
   if(k===BK.tab)return;const dir=BOOK_TABS.findIndex(t=>t[0]===k)>BOOK_TABS.findIndex(t=>t[0]===BK.tab)?1:-1;
-  bkMove(bkTarget(k,0),dir);
+  bkMove(bkTarget(k,BKpos[k]||0),dir);
 }
 function renderBook(tab,spread){
   tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
-  bkBuild(tab);BK.spread=Math.max(0,Math.min(spread||0,bkSpreads()-1));
+  bkBuild(tab);BK.spread=Math.max(0,Math.min(spread==null?(BKpos[tab]||0):spread,bkSpreads()-1));
   const prev=el("button",{class:"chip bkprev",onclick:()=>bkGo(BK.spread-1)},"‹ Previous"),next=el("button",{class:"chip bknext",onclick:()=>bkGo(BK.spread+1)},"Next ›");
-  const ctl=el("div",{class:"bkctl"},prev,el("span",{class:"cbind"}),next);
+  const ctl=el("div",{class:"bkctl"},prev,el("span"),next);
   sh.append(closeBtn(),bkTabsBar(tab,bkSwitch),el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"})),ctl));
   openModal("book");
   bkFill();bkFit();

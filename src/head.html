@@ -371,10 +371,11 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bk-tab[aria-selected="true"]{opacity:1;transform:translateY(0);height:38px;margin-top:-3px;box-shadow:none}
 /* the bookmarks stick out of the top of the book, at the right-hand corner, and are always there */
 .bk-tabs{left:auto;right:56px}
-.bkctl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;position:relative;z-index:3}
+.bkctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:10px;position:relative;z-index:3}
+.bkctl>:first-child{justify-self:start}.bkctl>:last-child{justify-self:end}
 .bkmid{display:flex;align-items:center;gap:12px}
 .bkctl .chip:disabled{opacity:.35;pointer-events:none}
-.pgl,.pgr{position:absolute;bottom:9px;z-index:3;font:italic 13px var(--serif);color:var(--ink-faint);pointer-events:none;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgl,.pgr{position:absolute;bottom:9px;z-index:3;font:500 12.5px var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-faint);pointer-events:none;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pgl{left:30px}.pgr{right:30px}
 .bkpages{perspective:2400px}
 .turnleaf{position:absolute;top:0;height:100%;width:50%;z-index:5;transform-style:preserve-3d;pointer-events:none}

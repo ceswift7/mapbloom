@@ -2661,9 +2661,9 @@ function openCountryBook(id,from,opts){
   const mk=(sp,side)=>el("div",{class:"bkpage "+(side?"r":"l")},...nodesOf(sp*2+side));
   const bookEl=el("div",{class:"bkpages cbpages"});
   const prev=el("button",{class:"chip bkprev",onclick:()=>moveTo(cur-1)},"‹ Previous"),next=el("button",{class:"chip bknext",onclick:()=>moveTo(cur+1)},"Next ›"),ind=el("span",{class:"cbind"});
-  const fill=()=>{
+  const fill=kept=>{
     cbTimers.forEach(clearTimeout);cbTimers=[];cbPos[id]=cur;
-    bookEl.querySelectorAll(".bkpage").forEach(p=>p.remove());bookEl.prepend(mk(cur,1));bookEl.prepend(mk(cur,0));
+    if(!kept){bookEl.querySelectorAll(".bkpage").forEach(p=>p.remove());bookEl.prepend(mk(cur,1));bookEl.prepend(mk(cur,0))}
     bkCorners(bookEl,String(cur*2+1),pages[cur*2+1]?String(cur*2+2):"");
     prev.disabled=cur===0;next.disabled=cur>=N-1;first.disabled=cur===0;
     [cur*2,cur*2+1].forEach(i=>{const pg=pages[i];if(pg&&"gcfhn".includes(pg.k)&&pg.k!=="country"&&!(jrObj(id).s||[]).includes(pg.k))cbTimers.push(setTimeout(()=>{jrMark(id,"s",pg.k);if(cur===0){const l=bookEl.querySelector(".bkpage.l");if(l)l.replaceWith(mk(0,0))}},1500))});   // a page that stays open for a moment counts as read
@@ -2671,7 +2671,7 @@ function openCountryBook(id,from,opts){
   const moveTo=to=>{
     if(to<0||to>=N||to===cur||bookEl.dataset.busy)return;
     bookEl.dataset.busy="1";sndPage();const dir=to>cur?1:-1;
-    leafTurn(bookEl,dir,()=>mk(to,0),()=>mk(to,1),()=>{cur=to;fill();delete bookEl.dataset.busy});
+    leafTurn(bookEl,dir,()=>mk(to,0),()=>mk(to,1),kept=>{cur=to;fill(kept);delete bookEl.dataset.busy});
   };
   const first=el("button",{class:"chip",onclick:()=>moveTo(0)},"Return");
   const ctl=el("div",{class:"bkctl"},prev,first,next);
@@ -2774,15 +2774,16 @@ function leafTurn(pg,dir,mkL,mkR,done){
   if(innerWidth<720||reduced||!lp||!rp){const o=pg.animate([{opacity:1},{opacity:0}],{duration:reduced?1:180,fill:"forwards"});o.onfinish=()=>{if(!pg.isConnected)return;done();o.cancel();pg.animate([{opacity:0},{opacity:1}],{duration:reduced?1:180})};return}   // cancel the held fade-out, or the pages stay invisible
   const fwd=dir>0,leaf=el("div",{class:"turnleaf "+(fwd?"fwd":"back")}),front=el("div",{class:"tlface f"}),back=el("div",{class:"tlface b"});
   front.append((fwd?rp:lp).cloneNode(true));back.append(fwd?mkL():mkR());leaf.append(front,back);
+  const far=back.firstChild;   // the new pages are built once: this node becomes the real page at the landing, so nothing is rebuilt
   if(fwd){rp.replaceWith(mkR())}else{lp.replaceWith(mkL())}
   pg.append(leaf);
-  const sh=[{boxShadow:"0 0 0 rgba(40,25,10,0)"},{boxShadow:"0 0 28px rgba(40,25,10,.28)",offset:.18},{boxShadow:"0 0 28px rgba(40,25,10,.28)"}];   // the leaf's shadow grows in as it lifts, so nothing pops on the page beside it
+  const sh=[{boxShadow:"0 0 0 rgba(40,25,10,0)"},{boxShadow:"0 0 28px rgba(40,25,10,.28)",offset:.18},{boxShadow:"0 0 28px rgba(40,25,10,.28)",offset:.84},{boxShadow:"0 0 0 rgba(40,25,10,0)"}];   // and shrinks away as it lands, so the leaf can go without a visible change   // the leaf's shadow grows in as it lifts, so nothing pops on the page beside it
   front.animate(sh,{duration:ms,fill:"forwards"});back.animate(sh,{duration:ms,fill:"forwards"});
   const a=leaf.animate(fwd?[{transform:"rotateY(0deg)"},{transform:"rotateY(-180deg)"}]:[{transform:"rotateY(0deg)"},{transform:"rotateY(180deg)"}],{duration:ms,easing:"cubic-bezier(.45,.05,.25,1)",fill:"forwards"});
   a.onfinish=()=>{
     if(!pg.isConnected){leaf.remove();return}   // a turn that finishes after the book was closed or replaced must not touch the new one
-    done();   // the real pages are put in place underneath, then the leaf melts away over them, so there is no flash or texture jump at the landing
-    leaf.animate([{opacity:1},{opacity:0}],{duration:200,easing:"ease-out",fill:"forwards"}).onfinish=()=>leaf.remove();
+    const old=pg.querySelector(fwd?".bkpage.l":".bkpage.r");if(old)old.replaceWith(far);   // the leaf's far side takes the old page's place and the leaf goes in the same frame
+    leaf.remove();done(true);
   };
 }
 const BOOK_TABS=[["atlas","Atlas","#6FA27E"],["stamps","Stamps","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
@@ -2838,10 +2839,10 @@ function bkCorners(pg,a,b){
   pg.querySelectorAll(".pgl,.pgr").forEach(x=>x.remove());
   pg.append(el("span",{class:"pgl"},a||""),el("span",{class:"pgr"},b||""));
 }
-function bkFill(){
+function bkFill(kept){
   const sh=$("sheet"),pg=sh.querySelector(".bkpages");if(!pg)return;
-  pg.querySelectorAll(".bkpage").forEach(p=>p.remove());
-  pg.append(bkPage(BK,0),bkPage(BK,1));
+  if(!kept){pg.querySelectorAll(".bkpage").forEach(p=>p.remove());
+  pg.append(bkPage(BK,0),bkPage(BK,1))}
   const n=bkSpreads(),ind=sh.querySelector(".cbind"),prev=sh.querySelector(".bkprev"),next=sh.querySelector(".bknext");
   BKpos[BK.tab]=BK.spread;
   bkCorners(pg,String(BK.spread*2+1),BK.pages[BK.spread*2+1]?String(BK.spread*2+2):"");
@@ -2855,7 +2856,7 @@ function bkMove(t,dir){
   const pg=$("sheet").querySelector(".bkpages");if(!pg||pg.dataset.busy)return;
   pg.dataset.busy="1";sndPage();
   $("sheet").querySelectorAll(".bk-tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.k===t.tab)));
-  leafTurn(pg,dir,()=>bkPage(t,0),()=>bkPage(t,1),()=>{BK.tab=t.tab;BK.spread=t.spread;BK.pages=t.pages;BK.labels=t.labels;bkFill();delete pg.dataset.busy});
+  leafTurn(pg,dir,()=>bkPage(t,0),()=>bkPage(t,1),kept=>{BK.tab=t.tab;BK.spread=t.spread;BK.pages=t.pages;BK.labels=t.labels;bkFill(kept);delete pg.dataset.busy});
 }
 function bkGo(sp){if(sp===BK.spread||sp<0||sp>=bkSpreads())return;bkMove({tab:BK.tab,spread:sp,pages:BK.pages,labels:BK.labels},sp>BK.spread?1:-1)}
 function bkSwitch(k){

@@ -3476,7 +3476,7 @@ function showHotSheet(){
 function hotStart(){
   closeModal();
   const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
-  HOT.target=rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  $("sil").classList.remove("hotdone");HOT.target=rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
   silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
@@ -3507,7 +3507,7 @@ function hotGuess(){
 }
 function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){
-  HOT.done=true;const T=HOT.target,n=HOT.list.length;
+  HOT.done=true;$("sil").classList.add("hotdone");const T=HOT.target,n=HOT.list.length;
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
   $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;

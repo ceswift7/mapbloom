@@ -557,6 +557,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bkpage.l:has(.cbwrap){overflow:hidden}
 .cbfacts{display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;margin:0 0 4px;font-size:12.5px;font-family:var(--serif)}
 .cbfacts span{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--panel-line);padding-bottom:2px;min-width:0}
+.cbfacts b{font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .cbfacts i{font:normal 11.5px var(--sans);color:var(--ink-faint);letter-spacing:.03em;flex:none}
 .cbhead{display:flex;align-items:center;gap:12px;margin:0 0 8px}
 .cbhead img{width:48px;max-height:34px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18);flex:none}
@@ -3832,7 +3833,7 @@ function openCountryBook(id,from,opts){
   let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=Math.floor(i/2)}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],N-1);
   const sh=$("sheet");sh.innerHTML="";
   const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book")renderBook("mastery",BK.spread);else closeModal()};
-  const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),v))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Drives on the",L.d);return g};
+  const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),el("b",{title:String(v)},String(v))))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Currency",f.cur||null);add("Drives on the",L.d);return g};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
     if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}

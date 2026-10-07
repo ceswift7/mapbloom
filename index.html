@@ -4176,7 +4176,8 @@ function silGuess(){
   $("silHint").textContent=S.hints?hints.slice(0,Math.min(3,silMiss)).join(" ")+(silMiss>=3?" You can also ask to be shown.":""):"Not quite.";
   $("silIn").select();
 }
-$("silForm").onsubmit=e=>{e.preventDefault();if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
+$("silForm").onsubmit=e=>{e.preventDefault();if(S.mode==="find"&&S.done&&!S.qIdle&&!modal.classList.contains("on")){nextRound();return}   // Enter again while the answer is settling goes straight to the next question
+  if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
 $("silShow").onclick=()=>{if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
 $("silSkip").onclick=()=>{if(US.on&&S.mode!=="speed"){sndTick();usNext();return}if(nmOn&&S.mode!=="speed"){sndTick();nextRound();return}if(!silOn)return;sndTick();nextRound()};
 $("silIn").addEventListener("input",()=>{

@@ -615,6 +615,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .learn{margin-top:6px;overflow-wrap:break-word;min-width:0}
 .learn[hidden]{display:none}
 .learn section{margin-top:16px;padding-top:12px;border-top:1px dashed var(--panel-line);animation:inkin .7s both;animation-delay:calc(var(--i,0)*.07s)}
+.bkpage .learn section,.tlface .learn section{animation:none}   /* inside the book the ink-in fade would restart on every copy of a page and show as a flash */
 .learn h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:18px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
 .learn h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--p,var(--ink-faint))}
 .learn p{font-family:var(--serif);font-size:16px;line-height:1.58;margin:0 0 9px;color:var(--ink)}

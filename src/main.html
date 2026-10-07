@@ -2274,7 +2274,8 @@ function openReader(id){
   win.animate([{opacity:0,transform:"translateY(10px) scale(.98)"},{opacity:1,transform:"none"}],{duration:reduced?1:260,easing:"ease-out"});
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rdWin){e.stopPropagation();closeReader()}},true);
-function closeModal(){closeReader();modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
+function closeModal(){closeReader();try{for(const k in BKpos)delete BKpos[k];for(const k in cbPos)delete cbPos[k]}catch(e){}   // leaving the book completely forgets every page: the next visit starts at page 1
+  modal.classList.remove("on");modal.setAttribute("aria-hidden","true");scheduleDrift()}
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
 const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");

@@ -914,7 +914,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <p class="silq" id="silQ">Which country is this?</p>
         <p class="silhint" id="silHint"></p>
         <form class="silform" id="silForm" autocomplete="off">
-          <input id="silIn" type="text" placeholder="Type its name" aria-label="Country name" autocapitalize="off" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <input id="silIn" type="text" name="mb-guess" placeholder="Type a country" aria-label="Your guess" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go" data-lpignore="true" data-1p-ignore data-form-type="other">
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>

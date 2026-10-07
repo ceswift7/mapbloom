@@ -4597,6 +4597,7 @@ let GLc=null,glProg=null,glLProg=null,glLVao=null,glLN=0,glLVaoC=null,glLNC=0,gl
 const GP={on:false,busy:false,plan:null,last:0,gen:0,tex:null,cA:null,aCtx:null,pg:null,rimW:1,still:0,t0:0,sched:false};   // the deep-zoom detail patch
 const glU={},glT={land:null,art:null,art2:null};
 let glTW=4096,glTH=2048,glRimW=1.6,glAniso=null;
+const GL_WET1=5.2,GL_WET2=2.2,GL_INK=1.7;   // pooled wet edge and ink rim, in baked pixels at 4096 wide; the detail bake uses the same widths in screen pixels so the edge looks the same at every zoom
 const glPeq=d3.geoEquirectangular().precision(.25),glPath=d3.geoPath(glPeq);
 let glArt=null,glArtCtx=null,glTmp=null,glTmpCtx=null;
 let glArtState=new Map();
@@ -4733,8 +4734,8 @@ function glStartLand(){
     glPath.context(st.ctx);st.ctx.beginPath();fs.forEach(f=>glPath(f));st.ctx.fillStyle=glLandColor(key);st.ctx.fill();
     {const c0=d3.color(glLandColor(key));if(c0){const k=glTW/4096,cx=st.ctx;cx.save();cx.clip();cx.lineJoin="round";   // wet-edge pigment pool just inside every coast and border
       if(S.nb&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
-      cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=9*k;cx.stroke();
-      cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=3.5*k;cx.stroke();cx.restore()}}
+      cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET1*k;cx.stroke();
+      cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET2*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
   },null);
   job.finish=()=>{
@@ -4781,7 +4782,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.globalAlpha=pat?(shown?.5:glJit(id)):(shown?.4:1);
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
   if(tag.indexOf("~")<0){   // (borderless mode draws no per-country rim)
-    if(!shown){ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
+    if(!shown){ctx.lineWidth=rimW*GL_INK;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
     ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
   }
   if(!shown&&tag.slice(-2)==="|m"&&isFinite(cx+cy+S2)){   // mastered: a pearly foil sheen with a few glints instead of an outline
@@ -4944,7 +4945,11 @@ function glPatchBake(pl){
     }
     const st=j.st,t0=performance.now();
     while(performance.now()-t0<9){
-      if(st.gi<st.gl.length){const [key,list]=st.gl[st.gi++];pg.context(st.lc);st.lc.beginPath();list.forEach(f=>pg(f));st.lc.fillStyle=glLandColor(key);st.lc.fill();continue}
+      if(st.gi<st.gl.length){const [key,list]=st.gl[st.gi++];pg.context(st.lc);st.lc.beginPath();list.forEach(f=>pg(f));st.lc.fillStyle=glLandColor(key);st.lc.fill();
+        {const c0=d3.color(glLandColor(key));if(c0&&key!=="nopl"){const lc=st.lc,u=.46/pxT;lc.save();lc.clip();lc.lineJoin="round";   // the same pooled wet edge as the world bake
+          lc.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();lc.lineWidth=GL_WET1*u;lc.stroke();
+          lc.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();lc.lineWidth=GL_WET2*u;lc.stroke();lc.restore()}}
+        continue}
       if(st.ai<stateArt.length){const [id,tag]=stateArt[st.ai++];glDrawArt(st.ac,id,tag,pg,rimW);continue}
       return true;
     }

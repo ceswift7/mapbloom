@@ -3442,6 +3442,7 @@ function hotResolve(txt){
   const near=ids.filter(id=>[...silNames.byId[id]].some(n=>n.length>=6&&Math.abs(n.length-t.length)<=1&&lev(t,n)<=1));   // the same one-letter rule as Name it, and only when it points at a single country
   return near.length===1?near[0]:null;
 }
+const hotWhere=()=>S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
 function hotEnter(){
   HOT.on=false;HC.clear();S.done=false;hideCard();clearMissed();
   if(S.region==="United States"){S.region="World";syncChips()}
@@ -3457,7 +3458,7 @@ function showHotSheet(){
   });
   sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
-  sh.append(el("p",{class:"bestline"},best?`Your best here: ${best} guess${best===1?"":"es"}`:"No finish here yet."));
+  sh.append(el("p",{class:"bestline"},`Best in ${hotWhere()}: `+(best?`${best} guess${best===1?"":"es"}`:"none yet")));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
   const hb=S.counts.hotBest||{},rows=ALLR.filter(r=>r!=="United States").map(r=>el("div",{class:"recrow",style:"display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--panel-line)"},el("span",{},r==="World"?"Earth":r==="Americas"?"The Americas":r),el("b",{},hb[r]?hb[r]+" guess"+(hb[r]===1?"":"es"):"\u2014")));
   sh.append(fold("Your records",el("div",{},el("p",{style:"margin:0 0 6px;color:var(--ink-soft);font-size:13px"},`Found ${S.counts.hot||0} hidden countr${(S.counts.hot||0)===1?"y":"ies"} in all. Fewest guesses per area:`),rows)));
@@ -3501,7 +3502,7 @@ function hotFinish(gaveUp){
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
   $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
-  $("silHint").textContent=gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return b&&b<n?`Your best here: ${b}.`:"A new best for this area."})();
+  $("silHint").textContent=gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return b&&b<n?`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`:"A new best for this area."})();
   if(!gaveUp){
     S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save();
     sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900);

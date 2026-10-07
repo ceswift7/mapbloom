@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -194,13 +194,14 @@ body.introing{--gr:0px}   /* no thinned-grain hole over the globe while the open
 .intro-skip{position:absolute;right:20px;bottom:18px;font:13px var(--sans);color:var(--ink-faint);background:none;border:0;cursor:pointer;z-index:2}
 .intro-skip[hidden]{display:none}
 /* while the opening plays the game waits underneath */
-body.introing .app header,body.introing .app footer,body.introing .app .prompt{opacity:0;pointer-events:none}
+body.introing .app header,body.introing .app footer,body.introing .app .prompt,body.introing .app .tms{opacity:0;pointer-events:none}
 body.introing:not(.introglobe) #globe{animation:none;opacity:0}
 body.introing #globe{pointer-events:none}
 body.introing .pill,body.introing #globe .beacon,body.introing #globe .beaconhit{opacity:0 !important}
 .beacon{transition:opacity .8s}
 body.introing.introglobe #globe{animation:rise 1.5s cubic-bezier(.2,.7,.2,1) both}
 .app header,.app footer,.app .prompt{transition:opacity .9s ease}
+.app .tms{transition:filter .2s ease,opacity .9s ease}
 body.introout .app .prompt{transition-delay:.1s}
 body.introout .app footer{transition-delay:.3s}
 @media (prefers-reduced-motion: reduce){.intro,.intro-sub,.intro-begin{transition-duration:.01s !important}}
@@ -438,6 +439,26 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .jrbtn .st{fill:var(--ink-faint);opacity:.7}
 .jrbtn.m .ar{stroke:#C9A24B}.jrbtn.m .st{fill:#C9A24B;opacity:1}
 .jrbtn:hover span{color:var(--ink)}
+.sback{margin:-4px 0 10px;font-size:12.5px}
+.mtree{width:100%;max-width:390px;margin:6px auto 0;display:block}
+.mtree .tl{fill:none;stroke:var(--panel-line);stroke-width:2.2;stroke-linecap:round}
+.mtree .tl.on{stroke:#6FA27E}
+.mtree .tl.gd.on{stroke:#C9A24B}
+.mtree .nd{cursor:pointer}
+.mtree .nd circle{fill:var(--panel);stroke:var(--ink-faint);stroke-width:1.6}
+.mtree .nd text{fill:var(--ink-faint);font-size:10.5px;font-weight:600;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.mtree .nd.on circle{fill:#6FA27E;stroke:#6FA27E}
+.mtree .nd.on text{fill:#fff}
+.mtree .nd.g.on circle{fill:#C9A24B;stroke:#C9A24B}
+.mtree .nd.nx circle{stroke:var(--mode-acc);animation:nxpulse 1.6s ease-in-out infinite}
+@keyframes nxpulse{0%,100%{stroke-width:1.8}50%{stroke-width:5;stroke-opacity:.55}}
+.mtree .lb{fill:var(--ink-soft);font-size:11.5px;text-anchor:middle;font-family:var(--serif);pointer-events:none}
+.mtree .tk{fill:var(--ink-soft);font-size:12px;font-family:var(--serif);pointer-events:none}
+.mtree .crown circle{fill:var(--panel);stroke:var(--ink-faint);stroke-width:1.8}
+.mtree .crown path{fill:var(--ink-faint);opacity:.6}
+.mtree .crown.on circle{fill:#C9A24B;stroke:#C9A24B}
+.mtree .crown.on path{fill:#fff;opacity:1}
+.mwhy{margin:12px 0 0;font-size:13.5px;color:var(--ink-soft);line-height:1.45}
 .mhead{display:flex;align-items:center;gap:14px;margin:0 0 6px}
 .mhead img{width:54px;max-height:40px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18)}
 .mhead h2{margin:0}

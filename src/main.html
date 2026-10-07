@@ -111,16 +111,20 @@ function buildMid(){
 /* ---------- country journal: what you have done with each country, and how far it has come (Found, Studied, Mastered) ---------- */
 const JR_SEC=[["g","The land"],["c","People and culture"],["f","Food and dishes"],["h","A short history"],["n","Where the name comes from"]];
 function jrSecs(id){const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];return JR_SEC.filter(([k])=>k==="f"?!!(fd&&fd.x):!!L[k]).map(x=>x[0])}
-function jrObj(id){const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]});if(!j.q)j.q=[];if(!j.s)j.s=[];return j}
-const qOkC={};
-function jrQSecs(id){return jrSecs(id).filter(k=>{const c=id+k;if(!(c in qOkC))qOkC[c]=qBuild(id,k,0).length>=1;return qOkC[c]})}   // page sections that can actually be quizzed
-function jrDone(id){const j=S.jr[id]||{},q=j.q||[];return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrQSecs(id).filter(k=>q.includes(k)).length}
-function jrTotal(id){return 3+jrQSecs(id).length}
-/* Found: located. Studied: every page section read. Mastered: capital, flag and every page quiz passed. */
+function jrObj(id){const j=S.jr[id]||(S.jr[id]={c:0,f:0,s:[]});if(!j.s)j.s=[];if(!j.p)j.p=[];if(!j.g)j.g=[];return j}
+const Q_SKIP=new Set("826:f,826:n,784:n,780:f,762:f,705:n,702:n,690:f,646:n,643:f,591:f,516:f,508:f,499:f,498:n,450:n,388:f,364:f,360:f,276:f,242:h,214:f,212:f,180:f,174:f,174:n,120:f,070:f,204:n,112:f".split(","));   // page sections with no quizzable material (filled in from the offline audit)
+function jrQSecs(id){return jrSecs(id).filter(k=>!Q_SKIP.has(id+":"+k))}
+/* progress counts lit nodes on the tree: Located, Capital, Flag, then Read, Passed (4/5) and Gold (5/5) for every page */
+function jrDone(id){
+  const j=S.jr[id]||{},s=j.s||[],p=j.p||[],g=j.g||[];
+  return (S.found.has(id)?1:0)+(j.c?1:0)+(j.f?1:0)+jrQSecs(id).reduce((n,k)=>n+(s.includes(k)?1:0)+((p.includes(k)||g.includes(k))?1:0)+(g.includes(k)?1:0),0);
+}
+function jrTotal(id){return 3+3*jrQSecs(id).length}
+/* Found: located. Studied: every page read. Mastered: capital, flag and a perfect 5/5 on every page quiz. */
 function jrLevel(id){
   if(!S.found.has(id))return 0;
-  const j=S.jr[id]||{},q=j.q||[],r=j.s||[];
-  if(j.c&&j.f&&jrQSecs(id).every(k=>q.includes(k)))return 3;
+  const j=S.jr[id]||{},g=j.g||[],r=j.s||[];
+  if(j.c&&j.f&&jrQSecs(id).every(k=>g.includes(k)))return 3;
   const secs=jrSecs(id);
   return secs.length&&secs.every(k=>r.includes(k))?2:1;
 }
@@ -128,11 +132,15 @@ const jrGlyph=id=>["\u25CB ","\u25CF ","\u25D1 ","\u2605 "][jrLevel(id)];
 function jrMark(id,type,key){
   if(!FACTS[id])return;
   const j=jrObj(id),before=jrLevel(id);
-  if(type==="c"){if(j.c)return;j.c=1}else if(type==="f"){if(j.f)return;j.f=1}else if(type==="q"){if(j.q.includes(key))return;j.q.push(key)}else{if(j.s.includes(key))return;j.s.push(key)}
+  if(type==="c"){if(j.c)return;j.c=1}
+  else if(type==="f"){if(j.f)return;j.f=1}
+  else if(type==="p"){if(j.p.includes(key)||j.g.includes(key))return;j.p.push(key)}
+  else if(type==="g"){if(j.g.includes(key))return;j.g.push(key);if(!j.p.includes(key))j.p.push(key)}
+  else{if(j.s.includes(key))return;j.s.push(key)}
   save();
   const after=jrLevel(id);
   if($("card").classList.contains("on")&&cardId===id)jrRow(id);
-  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and every page quiz passed.":"Every page of its journal has been read.",3800);
+  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and a perfect score on every page quiz.":"Every page of its journal has been read.",3800);
   if(after!==before)paint();
 }
 function jrRow(id){
@@ -140,7 +148,7 @@ function jrRow(id){
   const d=jrDone(id),t=jrTotal(id),lv=jrLevel(id),C=2*Math.PI*9;
   b.classList.toggle("m",lv===3);
   b.innerHTML=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" class="tk"/><circle cx="12" cy="12" r="9" class="ar" stroke-dasharray="${(C*d/t).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 12 12)"/><path d="M12 7.6l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z" class="st"/></svg><span>Mastery ${d}/${t}</span>`;
-  b.title=["Not found yet","Found","Studied","Mastered"][lv]+": open its mastery quizzes";
+  b.title=["Not found yet","Found","Studied","Mastered"][lv]+": open its mastery path";
   b.onclick=()=>{sndTick();renderMastery(id)};
 }let jrObs=[],jrTimers=[];
 function jrReset(){jrObs.forEach(o=>o.disconnect());jrObs=[];jrTimers.forEach(clearTimeout);jrTimers=[]}
@@ -156,7 +164,8 @@ function jrWatch(el0,id,key){   // a section counts as read once most of it has 
 const nameId={};
 [...S.found].forEach(id=>{if(!FACTS[id])S.found.delete(id)});[...S.shown].forEach(id=>{if(!FACTS[id])S.shown.delete(id)});[...S.learned].forEach(id=>{if(!FACTS[id])S.learned.delete(id)});
 Object.keys(S.weak).forEach(id=>{if(!FACTS[id])delete S.weak[id]});S.returnQ=S.returnQ.filter(q=>FACTS[q.id]);playable.forEach(f=>nameId[FACTS[f.id].n]=f.id);
-[...S.learned].forEach(id=>{if(FACTS[id]&&!S.jr[id])S.jr[id]={c:0,f:0,s:jrSecs(id)}});   // pages already read count as read
+[...S.learned].forEach(id=>{if(FACTS[id]&&!S.jr[id])S.jr[id]={c:0,f:0,s:jrSecs(id)}});
+Object.values(S.jr).forEach(j=>{delete j.q});   // pages already read count as read
 
 const svg=d3.select("#globe");
 const defs=svg.append("defs");
@@ -2102,122 +2111,231 @@ function expIds(e){
 /* ======================================================================
    MASTERY QUIZZES: made from each country's own pages. Pass 2 of 3 on every page quiz (plus capital and flag) to master a country.
    ====================================================================== */
+/* ======================================================================
+   MASTERY QUIZZES (v2): five questions per page, every one built from exact data with a verify() that must hold,
+   wrong answers taken from the same region and close in size. Pass 4 of 5; 5 of 5 earns the gold node.
+   ====================================================================== */
 const Q_NAMES={g:"The land",c:"People and culture",f:"Food and dishes",h:"A short history",n:"Where the name comes from"};
-const Q_ABOUT={g:"the land",c:"the people and culture",f:"the food",h:"the history",n:"the origin of the name"};
-const Q_STOP=new Set("The In It This That These Those However During After Before Since Although While When Where With Without Under Over Between Among Many Most Some Several Other Another Today Modern Ancient Early Late Its Their His Her Both Also Often Such Only There Following Throughout Within Despite According Although Because Which Who Whose Both Each Every Despite".split(" "));
-const qPick=(arr,n,rnd)=>shuffle(arr,rnd).slice(0,n);
-function qText(id,key){
-  const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];
-  const t=key==="f"?(fd&&fd.x):key==="h"?[L.h,L.m].filter(Boolean).join("\n"):L[key];
-  return paras(tidyText(t||""));
-}
-function qSents(id,key){
-  const out=[];
-  qText(id,key).forEach(p=>{if(/^[a-z]/.test(p))return;p.replace(/([.!?])\s+(?=[A-Z"\u201C])/g,"$1\u0001").split("\u0001").forEach(s=>{s=s.trim();if(s.length>=35&&s.length<=230&&!/[\[\]{}]/.test(s))out.push(s)})});
+const Q_SHORT={g:"Land",c:"People",f:"Food",h:"History",n:"Name"};
+const Q_ABOUT={g:"the land",c:"the people and culture",f:"the food",h:"the history",n:"the story of the name"};
+const qP=()=>playable.map(f=>f.id),qNm=id=>FACTS[id].n,qNb=id=>(FACTS[id].b||[]).map(n=>nameId[n]).filter(Boolean),qBord=(a,b)=>qNb(a).includes(b)||qNb(b).includes(a);
+function qPeers(id,rnd,n,ok){
+  ok=ok||(()=>true);const f=FACTS[id],all=qP().filter(o=>o!==id&&ok(o)),out=[];
+  for(const t of [all.filter(o=>FACTS[o].s===f.s),all.filter(o=>FACTS[o].r===f.r),all]){for(const o of shuffle(t,rnd)){if(out.length>=n)break;if(!out.includes(o))out.push(o)}if(out.length>=n)break}
   return out;
 }
+function qOk(o){return o&&o.opts.length>=3&&new Set(o.opts).size===o.opts.length&&o.ans>=0&&o.ans<o.opts.length&&(!o.ver||o.ver())}
+function qMk(q,correct,wrongs,why,ver,rnd,flags){
+  const w=[...new Set(wrongs.filter(x=>x!=null&&x!==correct))];if(w.length<2)return null;
+  const opts=shuffle([correct,...w.slice(0,3)],rnd),o={q,opts,ans:opts.indexOf(correct),why,ver,flags:!!flags};
+  return qOk(o)?o:null;
+}
+const qExt=(ids,val,max,margin)=>{const s=ids.slice().sort((a,b)=>max?val(b)-val(a):val(a)-val(b));return Math.abs(val(s[0])-val(s[1]))>=margin?s[0]:null};
+const km2=id=>FACTS[id].a;
+/* ---- data-driven templates ---- */
+const QT_LAND=[
+  (id,r)=>{const ns=qNb(id);if(!ns.length)return null;const c=ns[Math.floor(r()*ns.length)],w=qPeers(id,r,3,o=>!qBord(id,o));
+    return qMk(`Which of these borders ${qNm(id)}?`,qNm(c),w.map(qNm),`${qNm(id)} shares a land border with ${qNm(c)}.`,()=>qBord(id,c)&&w.every(x=>!qBord(id,x)),r)},
+  (id,r)=>{const w=qPeers(id,r,3,o=>{const q=km2(o)/km2(id);return q>.3&&q<3.2});if(w.length<3)return null;const ids=[id,...w],mx=r()<.55,c=qExt(ids,km2,mx,Math.max(1,km2(id)*.08));if(!c)return null;
+    return qMk(`Which of these has the ${mx?"largest":"smallest"} area?`,qNm(c),ids.filter(x=>x!==c).map(qNm),ids.map(o=>`${qNm(o)} ${fmt(km2(o))} km\u00B2`).join(", ")+".",()=>qExt(ids,km2,mx,0)===c,r)},
+  (id,r)=>{const w=qPeers(id,r,3,o=>{const q=km2(o)/km2(id);return q>.25&&q<4});if(w.length<3)return null;const ids=[id,...w],mx=r()<.5,c=qExt(ids,km2,mx,Math.max(1,km2(id)*.08));if(!c||c===id&&r()<.3)return null;
+    return qMk(`Which of these is the ${mx?"biggest":"smallest"} country by area?`,qNm(c),ids.filter(x=>x!==c).map(qNm),ids.map(o=>`${qNm(o)} ${fmt(km2(o))} km\u00B2`).join(", ")+".",()=>qExt(ids,km2,mx,0)===c,r)},
+  (id,r)=>{const n=qNb(id).length;if(!n)return null;const w=[n+1,n+2,Math.max(0,n-1),n+3,Math.max(0,n-2)].filter(x=>x!==n);
+    return qMk(`How many countries share a land border with ${qNm(id)}?`,String(n),w.map(String),`${qNm(id)} borders ${n}: ${qNb(id).map(qNm).join(", ")}.`,()=>qNb(id).length===n,r)},
+  (id,r)=>{const f=FACTS[id],nb=qNb(id).length,kind=!nb?"An island nation":f.ld?"Landlocked":"A coast and land borders";
+    return qMk(`Which best describes ${qNm(id)}?`,kind,["An island nation","Landlocked","A coast and land borders"],!nb?"It has no land borders.":f.ld?"It has no sea coast.":"It touches the sea and has land neighbours.",()=>true,r)},
+  (id,r)=>{const w=qPeers(id,r,3,o=>Math.abs(FACTS[o].ll[0]-FACTS[id].ll[0])>2);if(w.length<3)return null;const ids=[id,...w],north=r()<.5,c=qExt(ids,o=>FACTS[o].ll[0],north,2);if(!c)return null;
+    return qMk(`Which of these lies furthest ${north?"north":"south"}?`,qNm(c),ids.filter(x=>x!==c).map(qNm),ids.map(o=>`${qNm(o)} ${Math.abs(FACTS[o].ll[0]).toFixed(0)}\u00B0${FACTS[o].ll[0]>=0?"N":"S"}`).join(", ")+".",()=>qExt(ids,o=>FACTS[o].ll[0],north,0)===c,r)},
+  (id,r)=>{const f=FACTS[id],subs=[...new Set(qP().map(o=>FACTS[o].s).filter(s=>s&&s!==f.s))];if(!f.s)return null;
+    const near=shuffle(subs.filter(s=>qP().some(o=>FACTS[o].s===s&&FACTS[o].r===f.r)),r),w=[...near,...shuffle(subs,r)];
+    return qMk(`In which part of the world is ${qNm(id)}?`,f.s,w,`${qNm(id)} is in ${f.s}.`,()=>true,r)}
+];
+const Q_BRACKETS=[[0,1e6,"under 1 million"],[1e6,5e6,"1 to 5 million"],[5e6,2e7,"5 to 20 million"],[2e7,8e7,"20 to 80 million"],[8e7,3e8,"80 to 300 million"],[3e8,1e11,"over 300 million"]];
+const QT_PEOPLE=[
+  (id,r)=>{const p=(LEARN[id]||{}).p;if(!p)return null;const w=qPeers(id,r,3,o=>{const q=((LEARN[o]||{}).p||0)/p;return q>.3&&q<3.5});if(w.length<3)return null;const ids=[id,...w],pv=o=>(LEARN[o]||{}).p||0,mx=r()<.55,c=qExt(ids,pv,mx,p*.08);if(!c)return null;
+    return qMk(`Which of these has the ${mx?"largest":"smallest"} population?`,qNm(c),ids.filter(x=>x!==c).map(qNm),ids.map(o=>`${qNm(o)} ${popTxt(pv(o))}`).join(", ")+".",()=>qExt(ids,pv,mx,0)===c,r)},
+  (id,r)=>{const p=(LEARN[id]||{}).p;if(!p)return null;const w=qPeers(id,r,3,o=>{const q=((LEARN[o]||{}).p||0)/p;return q>.2&&q<5});if(w.length<3)return null;const ids=[id,...w],pv=o=>(LEARN[o]||{}).p||0,mx=r()<.5,c=qExt(ids,pv,mx,p*.08);if(!c)return null;
+    return qMk(`Which of these countries has more people than the others?`.replace("more people than the others",mx?"the most people":"the fewest people"),qNm(c),ids.filter(x=>x!==c).map(qNm),ids.map(o=>`${qNm(o)} ${popTxt(pv(o))}`).join(", ")+".",()=>qExt(ids,pv,mx,0)===c,r)},
+  (id,r)=>{const f=FACTS[id];if(!f.l||!f.l.length)return null;const mine=f.l.map(x=>x.toLowerCase()),c=f.l[Math.floor(r()*f.l.length)],
+      w=[...new Set(qPeers(id,r,9,o=>true).flatMap(o=>FACTS[o].l||[]).filter(x=>!mine.includes(x.toLowerCase())))];
+    return qMk(`Which language is spoken in ${qNm(id)}?`,c,shuffle(w,r),`${qNm(id)}: ${f.l.join(", ")}.`,()=>f.l.includes(c)&&!w.slice(0,3).some(x=>mine.includes(x.toLowerCase())),r)},
+  (id,r)=>{const f=FACTS[id];if(!f.cur)return null;const w=[...new Set(qPeers(id,r,12,o=>FACTS[o].cur&&FACTS[o].cur!==f.cur).map(o=>FACTS[o].cur))];
+    return qMk(`What is the currency of ${qNm(id)}?`,f.cur,shuffle(w,r),`${qNm(id)} uses the ${f.cur}.`,()=>true,r)},
+  (id,r)=>{const k=(LEARN[id]||{}).k;if(!k)return null;const w=[...new Set(qPeers(id,r,14,o=>(LEARN[o]||{}).k&&(LEARN[o]||{}).k!==k).map(o=>(LEARN[o]||{}).k))];
+    return qMk(`What is the international calling code of ${qNm(id)}?`,k,shuffle(w,r),`${qNm(id)}: ${k}.`,()=>true,r)},
+  (id,r)=>{const p=(LEARN[id]||{}).p;if(!p)return null;const bi=Q_BRACKETS.findIndex(b=>p>=b[0]&&p<b[1]);if(bi<0)return null;
+    const w=Q_BRACKETS.map((b,i)=>i===bi?null:b[2]).filter(Boolean).sort((a,b)=>Math.abs(Q_BRACKETS.findIndex(x=>x[2]===a)-bi)-Math.abs(Q_BRACKETS.findIndex(x=>x[2]===b)-bi));
+    return qMk(`About how many people live in ${qNm(id)}?`,Q_BRACKETS[bi][2],w.slice(0,3),`${qNm(id)} has about ${popTxt(p)} people.`,()=>p>=Q_BRACKETS[bi][0]&&p<Q_BRACKETS[bi][1],r)}
+];
+/* ---- text-based templates: every answer is checked against the page text ---- */
+const qTxtC={},qWC={},qDFc={};
+function qTextOf(id,key){const c=id+key;if(c in qTxtC)return qTxtC[c];const L=LEARN[id]||{},fd=typeof FOOD!=="undefined"&&FOOD[id];const t=key==="f"?(fd&&fd.x):key==="h"?[L.h,L.m].filter(Boolean).join("\n"):L[key];return qTxtC[c]=paras(tidyText(t||"")).filter(p=>!/^[a-z]/.test(p)).join(" ")}
+const Q_GEN=new Set("traditional cuisine cuisines include includes including included their which these there other others also often among between during around about while where within history country countries people language languages first called known named origin because through under after before since another several various popular common modern ancient early late century centuries period period during region regions people's however although whose would could should being become became became later today national united state states world made makes making large largest small smaller many most more less their there then thus well such much".split(" "));
+let qStems=null;
+function qStemSet(){if(qStems)return qStems;qStems=new Set();playable.forEach(f=>{const n=FACTS[f.id].n.toLowerCase().replace(/^the\s+/,"");qStems.add(n.slice(0,5));qStems.add(n.slice(0,4))});return qStems}
+function qWordsOf(id,key){
+  const c=id+key;if(qWC[c])return qWC[c];
+  const set=new Set(),st=qStemSet();
+  (qTextOf(id,key).toLowerCase().match(/[a-z\u00E0-\u024F]{5,}/g)||[]).forEach(w=>{if(!Q_GEN.has(w)&&!st.has(w.slice(0,5))&&!st.has(w.slice(0,4)))set.add(w)});
+  return qWC[c]=set;
+}
+function qDf(key){if(qDFc[key])return qDFc[key];const m=new Map();playable.forEach(f=>qWordsOf(f.id,key).forEach(w=>m.set(w,(m.get(w)||0)+1)));return qDFc[key]=m}
+let qGlob=null;
+function qGlobal(){   // how often each word occurs across every page of every country: common words are never used as answers
+  if(qGlob)return qGlob;qGlob=new Map();
+  playable.forEach(f=>{const L=LEARN[f.id]||{},fd=typeof FOOD!=="undefined"&&FOOD[f.id];[L.o,L.n,L.h,L.m,L.g,L.c,fd&&fd.x].forEach(t=>{if(t)(tidyText(t).toLowerCase().match(/[a-z\u00E0-\u024F]{5,}/g)||[]).forEach(w=>qGlob.set(w,(qGlob.get(w)||0)+1))})});
+  return qGlob;
+}
+const qDistinct=(id,key)=>[...qWordsOf(id,key)].filter(w=>qGlobal().get(w)<=4&&qDf(key).get(w)<=3);
+const qAllText=id=>["o","n","h","m","g","c"].map(k=>tidyText((LEARN[id]||{})[k]||"")).join(" ").toLowerCase()+" "+((typeof FOOD!=="undefined"&&FOOD[id])?tidyText(FOOD[id].x).toLowerCase():"");
+function qSentsOf(id,key){const out=[];qTextOf(id,key).replace(/([.!?])\s+(?=[A-Z"\u201C])/g,"$1\u0001").split("\u0001").forEach(s=>{s=s.trim();if(s.length>=35&&s.length<=230&&!/[\[\]{}]/.test(s))out.push(s)});return out}
 let qNameRx=null;
-function qMask(s,id){   // the country (and its adjective) becomes [country]; any other country named in the text becomes "another country", so options never give the answer away
+function qMask(s,id){
   if(!qNameRx){const names=[...new Set(playable.map(f=>FACTS[f.id].n))].sort((a,b)=>b.length-a.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));qNameRx=new RegExp("\\b("+names.join("|")+")\\b","g")}
-  const stem=FACTS[id].n.replace(/^(The|Republic of|Kingdom of)\s+/i,"").slice(0,5).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-  return s.replace(new RegExp("\\b"+stem+"\\w*","gi"),"[country]").replace(qNameRx,"another country");
+  const full=FACTS[id].n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),stem=FACTS[id].n.replace(/^(The|Republic of|Kingdom of|United)\s+/i,"").slice(0,5).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  return s.replace(new RegExp("\\b(the\\s+)?"+full+"\\b","gi"),"[country]").replace(new RegExp("\\b"+stem+"\\w*","gi"),"[country]").replace(qNameRx,"another country");
 }
-let qNounPool={};
-function qPool(key){
-  if(qNounPool[key])return qNounPool[key];
-  const names=new Set(playable.map(f=>FACTS[f.id].n)),pool=new Set();
-  playable.forEach(f=>qSents(f.id,key).forEach(s=>qNouns(s,f.id,names).forEach(c=>{if(c.kind==="noun")pool.add(c.t)})));
-  return qNounPool[key]=[...pool];
+const qPropC={},Q_LOWBAD=/(ly|ing|ed|ive|ous|ful|ness|ment|ally|ies)$/;
+function qPropOf(id,key){   // words that appear capitalised in the middle of a sentence (names of places, peoples, rulers, languages)
+  const c=id+key;if(qPropC[c])return qPropC[c];const set=new Set(),t=qTextOf(id,key);
+  for(const m of t.matchAll(/\b[A-Z][a-z\u00E0-\u024F]{4,}\b/g)){const pre=t.slice(Math.max(0,m.index-2),m.index);if(m.index>1&&!/[.!?]\s$/.test(pre)&&!/["\u201C(]$/.test(pre))set.add(m[0].toLowerCase())}
+  return qPropC[c]=set;
 }
-function qNouns(s,id,names){
-  names=names||new Set(playable.map(f=>FACTS[f.id].n));
-  const stem=FACTS[id].n.slice(0,5).toLowerCase(),out=[];
-  for(const m of s.matchAll(/\b(1[0-9]{3}|20[0-2][0-9])\b/g))out.push({t:m[1],kind:"year",i:m.index});
-  for(const m of s.matchAll(/\b\d{1,3}(?:,\d{3})+\b/g))out.push({t:m[0],kind:"num",i:m.index});
-  for(const m of s.matchAll(/\b[A-Z][a-z\u00C0-\u024F]{3,}(?:\s(?:of\s|the\s)?[A-Z][a-z\u00C0-\u024F]{2,}){0,2}\b/g)){
-    const t=m[0],first=t.split(" ")[0];
-    if(m.index<3||Q_STOP.has(first)||names.has(t)||t.toLowerCase().startsWith(stem)||/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/.test(first))continue;
-    out.push({t,kind:"noun",i:m.index});
-  }
+function qWordQ(key){return (id,r,st)=>{
+  const mine=shuffle(qDistinct(id,key).filter(w=>!st.w.has(w)),r),pr=qPropOf(id,key),prop=mine.filter(w=>pr.has(w)),low=mine.filter(w=>!pr.has(w)&&!Q_LOWBAD.test(w)&&w.length>=6);
+  const useProp=prop.length>0,list=useProp?prop:low;if(!list.length)return null;
+  const w=list[0],own=qAllText(id),cand=new Set();
+  for(const o of qPeers(id,r,12,x=>qTextOf(x,key))){const po=qPropOf(o,key);for(const x of qWordsOf(o,key)){if(qGlobal().get(x)<=7&&po.has(x)===useProp&&(useProp||(!Q_LOWBAD.test(x)&&x.length>=6))&&!own.includes(x)&&!x.includes(w)&&!w.includes(x))cand.add(x)}}
+  const wr=shuffle([...cand],r).slice(0,3);if(wr.length<3)return null;st.w.add(w);
+  const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+  return qMk(`Which of these appears on the ${qNm(id)} page about ${Q_ABOUT[key]}?`,cap(w),wr.map(cap),`\u201C${cap(w)}\u201D appears in the ${qNm(id)} page; the others do not.`,()=>qTextOf(id,key).toLowerCase().includes(w)&&wr.every(x=>!own.includes(x)),r);
+}}function qMatchQ(key){return (id,r,st)=>{
+  const mine=shuffle(qSentsOf(id,key).filter(s=>!st.s.has(s)&&qDistinct(id,key).some(w=>s.toLowerCase().includes(w))),r);if(!mine.length)return null;
+  const good=mine[0],own=qTextOf(id,key).toLowerCase(),opts=[];
+  for(const o of qPeers(id,r,10,x=>qSentsOf(x,key).length)){
+    const c=shuffle(qSentsOf(o,key).filter(s=>qDistinct(o,key).some(w=>s.toLowerCase().includes(w)&&!own.includes(w))),r);if(c.length)opts.push(qMask(c[0],o));if(opts.length>=3)break}
+  if(opts.length<3)return null;st.s.add(good);
+  return qMk(`Which of these describes ${Q_ABOUT[key]} of ${qNm(id)}?`,qMask(good,id),opts,`That sentence comes from the ${qNm(id)} page.`,()=>own.includes(good.toLowerCase().slice(0,40)),r);
+}}
+function qRevQ(key){return (id,r,st)=>{
+  const ds=qDistinct(id,key),mine=shuffle(qSentsOf(id,key).filter(s=>!st.s.has(s)&&ds.some(w=>s.toLowerCase().includes(w))),r);if(!mine.length)return null;
+  const s=mine[0],w=ds.find(x=>s.toLowerCase().includes(x));
+  const wr=qPeers(id,r,10,o=>qTextOf(o,key)&&!qTextOf(o,key).toLowerCase().includes(w)).slice(0,3);if(wr.length<3)return null;st.s.add(s);
+  return qMk(`Which country does this describe?\n\u201C${qMask(s,id)}\u201D`,qNm(id),wr.map(qNm),`That sentence comes from the ${qNm(id)} page.`,()=>qTextOf(id,key).toLowerCase().includes(w)&&wr.every(o=>!qTextOf(o,key).toLowerCase().includes(w)),r);
+}}
+/* ---- history: dated events ---- */
+function qDated(id){
+  const out=[];
+  qSentsOf(id,"h").forEach(s=>{const ys=[...new Set((s.match(/\b(1[0-9]{3}|20[0-2][0-9])\b/g)||[]))];if(ys.length===1&&s.length>=50)out.push({s,y:+ys[0],m:qMask(s.replace(ys[0],"[year]"),id)})});
   return out;
 }
-function qCloze(id,key,rnd,used){
-  for(const s of shuffle(qSents(id,key),rnd)){
-    if(used.has(s))continue;
-    const cands=shuffle(qNouns(s,id).filter(c=>s.split(c.t).length===2),rnd);if(!cands.length)continue;
-    const a=cands[0],opts=new Set([a.t]);
-    const own=qText(id,key).join(" ");
-    if(a.kind==="year"){const y=+a.t;let g=0;while(opts.size<4&&g++<40){const d=(7+Math.floor(rnd()*140))*(rnd()<.5?-1:1),v=y+d;if(v>=500&&v<=2024)opts.add(String(v))}}
-    else if(a.kind==="num"){const v=+a.t.replace(/,/g,"");for(const f of shuffle([.4,.6,.75,1.3,1.6,2.1,2.8],rnd)){if(opts.size>=4)break;const w=Math.round(v*f);opts.add(fmt(w))}}
-    else{for(const n of shuffle(qPool(key),rnd)){if(opts.size>=4)break;if(!own.includes(n)&&Math.abs(n.split(" ").length-a.t.split(" ").length)<=1)opts.add(n)}}
-    if(opts.size<4)continue;
-    used.add(s);
-    const blank=s.slice(0,a.i)+"\u2009_____\u2009"+s.slice(a.i+a.t.length);
-    const arr=shuffle([...opts],rnd);
-    return {q:`Fill in the blank:\n\u201C${qMask(blank,id)}\u201D`,opts:arr,ans:arr.indexOf(a.t)};
-  }
-  return null;
-}
-function qMatch(id,key,rnd,used){
-  const mine=shuffle(qSents(id,key).filter(s=>!used.has(s)),rnd);if(!mine.length)return null;
-  const good=mine[0];used.add(good);
-  const reg=FACTS[id].r,others=shuffle(playable.map(f=>f.id).filter(o=>o!==id&&qSents(o,key).length),rnd);
-  const near=others.filter(o=>FACTS[o].r===reg),far=others.filter(o=>FACTS[o].r!==reg),pick=[...near.slice(0,2),...far].slice(0,3);
-  if(pick.length<3)return null;
-  const opts=[qMask(good,id),...pick.map(o=>qMask(qPick(qSents(o,key),1,rnd)[0],o))],arr=shuffle(opts,rnd);
-  return {q:`Which of these describes ${Q_ABOUT[key]} of ${FACTS[id].n}?`,opts:arr,ans:arr.indexOf(opts[0])};
-}
+function qPick4(list,r,gap){const sh=shuffle(list,r),out=[];for(const e of sh){if(out.every(x=>Math.abs(x.y-e.y)>=gap))out.push(e);if(out.length===4)break}return out.length===4?out:null}
+const qOrd=n=>n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
+const QT_HIST=[
+  (id,r)=>{const e=qPick4(qDated(id),r,25);if(!e)return null;const first=r()<.5,c=e.slice().sort((a,b)=>first?a.y-b.y:b.y-a.y)[0];
+    return qMk(`Which of these happened ${first?"first":"last"}?`,c.m,e.filter(x=>x!==c).map(x=>x.m),e.map(x=>x.y).sort((a,b)=>a-b).join(", ")+" (in order).",()=>e.every(x=>x===c||(first?c.y<x.y:c.y>x.y)),r)},
+  (id,r)=>{const d=shuffle(qDated(id),r);if(!d.length)return null;const e=d[0],c=Math.ceil(e.y/100),w=[c-1,c+1,c-2,c+2].filter(x=>x>=5&&x<=21);
+    return qMk(`In which century did this happen?\n\u201C${e.m}\u201D`,qOrd(c)+" century",w.map(x=>qOrd(x)+" century"),`It happened in ${e.y}.`,()=>Math.ceil(e.y/100)===c,r)},
+  (id,r)=>{const d=qDated(id);if(d.length<4)return null;const sh=shuffle(d,r),ref=sh[0],early=sh.filter(x=>x.y<=ref.y-25),late=sh.filter(x=>x.y>=ref.y+25);if(!early.length||late.length<3)return null;
+    return qMk(`Which of these happened before this? \u201C${ref.m}\u201D`,early[0].m,late.slice(0,3).map(x=>x.m),`${early[0].y} came before ${ref.y}.`,()=>early[0].y<ref.y&&late.slice(0,3).every(x=>x.y>ref.y),r)}
+];
+const QT={
+  g:[...QT_LAND,qWordQ("g"),qMatchQ("g")],
+  c:[...QT_PEOPLE,qWordQ("c"),qMatchQ("c")],
+  f:[qWordQ("f"),qWordQ("f"),qWordQ("f"),qWordQ("f"),qMatchQ("f"),qRevQ("f"),qMatchQ("f")],
+  h:[...QT_HIST,qWordQ("h"),qWordQ("h"),qMatchQ("h"),qRevQ("h")],
+  n:[qWordQ("n"),qWordQ("n"),qWordQ("n"),qWordQ("n"),qMatchQ("n"),qRevQ("n"),qMatchQ("n")]
+};
 function qBuild(id,key,attempt){
-  const rnd=seeded(`q-${id}-${key}-${attempt}`),used=new Set(),qs=[];
-  const m=qMatch(id,key,rnd,used);if(m)qs.push(m);
-  for(let k=0;k<2;k++){const c=qCloze(id,key,rnd,used);if(c)qs.push(c)}
-  while(qs.length<3){const m2=qMatch(id,key,rnd,used);if(!m2)break;qs.push(m2)}
+  const r=seeded(`q2-${id}-${key}-${attempt}`),st={w:new Set(),s:new Set()},seen=new Set(),qs=[],T=QT[key]||[];
+  for(let pass=0;pass<4&&qs.length<5;pass++)for(const t of shuffle(T,r)){
+    if(qs.length>=5)break;let q=null;try{q=t(id,r,st)}catch(e){q=null}
+    if(q&&!seen.has(q.q)){seen.add(q.q);qs.push(q)}
+  }
   return qs;
 }
 function qCapital(id,attempt){
-  const rnd=seeded(`qc-${id}-${attempt}`),f=FACTS[id],pool=playable.map(p=>p.id).filter(o=>o!==id&&FACTS[o].cap&&FACTS[o].cap!==f.cap),near=pool.filter(o=>FACTS[o].r===f.r);
-  const opts=[f.cap,...new Set([...qPick(near,2,rnd),...qPick(pool,3,rnd)].map(o=>FACTS[o].cap))].slice(0,4),arr=shuffle(opts,rnd);
-  return [{q:`What is the capital of ${f.n}?`,opts:arr,ans:arr.indexOf(f.cap)}];
+  const rnd=seeded(`qc-${id}-${attempt}`),f=FACTS[id],w=qPeers(id,rnd,8,o=>FACTS[o].cap&&FACTS[o].cap!==f.cap).map(o=>FACTS[o].cap);
+  const q=qMk(`What is the capital of ${f.n}?`,f.cap,w,`${f.cap} is the capital of ${f.n}.`,()=>true,rnd);return q?[q]:[];
 }
 function qFlag(id,attempt){
-  const rnd=seeded(`qf-${id}-${attempt}`),f=FACTS[id],pool=playable.map(p=>p.id).filter(o=>o!==id&&FLAGS[o]),near=pool.filter(o=>FACTS[o].r===f.r);
-  const ids=[id,...[...qPick(near,2,rnd),...qPick(pool,3,rnd)].filter((o,i,a)=>a.indexOf(o)===i).slice(0,3)],arr=shuffle(ids,rnd);
-  return [{q:`Which flag belongs to ${f.n}?`,opts:arr.map(o=>FLAGS[o]),flags:true,ans:arr.indexOf(id)}];
+  const rnd=seeded(`qf-${id}-${attempt}`),w=qPeers(id,rnd,8,o=>FLAGS[o]),ids=[id,...w.slice(0,3)],arr=shuffle(ids,rnd);
+  return [{q:`Which flag belongs to ${FACTS[id].n}?`,opts:arr.map(o=>FLAGS[o]),flags:true,ans:arr.indexOf(id),why:`That is the flag of ${FACTS[id].n}.`}];
 }
+/* ---- screens: the mastery tree, the quiz, the result ---- */
 let mq=null,mqFrom=null,mqAttempt=0;
+const mTitle={cap:"capital",flg:"flag"};
+function mqStart(id,key){
+  const f=FACTS[id];let qs;
+  if(key==="cap")qs=qCapital(id,++mqAttempt);else if(key==="flg")qs=qFlag(id,++mqAttempt);else qs=qBuild(id,key,++mqAttempt);
+  if(!qs.length){toast("\u{1F4D8}","Not enough material","This page cannot be quizzed yet.",2600);return}
+  mq={id,key,qs,i:0,right:0,title:f.n+": "+(mTitle[key]||Q_NAMES[key])};showQ();
+}
+function mOpenPage(id,key){
+  closeModal();if(S.mode!=="wander")setMode("wander",true);
+  showCard(id);setExplore(true,id);
+  setTimeout(()=>{const h=[...document.querySelectorAll("#learn section")].find(s=>s.querySelector("h3")&&s.querySelector("h3").textContent===Q_NAMES[key]);if(h)h.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"})},700);
+}
+function mTree(id,j,secs){
+  const n=secs.length,xs=secs.map((k,i)=>n===1?180:34+i*(292/(n-1))),lvl=jrLevel(id),g=j.g||[],p=j.p||[],rd=j.s||[];
+  const seq=[["lo"],["c"],["f"]];secs.forEach(k=>seq.push([k,"r"],[k,"p"],[k,"g"]));
+  const lit=nd=>nd.length===1?(nd[0]==="lo"?S.found.has(id):nd[0]==="c"?!!j.c:!!j.f):nd[1]==="r"?rd.includes(nd[0]):nd[1]==="p"?(p.includes(nd[0])||g.includes(nd[0])):g.includes(nd[0]);
+  const nx=seq.find(x=>!lit(x)),isNx=(a,b)=>nx&&nx[0]===a&&nx[1]===b;
+  const node=(a,x,y,txt,on,gold,next,act)=>`<g class="nd${gold?" g":""}${on?" on":""}${next?" nx":""}" data-a="${act}"><circle cx="${x}" cy="${y}" r="12"/><text x="${x}" y="${y}">${txt}</text></g>`;
+  const line=(d,on,gd)=>`<path class="tl${on?" on":""}${gd?" gd":""}" d="${d}"/>`;
+  let svg="",ln="",nodes="";
+  const lo=S.found.has(id),cOn=!!j.c,fOn=!!j.f;
+  ln+=line("M180 430 L180 418",lo)+line("M180 418 L180 376",cOn)+line("M180 376 L180 334",fOn)+line("M180 334 L180 300",fOn);
+  nodes+=node("lo",180,418,"\u25CE",lo,0,isNx("lo"),"lo")+`<text class="tk" x="202" y="422">Located</text>`;
+  nodes+=node("c",180,376,"C",cOn,0,isNx("c"),"cap")+`<text class="tk" x="202" y="380">Capital</text>`;
+  nodes+=node("f",180,334,"F",fOn,0,isNx("f"),"flg")+`<text class="tk" x="202" y="338">Flag</text>`;
+  secs.forEach((k,i)=>{
+    const x=xs[i],r=rd.includes(k),pp=p.includes(k)||g.includes(k),gg=g.includes(k);
+    ln+=line(`M180 300 C180 286 ${x} 288 ${x} 272`,fOn&&r)+line(`M${x} 272 L${x} 226`,r)+line(`M${x} 226 L${x} 176`,pp)+line(`M${x} 176 L${x} 126`,gg,1)+line(`M${x} 114 C${x} 92 180 96 180 76`,gg,1);
+    nodes+=`<text class="lb" x="${x}" y="262">${Q_SHORT[k]}</text>`+node(k,x,226,"R",r,0,isNx(k,"r"),k+":r")+node(k,x,176,"P",pp,0,isNx(k,"p"),k+":p")+node(k,x,126,"\u2605",gg,1,isNx(k,"g"),k+":g");
+  });
+  svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
+  const box=el("div",{});box.innerHTML=svg;return box;
+}
 function renderMastery(id,from){
-  mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet");sh.innerHTML="";
-  sh.append(closeBtn(),el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))),
-    el("p",{style:"margin:6px 0 8px;color:var(--ink-soft);font-size:14px"},"Pass each quiz (two questions right out of three) to master a country. Reading its page makes it Studied."));
-  const row=(label,sub,done,btn)=>el("div",{class:"mrow"},el("span",{class:"mi"+(done?" on":"")},done?"\u2713":""),el("div",{class:"mt"},label,sub?el("small",{},sub):""),btn||"");
-  sh.append(row("Located",S.found.has(id)?"You found it":"Find it in Quiz, Race, or Take me somewhere",S.found.has(id)));
-  sh.append(row("Capital",j.c?"Passed":"Name its capital",!!j.c,el("button",{class:"chip",onclick:()=>{mq={id,key:"c",qs:qCapital(id,++mqAttempt),i:0,right:0,need:1,title:f.n+": capital"};showQ()}},j.c?"Again":"Quiz me")));
-  sh.append(row("Flag",j.f?"Passed":"Pick its flag",!!j.f,el("button",{class:"chip",onclick:()=>{mq={id,key:"f",qs:qFlag(id,++mqAttempt),i:0,right:0,need:1,title:f.n+": flag"};showQ()}},j.f?"Again":"Quiz me")));
-  jrQSecs(id).forEach(k=>{const done=j.q.includes(k);
-    sh.append(row(Q_NAMES[k],(done?"Passed":"Not passed yet")+((j.s||[]).includes(k)?" \u00B7 read":""),done,el("button",{class:"chip",onclick:()=>{const qs=qBuild(id,k,++mqAttempt);if(!qs.length){toast("\u{1F4D8}","Not enough text","This page is too short to quiz.",2600);return}mq={id,key:k,qs,i:0,right:0,need:Math.min(2,qs.length),title:f.n+": "+Q_NAMES[k]};showQ()}},done?"Again":"Take quiz")))});
-  if(from==="book")sh.append(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn",onclick:()=>{sndPage();renderBook("mastery")}},"Back to the book")));
+  mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
+  sh.append(closeBtn());
+  if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery")}},"\u2039 Back"));
+  sh.append(el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))));
+  const tree=mTree(id,j,secs);
+  tree.addEventListener("click",e=>{
+    const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
+    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
+    if(a==="cap"||a==="flg")return mqStart(id,a);
+    const [k,t]=a.split(":");if(t==="r")return mOpenPage(id,k);mqStart(id,k);
+  });
+  sh.append(tree,el("p",{class:"mwhy"},"Read each page, pass its quiz (4 of 5), then ace it (5 of 5) for gold. Gold on every branch, plus the capital and the flag, masters a country. Tap any node. The pulsing one is your next step."));
   openModal();
 }
 function showQ(){
-  const q=mq.qs[mq.i],sh=$("sheet");sh.innerHTML="";
-  sh.append(closeBtn(),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},`Question ${mq.i+1} of ${mq.qs.length}`));
+  const q=mq.qs[mq.i],sh=$("sheet"),id=mq.id;sh.innerHTML="";
+  sh.append(closeBtn(),el("button",{class:"chip sback",onclick:()=>renderMastery(id,mqFrom)},"\u2039 Back"),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},`Question ${mq.i+1} of ${mq.qs.length}`));
   const lines=q.q.split("\n");
   sh.append(el("p",{class:"mq"},lines[0],lines[1]?el("br"):"",lines[1]||""));
-  const box=el("div",{class:"mopts"+(q.flags?" fl":"")}),nx=el("div",{class:"row",style:"margin-top:12px"});
+  const box=el("div",{class:"mopts"+(q.flags?" fl":"")}),nx=el("div",{},);
   q.opts.forEach((o,k)=>box.append(el("button",{class:"mopt",onclick:e=>{
     [...box.children].forEach((b,i)=>{b.disabled=true;if(i===q.ans)b.classList.add("ok")});
-    if(k===q.ans){mq.right++;sndHit(FACTS[mq.id].r,false)}else{e.currentTarget.classList.add("no");sndMiss()}
-    nx.append(el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish"));
+    if(k===q.ans){mq.right++;sndHit(FACTS[id].r,false)}else{e.currentTarget.classList.add("no");sndMiss()}
+    nx.append(el("p",{class:"mwhy"},q.why||""),el("div",{class:"row",style:"margin-top:10px"},el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish")));
   }},q.flags?el("img",{src:o,alt:""}):o)));
   sh.append(box,nx);openModal();
 }
 function qDone(){
-  const pass=mq.right>=mq.need,sh=$("sheet"),id=mq.id;sh.innerHTML="";
-  if(pass){if(mq.key==="c"||mq.key==="f")jrMark(id,mq.key);else jrMark(id,"q",mq.key);sndFlourish(FACTS[id].r)}
-  sh.append(closeBtn(),el("h2",{},pass?"Passed":"Not quite"),el("p",{},`${mq.right} of ${mq.qs.length} right${pass?".":`. You need ${mq.need}.`}`));
-  const key=mq.key,qid=mq.id;
-  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(qid,mqFrom)},"Back to mastery"),
-    pass?"":el("button",{class:"btn",onclick:()=>{const qs=key==="c"?qCapital(qid,++mqAttempt):key==="f"?qFlag(qid,++mqAttempt):qBuild(qid,key,++mqAttempt);mq={id:qid,key,qs,i:0,right:0,need:key==="c"||key==="f"?1:Math.min(2,qs.length),title:mq.title};showQ()}},"Try again")));
+  const n=mq.qs.length,need=n>=5?4:n,pass=mq.right>=need,gold=mq.right===n,sh=$("sheet"),id=mq.id,key=mq.key;sh.innerHTML="";
+  const single=key==="cap"||key==="flg";
+  if(single){if(pass)jrMark(id,key==="cap"?"c":"f")}
+  else{if(pass)jrMark(id,"p",key);if(gold)jrMark(id,"g",key)}
+  if(pass)sndFlourish(FACTS[id].r);
+  sh.append(closeBtn(),el("h2",{},gold&&!single?"Perfect":pass?"Passed":"Not quite"),
+    el("p",{},`${mq.right} of ${n} right.`+(pass?(gold||single?" Gold earned.":" You need all "+n+" for gold."):` You need ${need} to pass.`)));
+  const title=mq.title;
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(id,mqFrom)},"Back to the path"),
+    gold?"":el("button",{class:"btn",onclick:()=>mqStart(id,key)},"Try again")));
   openModal();
 }
 function masteryPages(){
@@ -2225,9 +2343,8 @@ function masteryPages(){
   const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book")}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
   const grid=list=>el("div",{class:"mgrid"},list.map(tile));
   const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
-  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`Every flag in the world. ${st} studied, ${ms} mastered. Open a flag to take its quizzes.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
-}
-function renderBook(tab){
+  return [[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 0;color:var(--ink-soft);font-size:14px"},`Every flag in the world. ${st} studied, ${ms} mastered. Open a flag to see its mastery path.`),grid(ids.slice(0,half))],[el("div",{style:"height:56px"}),grid(ids.slice(half))]];
+}function renderBook(tab){
   tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
   const tabs=[["atlas","Atlas","#6FA27E"],["stamps","Stamp Book","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
   const bar=el("div",{class:"bk-tabs",role:"tablist"},tabs.map(([k,l,c])=>el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>{if(k!==tab){sndPage();renderBook(k)}}},l)));
@@ -2512,7 +2629,7 @@ function introHandoff(fast){
   if(spinG&&actx){try{spinG.gain.cancelScheduledValues(actx.currentTime);spinG.gain.setTargetAtTime(0,actx.currentTime,.06)}catch(e){}spinG=null}
   document.body.classList.remove("introing","introglobe");document.body.classList.add("introout");
   $("introSkip").hidden=true;introEl.classList.add("out");
-  scheduleDrift();render(true);
+  stopDrift();scheduleDrift();render(true);
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
 }
@@ -2630,7 +2747,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});wi
 /* ---------- go ---------- */
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
-applyFx();document.body.classList.toggle("cv",CANVAS);cvColors();syncUnit();restoreView();size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();document.body.classList.toggle("cv",CANVAS);cvColors();syncUnit();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
 if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged

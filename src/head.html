@@ -41,7 +41,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --paper:#17130F; --paper-2:#080706;
-    --sea-in:#1C2E3B; --sea-mid:#14232F; --sea-out:#0B1620;
+    --sea-in:#1B2A3E; --sea-mid:#131F30; --sea-out:#0B1421;
     --land:#9C9074; --border:#574C37;
     --ink:#E3DAC3; --ink-soft:#A99F88; --ink-faint:#7A7260;
     --panel:rgba(22,18,14,.9); --panel-line:rgba(227,218,195,.12); --sheet:rgba(20,16,12,.97);
@@ -53,7 +53,7 @@
 }
 :root[data-theme="dark"]{
   --paper:#17130F; --paper-2:#080706;
-  --sea-in:#1C2E3B; --sea-mid:#14232F; --sea-out:#0B1620;
+  --sea-in:#1B2A3E; --sea-mid:#131F30; --sea-out:#0B1421;
   --land:#9C9074; --border:#574C37;
   --ink:#E3DAC3; --ink-soft:#A99F88; --ink-faint:#7A7260;
   --panel:rgba(22,18,14,.9); --panel-line:rgba(227,218,195,.12); --sheet:rgba(20,16,12,.97);
@@ -131,6 +131,8 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}::view-transition-new(root){z-index:2}
 .themewash{position:fixed;inset:0;z-index:70;pointer-events:none}
 .tw-fill{position:absolute;inset:0;overflow:hidden;clip-path:polygon(0 0,0 0,0 0)}
 .tw-star{position:absolute;border-radius:50%;background:#e9eeff;opacity:0;animation:twStar .9s ease-out forwards}

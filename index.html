@@ -41,7 +41,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --paper:#17130F; --paper-2:#080706;
-    --sea-in:#1C2E3B; --sea-mid:#14232F; --sea-out:#0B1620;
+    --sea-in:#1B2A3E; --sea-mid:#131F30; --sea-out:#0B1421;
     --land:#9C9074; --border:#574C37;
     --ink:#E3DAC3; --ink-soft:#A99F88; --ink-faint:#7A7260;
     --panel:rgba(22,18,14,.9); --panel-line:rgba(227,218,195,.12); --sheet:rgba(20,16,12,.97);
@@ -53,7 +53,7 @@
 }
 :root[data-theme="dark"]{
   --paper:#17130F; --paper-2:#080706;
-  --sea-in:#1C2E3B; --sea-mid:#14232F; --sea-out:#0B1620;
+  --sea-in:#1B2A3E; --sea-mid:#131F30; --sea-out:#0B1421;
   --land:#9C9074; --border:#574C37;
   --ink:#E3DAC3; --ink-soft:#A99F88; --ink-faint:#7A7260;
   --panel:rgba(22,18,14,.9); --panel-line:rgba(227,218,195,.12); --sheet:rgba(20,16,12,.97);
@@ -131,6 +131,8 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}::view-transition-new(root){z-index:2}
 .themewash{position:fixed;inset:0;z-index:70;pointer-events:none}
 .tw-fill{position:absolute;inset:0;overflow:hidden;clip-path:polygon(0 0,0 0,0 0)}
 .tw-star{position:absolute;border-radius:50%;background:#e9eeff;opacity:0;animation:twStar .9s ease-out forwards}
@@ -3397,26 +3399,18 @@ function themeAnimate(k,srcEl,after){
   if(reduced||themeBusy||dark===isDark()){apply();return}
   themeBusy=true;
   const r=(srcEl||$("themeBtn")).getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
-  const wash=el("div",{class:"themewash"}),fill=el("div",{class:"tw-fill"});
-  fill.style.background=dark?"radial-gradient(120% 100% at 50% 30%,#1d1b30,#0b0a13)":"radial-gradient(120% 100% at 50% 30%,#fff4d8,#efe1be)";
-  if(dark){for(let i=0;i<46;i++){const st=el("i",{class:"tw-star"}),sz=1+Math.random()*2.2;st.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;animation-delay:${(Math.random()*.5).toFixed(2)}s`;fill.append(st)}}
-  else{for(let i=0;i<5;i++){const rg=el("i",{class:"tw-ray"});rg.style.cssText=`left:${x}px;top:${y}px;animation-delay:${(i*.07).toFixed(2)}s;width:${(160+i*150)}px;height:${(160+i*150)}px`;fill.append(rg)}}
-  const ic=el("div",{class:"tw-icon"});
-  ic.innerHTML=dark?'<svg viewBox="0 0 64 64"><path fill="#fff1c9" d="M44 8a26 26 0 1 0 12 40A22 22 0 0 1 44 8z"/></svg>':'<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#ffb73b"/><g stroke="#ffb73b" stroke-width="4" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.6 5.6M44.8 44.8l5.6 5.6M13.6 50.4l5.6-5.6M44.8 19.2l5.6-5.6"/></g></svg>';
-  fill.append(ic);wash.append(fill);document.body.append(wash);
-  wash.style.filter=dark?"drop-shadow(0 0 10px rgba(150,140,255,.55))":"drop-shadow(0 0 10px rgba(255,170,60,.55))";
-  // an ink spill: the edge is a ring of points that each flow outward at their own speed, so the stain spreads in fingers and blobs
+  if(!document.startViewTransition){apply();themeBusy=false;return}
+  // the real old and new screens are kept as pictures: the new theme, fully drawn, is revealed by a spreading ink-shaped edge, so nothing is ever covered by a flat colour
   const N=150,seedR=(()=>{const a=[];for(let i=0;i<N;i++)a.push(.72+Math.random()*.6);for(let p=0;p<14;p++)for(let i=0;i<N;i++)a[i]=(a[(i+N-1)%N]+a[i]*2+a[(i+1)%N])/4;const m=Math.min(...a),M=Math.max(...a);return a.map(v=>.5+(v-m)/(M-m||1)*.9)})();
-  const poly=t=>{const pr=1-Math.pow(1-t,1.8),lf=Math.pow(Math.max(0,(t-.6)/.4),1.6);let out=[];for(let i=0;i<N;i++){const ang=i/N*6.2832,rr=R*(Math.pow(pr,1/seedR[i])*seedR[i]*.82)+R*.62*lf;out.push(`${(x+Math.cos(ang)*rr).toFixed(1)}px ${(y+Math.sin(ang)*rr).toFixed(1)}px`)}return `polygon(${out.join(",")})`};
+  const poly=t=>{const pr=1-Math.pow(1-t,1.8),lf=Math.pow(Math.max(0,(t-.6)/.4),1.6);const out=[];for(let i=0;i<N;i++){const ang=i/N*6.2832,rr=R*(Math.pow(pr,1/seedR[i])*seedR[i]*.82)+R*.62*lf;out.push(`${(x+Math.cos(ang)*rr).toFixed(1)}px ${(y+Math.sin(ang)*rr).toFixed(1)}px`)}return `polygon(${out.join(",")})`};
   const frames=[];for(let k=0;k<=12;k++){const t=k/12;frames.push({clipPath:poly(t),offset:t})}
-  fill.animate(frames,{duration:900,easing:"cubic-bezier(.4,0,.3,1)",fill:"forwards"}).onfinish=()=>{
+  const vt=document.startViewTransition(async()=>{
     apply();
-    const lift=()=>{wash.animate([{opacity:1},{opacity:0}],{duration:560,easing:"ease-out",fill:"forwards"}).onfinish=()=>{wash.remove();themeBusy=false}};
-    const done=()=>setTimeout(lift,380);
-    if(GLX&&GLX.whenIdle)GLX.whenIdle(done);else done();
-  };
-}
-function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
+    await new Promise(res=>{let done=false;const go=()=>{if(!done){done=true;res()}};setTimeout(go,900);if(GLX&&GLX.whenIdle)GLX.whenIdle(()=>setTimeout(go,60));else go()});   // wait for the new globe and background, at most about a second
+  });
+  vt.ready.then(()=>{document.documentElement.animate(frames,{duration:1000,easing:"cubic-bezier(.4,0,.3,1)",pseudoElement:"::view-transition-new(root)",fill:"forwards"})}).catch(()=>{});
+  vt.finished.finally(()=>{themeBusy=false});
+}function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
 function syncUnit(){$("unitA").textContent=S.unit;$("unitB").textContent=S.unit==="mi"?"km":"mi"}
 function setUnit(u){S.unit=u;save();syncUnit();if($("card").classList.contains("on"))showCard(cardId,true)}

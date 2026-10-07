@@ -2624,12 +2624,26 @@ function mTree(id,j,secs){
   svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
   const box=el("div",{});box.innerHTML=svg;return box;
 }
-function renderMastery(id,from){
+function renderMastery(id,from,openKey){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
-  sh.append(el("button",{class:"chip rdbtn",title:"Read the pages on "+f.n,onclick:()=>{sndTick();rdWin?closeReader():openReader(id)}},"\u{1F4D6} Read"));
+
   if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}},"\u2039 Back"));
-  sh.append(el("div",{class:"mhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{},el("h2",{},f.n),el("small",{},["Not found yet","Found","Studied","Mastered"][lv]))));
+  // one module: the flag, the name, how far along it is, and the country's pages to read right here
+  const LR=LEARN[id]||{},fdd=typeof FOOD!=="undefined"&&FOOD[id],PG=[["o","At a glance",LR.o],["g","Land",LR.g],["c","People",LR.c],["f","Food",fdd&&fdd.x],["h","History",LR.h],["n","Name",LR.n]].filter(x=>x[2]);
+  const mod=el("div",{class:"mmod"},
+    el("div",{class:"mmod-top"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{class:"mmod-id"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))));
+  if(PG.length){
+    const chips=el("div",{class:"mmod-read"},el("span",{class:"mmod-lab"},"Read"));
+    PG.forEach(([k,l])=>chips.append(el("button",{class:"chip","aria-pressed":String(openKey===k),onclick:()=>{sndTick();renderMastery(id,from,openKey===k?null:k)}},l+(k!=="o"&&(j.s||[]).includes(k)?" ✓":""))));
+    mod.append(chips);
+    const open=PG.find(x=>x[0]===openKey);
+    if(open){
+      const pane=el("div",{class:"mpane learn"},...[].concat(blocks(id,open[0],open[2])));pane.style.setProperty("--p",`var(--c-${f.r})`);mod.append(pane);
+      if(open[0]!=="o"&&!(j.s||[]).includes(open[0]))setTimeout(()=>{if(pane.isConnected){jrMark(id,"s",open[0]);renderMastery(id,from,open[0])}},1600);   // reading a page for a moment counts it as read
+    }
+  }
+  sh.append(mod);
   const tree=mTree(id,j,secs);
   tree.addEventListener("click",e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();

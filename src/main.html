@@ -3459,6 +3459,8 @@ function showHotSheet(){
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
   sh.append(el("p",{class:"bestline"},best?`Your best here: ${best} guess${best===1?"":"es"}`:"No finish here yet."));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
+  const hb=S.counts.hotBest||{},rows=ALLR.filter(r=>r!=="United States").map(r=>el("div",{class:"recrow",style:"display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--panel-line)"},el("span",{},r==="World"?"Earth":r==="Americas"?"The Americas":r),el("b",{},hb[r]?hb[r]+" guess"+(hb[r]===1?"":"es"):"\u2014")));
+  sh.append(fold("Your records",el("div",{},el("p",{style:"margin:0 0 6px;color:var(--ink-soft);font-size:13px"},`Found ${S.counts.hot||0} hidden countr${(S.counts.hot||0)===1?"y":"ies"} in all. Fewest guesses per area:`),rows)));
   openModal(true);setTimeout(()=>{const b=$("startHot");if(b)b.focus({preventScroll:true})},60);
 }
 function hotStart(){

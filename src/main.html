@@ -3476,7 +3476,7 @@ function hotStart(){
 }
 function hotRender(){
   const ul=$("hotList");ul.innerHTML="";
-  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n))));
+  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n),g.nb?el("span",{class:"hb"},"Borders it"):null)));
   ul.hidden=!HOT.list.length;
 }
 function hotGuess(){
@@ -3488,10 +3488,10 @@ function hotGuess(){
   if(HOT.list.some(g=>g.id===id))return bad(`You already tried ${FACTS[id].n}.`);
   const T=HOT.target,win=id===T,nb=!win&&hotBorders(id,T),d=win?0:nb?0:hotDist(id,T);
   const g={id,d,nb,col:win?"#3fa66a":heatOf(d),dir:win?"":bearing(LL(id),LL(T))};
-  HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
+  $("silHint").classList.remove("bord");HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
   hotRender();paint();requestRender();updateProgress();
   if(win)return hotFinish(false);
-  sndTick();nameFly(id);$("silHint").textContent="Warmer colours are closer.";
+  sndTick();nameFly(id);$("silHint").textContent=nb?FACTS[id].n+" shares a border with the hidden country!":"Warmer colours are closer.";$("silHint").classList.toggle("bord",!!nb);
 }
 function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){

@@ -768,6 +768,8 @@ details.fold[open]>summary::after{content:"\2013"}
 .hotlist li{display:flex;align-items:center;gap:9px;padding:4px 2px;border-top:1px dashed var(--panel-line)}
 .hotlist li:first-child{border-top:0}
 .hotlist li.last{font-weight:600}
+.hotlist .hb{flex:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--mode-acc) 22%,transparent);color:var(--mode-acc)}
+.silhint.bord{color:var(--mode-acc);font-weight:600}
 .hotlist i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
 .hotlist .hn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (min-width:900px){.sil.nameit.hot{inset:0 0 0 auto;width:320px;box-sizing:border-box;padding:84px 16px 16px;place-items:start end}.sil.nameit.hot .silcard{width:100%}.sil.hot .hotlist{max-height:48vh}}
@@ -4688,7 +4690,7 @@ function hotStart(){
 }
 function hotRender(){
   const ul=$("hotList");ul.innerHTML="";
-  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n))));
+  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n),g.nb?el("span",{class:"hb"},"Borders it"):null)));
   ul.hidden=!HOT.list.length;
 }
 function hotGuess(){
@@ -4700,10 +4702,10 @@ function hotGuess(){
   if(HOT.list.some(g=>g.id===id))return bad(`You already tried ${FACTS[id].n}.`);
   const T=HOT.target,win=id===T,nb=!win&&hotBorders(id,T),d=win?0:nb?0:hotDist(id,T);
   const g={id,d,nb,col:win?"#3fa66a":heatOf(d),dir:win?"":bearing(LL(id),LL(T))};
-  HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
+  $("silHint").classList.remove("bord");HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
   hotRender();paint();requestRender();updateProgress();
   if(win)return hotFinish(false);
-  sndTick();nameFly(id);$("silHint").textContent="Warmer colours are closer.";
+  sndTick();nameFly(id);$("silHint").textContent=nb?FACTS[id].n+" shares a border with the hidden country!":"Warmer colours are closer.";$("silHint").classList.toggle("bord",!!nb);
 }
 function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){

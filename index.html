@@ -3406,9 +3406,9 @@ function themeAnimate(k,srcEl,after){
   const frames=[];for(let k=0;k<=12;k++){const t=k/12;frames.push({clipPath:poly(t),offset:t})}
   const vt=document.startViewTransition(async()=>{
     apply();
-    await new Promise(res=>{let done=false;const go=()=>{if(!done){done=true;res()}};setTimeout(go,900);if(GLX&&GLX.whenIdle)GLX.whenIdle(()=>setTimeout(go,60));else go()});   // wait for the new globe and background, at most about a second
+    await new Promise(res=>setTimeout(res,140));   // the new screen is captured live, so the globe finishes recolouring while the reveal is already spreading
   });
-  vt.ready.then(()=>{document.documentElement.animate(frames,{duration:1000,easing:"cubic-bezier(.4,0,.3,1)",pseudoElement:"::view-transition-new(root)",fill:"forwards"})}).catch(()=>{});
+  vt.ready.then(()=>{document.documentElement.animate(frames,{duration:720,easing:"cubic-bezier(.4,0,.3,1)",pseudoElement:"::view-transition-new(root)",fill:"forwards"})}).catch(()=>{});
   vt.finished.finally(()=>{themeBusy=false});
 }function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}

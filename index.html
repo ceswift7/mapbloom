@@ -1175,6 +1175,7 @@ try{
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
 let WIPED=false;
+const nbNow=()=>!!S.nb&&S.mode!=="wander";   // Borderless is a Quiz and Race option: Explore always shows the borders
 function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
@@ -1479,7 +1480,7 @@ function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
   if(!cvMissed.size&&cvHover==null&&cvHL==null)return;
-  c.lineWidth=.5;c.strokeStyle=S.nb?"rgba(0,0,0,0)":CV.border;
+  c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
   cvMissed.forEach(id=>one(id,CV.miss));
   if(cvHover!=null&&!cvMissed.has(cvHover))one(cvHover,CV.hover);
@@ -1533,7 +1534,7 @@ function drawCanvas(s,cen0,lim,lvl){
     const key=!fa?"nopl":expl?(fa.x?"EA":fa.r):"land";
     let b=buckets.get(key);if(!b){b=[];buckets.set(key,b)}b.push(g);
   }
-  c.lineWidth=.5;c.strokeStyle=S.nb?"rgba(0,0,0,0)":CV.border;
+  c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   buckets.forEach((list,key)=>{
     c.beginPath();for(let i=0;i<list.length;i++)drawFeatureCtx(list[i],cen0,lim);
     c.fillStyle=key==="land"?CV.land:key==="nopl"?CV.nopl:key==="EA"?CV.tintEA:CV.tint[key];c.fill();c.stroke();
@@ -3900,7 +3901,7 @@ function setMode(m,quiet,noIdle){
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
-  document.documentElement.dataset.mode=m;cvColors();
+  document.documentElement.dataset.mode=m;cvColors();if(nbApplied!==nbNow())applyNb();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();
@@ -4123,7 +4124,8 @@ function applyFx(){
 }
 function engineSeg(){const w=el("div",{class:"seg2"});[["gl","Fast (GPU)"],["canvas","Compatible"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine2===k),onclick:()=>{if(S.engine2===k)return;S.engine2=k;save();location.reload()}},l)));return w}
 function autoSeg(){const w=el("div",{class:"seg2"});[["off","Off"],["fast","Quick"],["normal","Normal"],["slow","Slow"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.autoNext===k),onclick:()=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()}},l)));return w}
-function applyNb(){document.body.classList.toggle("nb",!!S.nb);if(GLX.hasGL&&GLX.colors)GLX.colors();paint();render(true)}
+let nbApplied=null;
+function applyNb(){nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);if(GLX.hasGL&&GLX.colors)GLX.colors();paint();render(true)}
 function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
 if(isTouch){
   let n=0,sum=0,last=0;
@@ -4407,7 +4409,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});wi
 /* ---------- go ---------- */
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
-applyFx();document.body.classList.toggle("cv",CANVAS);document.body.classList.toggle("nb",!!S.nb);cvColors();syncUnit();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();document.body.classList.toggle("cv",CANVAS);nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);cvColors();syncUnit();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
 if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged
@@ -4726,7 +4728,7 @@ function glStartLand(){
     const [key,fs]=st.list[st.i++];
     glPath.context(st.ctx);st.ctx.beginPath();fs.forEach(f=>glPath(f));st.ctx.fillStyle=glLandColor(key);st.ctx.fill();
     {const c0=d3.color(glLandColor(key));if(c0){const k=glTW/4096,cx=st.ctx;cx.save();cx.clip();cx.lineJoin="round";   // wet-edge pigment pool just inside every coast and border
-      if(S.nb&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
+      if(nbNow()&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
       cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET1*k;cx.stroke();
       cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET2*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
@@ -4797,7 +4799,7 @@ function glDesired(){
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
     const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
-    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(S.nb?"~":"")+(found&&jrLevel(id)===3?"|m":""));
+    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(nbNow()?"~":"")+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;
 }
@@ -5003,12 +5005,12 @@ GLX.draw=function(s,cen0){
   GLc.activeTexture(GLc.TEXTURE6);GLc.bindTexture(GLc.TEXTURE_2D,GP.tex.art);GLc.uniform1i(glU.uPArt,6);
   GLc.drawArrays(GLc.TRIANGLE_STRIP,0,4);
   if(glLN){                                                      // border hairlines, always about 1 device pixel wide
-    GLc.useProgram(glLProg);GLc.bindVertexArray(S.nb?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
+    GLc.useProgram(glLProg);GLc.bindVertexArray(nbNow()?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
     GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.25:1)/cvDpr);
     const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[.97,.93,.82,.72]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
     GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
-    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,S.nb?glLNC:glLN);
+    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,nbNow()?glLNC:glLN);
     GLc.disable(GLc.BLEND);GLc.bindVertexArray(glVao);
   }
 };

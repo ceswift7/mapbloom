@@ -308,7 +308,7 @@ function glStartLand(){
     const [key,fs]=st.list[st.i++];
     glPath.context(st.ctx);st.ctx.beginPath();fs.forEach(f=>glPath(f));st.ctx.fillStyle=glLandColor(key);st.ctx.fill();
     {const c0=d3.color(glLandColor(key));if(c0){const k=glTW/4096,cx=st.ctx;cx.save();cx.clip();cx.lineJoin="round";   // wet-edge pigment pool just inside every coast and border
-      if(S.nb&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
+      if(nbNow()&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
       cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET1*k;cx.stroke();
       cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET2*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
@@ -379,7 +379,7 @@ function glDesired(){
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
     const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
-    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(S.nb?"~":"")+(found&&jrLevel(id)===3?"|m":""));
+    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(nbNow()?"~":"")+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;
 }
@@ -585,12 +585,12 @@ GLX.draw=function(s,cen0){
   GLc.activeTexture(GLc.TEXTURE6);GLc.bindTexture(GLc.TEXTURE_2D,GP.tex.art);GLc.uniform1i(glU.uPArt,6);
   GLc.drawArrays(GLc.TRIANGLE_STRIP,0,4);
   if(glLN){                                                      // border hairlines, always about 1 device pixel wide
-    GLc.useProgram(glLProg);GLc.bindVertexArray(S.nb?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
+    GLc.useProgram(glLProg);GLc.bindVertexArray(nbNow()?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
     GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.25:1)/cvDpr);
     const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[.97,.93,.82,.72]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
     GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
-    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,S.nb?glLNC:glLN);
+    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,nbNow()?glLNC:glLN);
     GLc.disable(GLc.BLEND);GLc.bindVertexArray(glVao);
   }
 };

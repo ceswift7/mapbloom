@@ -131,7 +131,7 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
-::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root),::view-transition-new(root){mix-blend-mode:normal;animation-duration:.5s;animation-timing-function:ease-in-out}   /* a plain cross fade between the old and new screens */
 ::view-transition-old(root){z-index:1}::view-transition-new(root){z-index:2}
 .themewash{position:fixed;inset:0;z-index:70;pointer-events:none}
 .tw-fill{position:absolute;inset:0;overflow:hidden;clip-path:polygon(0 0,0 0,0 0)}
@@ -322,8 +322,8 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
 .icon-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--panel-line);color:var(--ink-soft);transition:transform .25s ease}
 .icon-btn:hover{transform:scale(1.06)}
 #themeBtn{position:relative}
-#themeBtn.tswap svg{animation:tsSpin .86s cubic-bezier(.4,0,.3,1)}
-#themeBtn.tswap::after{content:"";position:absolute;inset:-1px;border-radius:50%;pointer-events:none;animation:tsRing .86s ease-out}
+#themeBtn.tswap svg{animation:tsSpin .64s cubic-bezier(.4,0,.3,1)}
+#themeBtn.tswap::after{content:"";position:absolute;inset:-1px;border-radius:50%;pointer-events:none;animation:tsRing .64s ease-out}
 @keyframes tsSpin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(200deg) scale(.5)}100%{transform:rotate(360deg) scale(1)}}
 @keyframes tsRing{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ink) 35%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
 .icon-btn svg{width:17px;height:17px}
@@ -3404,21 +3404,17 @@ function themeAnimate(k,srcEl,after){
   const dark=themeWillBeDark(k),apply=()=>{S.theme=k;save();applyTheme();clearTimeout(benchTm);benchTm=0;benchDraw();if(after)after()};
   if(reduced||themeBusy||dark===isDark()){apply();return}
   themeBusy=true;
-  const r=(srcEl||$("themeBtn")).getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
   if(!document.startViewTransition){apply();themeBusy=false;return}
-  // the real old and new screens are kept as pictures: the new theme, fully drawn, is revealed by a spreading ink-shaped edge, so nothing is ever covered by a flat colour
-  const N=150,seedR=(()=>{const a=[];for(let i=0;i<N;i++)a.push(.72+Math.random()*.6);for(let p=0;p<14;p++)for(let i=0;i<N;i++)a[i]=(a[(i+N-1)%N]+a[i]*2+a[(i+1)%N])/4;const m=Math.min(...a),M=Math.max(...a);return a.map(v=>.5+(v-m)/(M-m||1)*.9)})();
-  const poly=t=>{const pr=1-Math.pow(1-t,1.8),lf=Math.pow(Math.max(0,(t-.6)/.4),1.6);const out=[];for(let i=0;i<N;i++){const ang=i/N*6.2832,rr=R*(Math.pow(pr,1/seedR[i])*seedR[i]*.82)+R*.62*lf;out.push(`${(x+Math.cos(ang)*rr).toFixed(1)}px ${(y+Math.sin(ang)*rr).toFixed(1)}px`)}return `polygon(${out.join(",")})`};
-  const frames=[];for(let k=0;k<=12;k++){const t=k/12;frames.push({clipPath:poly(t),offset:t})}
-  // the button itself plays along for exactly as long as the reveal: it spins, the sun and moon swap at the halfway point, and a ring pulses out
-  const tb=$("themeBtn"),TD=860;themeSwapping=true;tb.classList.remove("tswap");void tb.offsetWidth;tb.classList.add("tswap");
+  // a plain cross fade: the browser keeps a picture of the old screen and fades it into the live new one.
+  // The theme button plays along for the same length: it spins, the sun and moon swap at the halfway point, and a ring pulses out.
+  const tb=$("themeBtn"),TD=640;themeSwapping=true;tb.classList.remove("tswap");void tb.offsetWidth;tb.classList.add("tswap");
   setTimeout(()=>syncThemeBtn(true),TD/2);
   setTimeout(()=>{themeSwapping=false;tb.classList.remove("tswap");syncThemeBtn(true)},TD+40);
   const vt=document.startViewTransition(async()=>{
     apply();
-    await new Promise(res=>setTimeout(res,140));   // the new screen is captured live, so the globe finishes recolouring while the reveal is already spreading
+    await new Promise(res=>setTimeout(res,100));   // the new screen is captured live, so the globe can finish recolouring during the fade
   });
-  vt.ready.then(()=>{document.documentElement.animate(frames,{duration:720,easing:"cubic-bezier(.4,0,.3,1)",pseudoElement:"::view-transition-new(root)",fill:"forwards"})}).catch(()=>{});
+
   vt.finished.finally(()=>{themeBusy=false});
 }function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}

@@ -2624,6 +2624,56 @@ function mTree(id,j,secs){
   svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
   const box=el("div",{});box.innerHTML=svg;return box;
 }
+/* ---- the country book: the cover swings open from the spine and the country's pages read as two-page spreads you can turn ---- */
+let cbTimers=[];
+function openCountryBook(id,from,startKey){
+  closeReader();cbTimers.forEach(clearTimeout);cbTimers=[];
+  const f=FACTS[id],L=LEARN[id]||{},fd=typeof FOOD!=="undefined"?FOOD[id]:null,P=(k,t)=>blocks(id,k,t);
+  const quick=()=>{const dl=el("dl",{class:"kv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Capital",f.cap);add("Calling code",L.k);add("Drives on the",L.d);return dl};
+  const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["q","Quick data",quick],["g","The land",()=>L.g&&P("g",L.g)],["c","People and culture",()=>L.c&&P("c",L.c)],["f","Food and dishes",()=>fd&&fd.x&&P("f",fd.x)],
+    ["h","A short history",()=>L.h&&[P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:""]],["n","Where the name comes from",()=>L.n&&P("n",L.n)],["d","Did you know",()=>el("ul",{},funFacts(id).map(t=>el("li",{},t)))]];
+  const secs=defs.filter(d=>d[0]==="q"||d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn}));
+  const spreads=[];for(let i=0;i<secs.length;i+=2)spreads.push(secs.slice(i,i+2));
+  let cur=Math.max(0,spreads.findIndex(sp=>sp.some(x=>x.k===startKey)));
+  const sh=$("sheet");sh.innerHTML="";
+  const pageEl=(sec,cls)=>{const d=el("div",{class:"bkpage "+cls}),w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
+    if(sec){const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),sec.t));[sec.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s)}
+    d.append(w);return d};
+  const pages=el("div",{class:"bkpages cbpages"}),ind=el("span",{class:"cbind"});
+  const render=()=>{
+    cbTimers.forEach(clearTimeout);cbTimers=[];
+    pages.querySelectorAll(".bkpage").forEach(p=>p.remove());
+    const sp=spreads[cur];pages.prepend(pageEl(sp[1]||null,"r"));pages.prepend(pageEl(sp[0],"l"));
+    ind.textContent=`${cur+1} of ${spreads.length}`;
+    sp.forEach(x=>{if("gcfhn".includes(x.k)&&!(jrObj(id).s||[]).includes(x.k))cbTimers.push(setTimeout(()=>jrMark(id,"s",x.k),1500))});   // a page that stays open for a moment counts as read
+  };
+  const turn=dir=>{
+    const to=cur+dir;if(to<0||to>=spreads.length||pages.dataset.busy)return;
+    sndPage();pages.dataset.busy="1";
+    const narrow=innerWidth<720;
+    const L0=pages.querySelector(".bkpage.l"),R0=pages.querySelector(".bkpage.r"),out=dir>0?R0:L0,ms=reduced?1:230;
+    const outKf=dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.82)"}]:[{transform:"rotateY(0)",transformOrigin:"right center"},{transform:"rotateY(88deg)",transformOrigin:"right center",filter:"brightness(.82)"}];
+    const first=narrow?out.animate([{opacity:1},{opacity:0}],{duration:ms}):out.animate(outKf,{duration:ms,easing:"ease-in",fill:"forwards"});
+    first.onfinish=()=>{
+      cur=to;render();
+      const inn=dir>0?pages.querySelector(".bkpage.l"):pages.querySelector(".bkpage.r");
+      const inKf=dir>0?[{transform:"rotateY(88deg)",transformOrigin:"right center",filter:"brightness(.82)"},{transform:"rotateY(0)",transformOrigin:"right center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.82)"},{transform:"rotateY(0)",transformOrigin:"left center"}];
+      const second=narrow?inn.animate([{opacity:0},{opacity:1}],{duration:ms}):inn.animate(inKf,{duration:ms,easing:"ease-out"});
+      second.onfinish=()=>{delete pages.dataset.busy};
+    };
+  };
+  render();
+  const prev=el("button",{class:"chip",onclick:()=>turn(-1)},"‹ Previous"),next=el("button",{class:"chip",onclick:()=>turn(1)},"Next ›");
+  const ctl=el("div",{class:"bkctl"},el("button",{class:"chip",onclick:()=>{sndPage();cbTimers.forEach(clearTimeout);renderMastery(id,from)}},"‹ Back to "+f.n),el("span",{class:"grow"}),prev,ind,next);
+  const stage=el("div",{class:"cbstage"},el("div",{class:"cbleft"}),
+    el("div",{class:"cbfront"},el("div",{class:"cbf"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("b",{},f.n),el("small",{},"A book of its pages")),el("div",{class:"cbb"})));
+  pages.append(stage);
+  sh.append(closeBtn(),el("div",{class:"bkcover"},pages,ctl));
+  openModal("book");
+  setTimeout(()=>stage.remove(),reduced?10:2300);
+  const key=e=>{if(!document.body.contains(pages)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")turn(1);else if(e.key==="ArrowLeft")turn(-1)};
+  document.addEventListener("keydown",key);
+}
 function renderMastery(id,from,openKey){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
@@ -2634,16 +2684,10 @@ function renderMastery(id,from,openKey){
   const mod=el("div",{class:"mmod"},
     el("div",{class:"mmod-top"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{class:"mmod-id"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))));
   if(PG.length){
-    const chips=el("div",{class:"mmod-read"},el("span",{class:"mmod-lab"},"Read"));
-    PG.forEach(([k,l])=>chips.append(el("button",{class:"chip","aria-pressed":String(openKey===k),onclick:()=>{sndTick();renderMastery(id,from,openKey===k?null:k)}},l+(k!=="o"&&(j.s||[]).includes(k)?" ✓":""))));
+    const chips=el("div",{class:"mmod-read"},el("button",{class:"chip primary-chip",title:"Open the book on "+f.n,onclick:()=>{sndPage();openCountryBook(id,from,PG[0][0])}},"\u{1F4D6} Open the book"));
+    PG.forEach(([k,l])=>chips.append(el("button",{class:"chip",onclick:()=>{sndPage();openCountryBook(id,from,k)}},l+(k!=="o"&&(j.s||[]).includes(k)?" ✓":""))));
     mod.append(chips);
-    const open=PG.find(x=>x[0]===openKey);
-    if(open){
-      const pane=el("div",{class:"mpane learn"},...[].concat(blocks(id,open[0],open[2])));pane.style.setProperty("--p",`var(--c-${f.r})`);mod.append(pane);
-      if(open[0]!=="o"&&!(j.s||[]).includes(open[0]))setTimeout(()=>{if(pane.isConnected){jrMark(id,"s",open[0]);renderMastery(id,from,open[0])}},1600);   // reading a page for a moment counts it as read
-    }
-  }
-  sh.append(mod);
+  }  sh.append(mod);
   const tree=mTree(id,j,secs);
   tree.addEventListener("click",e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();

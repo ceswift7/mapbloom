@@ -378,7 +378,7 @@ function glDesired(){
   const F=cf(),speed=S.mode==="speed",out=new Map();
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
-    const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
+    const found=F.has(id),shown=!speed&&!SESS&&S.mode!=="hot"&&!found&&S.shown.has(id);
     if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(nbNow()?"~":"")+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;

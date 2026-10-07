@@ -316,6 +316,8 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
 :root{--mode-acc:#6FA27E}
 :root[data-mode="find"]{--mode-acc:#E06F58}
 :root[data-mode="speed"]{--mode-acc:#2D86FF}
+:root[data-mode="hot"]{--mode-acc:#E0802F}
+:root[data-mode="hot"] #showBtn,:root[data-mode="hot"] #nextBtn{display:none !important}
 .wash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;clip-path:circle(0 at 50% 50%)}
 .modeName{position:fixed;left:0;right:0;top:42%;z-index:61;pointer-events:none;opacity:0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(54px,12vw,120px);color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.25)}
 .icon-btn,.chip,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -761,6 +763,14 @@ details.fold[open]>summary::after{content:"\2013"}
 .sil.nameit .silq{font-size:20px;margin:0 0 2px}
 .nb .country{stroke:none}
 @keyframes shk{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.hotlist{list-style:none;margin:10px 0 0;padding:0;max-height:150px;overflow:auto;text-align:left;font-size:13px;scrollbar-width:thin}
+.hotlist[hidden]{display:none}
+.hotlist li{display:flex;align-items:center;gap:9px;padding:4px 2px;border-top:1px dashed var(--panel-line)}
+.hotlist li:first-child{border-top:0}
+.hotlist li.last{font-weight:600}
+.hotlist i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
+.hotlist .hn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hotlist .hd{color:var(--ink-soft);font-size:12px;text-align:right}
 .silsug{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .silsug li button{font:inherit;font-size:12.5px;min-height:28px;padding:4px 12px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink-soft)}
 .sil .actions{margin-top:10px;display:flex;gap:8px;justify-content:center}
@@ -863,6 +873,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <button id="modeWander" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Explore</span></button>
         <button id="modeFind" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Quiz</span></button>
         <button id="modeSpeed" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3h5M18.5 6l1.2-1.2"/></svg><span>Race</span></button>
+        <button id="modeHot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.5V5a2 2 0 014 0v9.5a4 4 0 11-4 0z"/><path d="M12 9v7"/></svg><span>Hot &amp; cold</span></button>
     </div>
     <div class="tools">
       <button class="icon-btn" id="stampBtn" aria-label="Atlas" title="Atlas">
@@ -893,6 +904,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>
+        <ul class="hotlist" id="hotList" hidden></ul>
         <div class="actions"><button class="chip" id="silShow" type="button" title="Reveal (Alt+R)">Reveal</button><button class="chip" id="silSkip" type="button" title="Skip (Alt+S)">Skip</button></div>
       </div>
     </div>

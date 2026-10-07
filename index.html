@@ -316,6 +316,8 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12
 :root{--mode-acc:#6FA27E}
 :root[data-mode="find"]{--mode-acc:#E06F58}
 :root[data-mode="speed"]{--mode-acc:#2D86FF}
+:root[data-mode="hot"]{--mode-acc:#E0802F}
+:root[data-mode="hot"] #showBtn,:root[data-mode="hot"] #nextBtn{display:none !important}
 .wash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;clip-path:circle(0 at 50% 50%)}
 .modeName{position:fixed;left:0;right:0;top:42%;z-index:61;pointer-events:none;opacity:0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(54px,12vw,120px);color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.25)}
 .icon-btn,.chip,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -761,6 +763,14 @@ details.fold[open]>summary::after{content:"\2013"}
 .sil.nameit .silq{font-size:20px;margin:0 0 2px}
 .nb .country{stroke:none}
 @keyframes shk{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.hotlist{list-style:none;margin:10px 0 0;padding:0;max-height:150px;overflow:auto;text-align:left;font-size:13px;scrollbar-width:thin}
+.hotlist[hidden]{display:none}
+.hotlist li{display:flex;align-items:center;gap:9px;padding:4px 2px;border-top:1px dashed var(--panel-line)}
+.hotlist li:first-child{border-top:0}
+.hotlist li.last{font-weight:600}
+.hotlist i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
+.hotlist .hn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hotlist .hd{color:var(--ink-soft);font-size:12px;text-align:right}
 .silsug{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .silsug li button{font:inherit;font-size:12.5px;min-height:28px;padding:4px 12px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink-soft)}
 .sil .actions{margin-top:10px;display:flex;gap:8px;justify-content:center}
@@ -863,6 +873,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <button id="modeWander" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Explore</span></button>
         <button id="modeFind" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Quiz</span></button>
         <button id="modeSpeed" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3h5M18.5 6l1.2-1.2"/></svg><span>Race</span></button>
+        <button id="modeHot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.5V5a2 2 0 014 0v9.5a4 4 0 11-4 0z"/><path d="M12 9v7"/></svg><span>Hot &amp; cold</span></button>
     </div>
     <div class="tools">
       <button class="icon-btn" id="stampBtn" aria-label="Atlas" title="Atlas">
@@ -893,6 +904,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
           <button class="btn primary" type="submit">Guess</button>
         </form>
         <ul class="silsug" id="silSug"></ul>
+        <ul class="hotlist" id="hotList" hidden></ul>
         <div class="actions"><button class="chip" id="silShow" type="button" title="Reveal (Alt+R)">Reveal</button><button class="chip" id="silSkip" type="button" title="Skip (Alt+S)">Skip</button></div>
       </div>
     </div>
@@ -1267,7 +1279,7 @@ try{
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
 let WIPED=false;
-const nbNow=()=>S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
+const nbNow=()=>S.mode==="hot"?false:S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
 function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,h18:1,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
@@ -1281,8 +1293,9 @@ const D={active:false,ids:[],idx:0,marks:[]};          // daily challenge
 const inReg=(id,r)=>(typeof AREA_SET!=="undefined"&&AREA_SET[r])?AREA_SET[r].has(id):(FACTS[id].r===r||FACTS[id].x===r);                     // a country may sit in two continents (Russia)
 const regName=f=>f.x?f.r+" and "+f.x:(f.r==="Americas"?"the Americas":f.r);
 const RD={active:false,n:0,done:0,first:0,miss:[],ids:new Set(),t0:0};   // a free-play round: a clean map, a fixed number of countries
+const HC=new Map(),HOTF=new Set(),HOT={on:false,target:null,list:[],done:false,last:null};   // hot and cold: HC holds the colour of every guessed country, HOTF keeps the saved map hidden
 let SESS=null;   // clean-slate session (daily / practice): the saved map is hidden and only this set is painted
-const cf=()=>S.mode==="speed"?R.found:(SESS||S.found);
+const cf=()=>S.mode==="speed"?R.found:S.mode==="hot"?HOTF:(SESS||S.found);
 
 /* ---------- geometry ---------- */
 const rawF=topojson.feature(WORLD,WORLD.objects.countries).features;rawF.forEach((f,i)=>f._i=i);
@@ -1617,11 +1630,12 @@ function cvPattern(id,shown){
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  if(!cvMissed.size&&cvHover==null&&cvHL==null)return;
+  if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
+  HC.forEach((col,id)=>one(id,col));
   cvMissed.forEach(id=>one(id,CV.miss));
-  if(cvHover!=null&&!cvMissed.has(cvHover))one(cvHover,CV.hover);
+  if(cvHover!=null&&!cvMissed.has(cvHover)&&!HC.has(cvHover))one(cvHover,CV.hover);
   hlDraw(c,s,cen0,lim,lvl);
 }
 /* the country a "Name it" round asks about: a soft pulsing glow, plus a ring when it is only a few pixels wide */
@@ -1664,8 +1678,9 @@ function drawCanvas(s,cen0,lim,lvl){
     const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)continue;
     const fa=FACTS[f.id];
     if(fa){
-      const found=F.has(f.id),shown=!speed&&!SESS&&!found&&S.shown.has(f.id);
+      const found=F.has(f.id),shown=!speed&&!SESS&&S.mode!=="hot"&&!found&&S.shown.has(f.id);
       if(found||shown){painted.push([g,fa,shown,f.id,f]);continue}
+      if(HC.has(f.id)){special.push([g,HC.get(f.id)]);continue}
       if(cvMissed.has(f.id)){special.push([g,CV.miss]);continue}
       if(cvHover===f.id){special.push([g,CV.hover]);continue}
     }
@@ -1818,14 +1833,14 @@ function paintSel(sel,landG,paintG){
   const F=cf(),speed=S.mode==="speed";
   sel.each(function(d){
     const f=FACTS[d.id];const e=d3.select(this);
-    const found=F.has(d.id), shown=!speed&&!SESS&&!found&&S.shown.has(d.id), painted=(found||shown)&&f;
+    const found=F.has(d.id), shown=!speed&&!SESS&&S.mode!=="hot"&&!found&&S.shown.has(d.id), painted=(found||shown)&&f;
     e.classed("found",found).classed("shown",shown).attr("data-r",painted?f.r:null);
     if(painted){
       if(!FX.tiles){e.style("fill",null).style("fill-opacity",null)}
       else if(!artDone[artKey(d.id)]&&artBudget--<=0){paintMore=true;e.style("fill",null).style("fill-opacity",null)}   // a big save is painted in slices so loading never stalls
       else{const key=ensureArt(d.id);if(found&&CANVAS)ensureArtSvg(key);if(!found)ensureWash(key);e.style("fill",`url(#${found?"af":"aw"}-${key})`).style("fill-opacity",found?jit(d.id):.5)}
     }
-    else e.style("fill",null).style("fill-opacity",null);
+    else{const hc=HC.get(d.id);if(hc)e.style("fill",hc).style("fill-opacity",1);else e.style("fill",null).style("fill-opacity",null)}
     const parent=(painted?paintG:landG).node();
     if(this.parentNode!==parent)parent.appendChild(this);
   });
@@ -3363,6 +3378,7 @@ $("briefGo").onclick=()=>{
 /* ---------- clicks ---------- */
 function tap(id,ll,other){
   if(S.mode==="wander"){if(id){showCard(id);floatLabel(FACTS[id].n,ll,2400);sndTick()}return}
+  if(S.mode==="hot"){if(id){floatLabel(FACTS[id].n,ll,2400);sndTick();if(HOT.on&&!HOT.done){const i=$("silIn");i.value=FACTS[id].n;try{i.focus({preventScroll:true})}catch(e){}}}return}
   if(S.mode==="speed")return speedGuess(id,ll,other);
   if(skipNext())return;
   guess(id,ll,other);
@@ -3383,6 +3399,7 @@ sphere.on("click",function(e){
 /* ---------- progress & chips ---------- */
 function updateProgress(){
   if(US.on){const race=S.mode==="speed";$("foundN").textContent=race?R.found.size:US.round.done;$("totalN").textContent=race?R.total:US.round.n;$("progLabel").textContent=race?"found this race":"this round";return}
+  if(S.mode==="hot"){$("foundN").textContent=HOT.list.length;$("totalN").textContent=regionPool().length;$("progLabel").textContent="countries guessed";return}
   const all=playable.map(f=>f.id),F=cf(),inRound=RD.active&&S.mode==="find"&&!D.active&&!S.practice;
   const base=S.mode==="speed"?regionPool():inRound?regionPool():all;
   $("foundN").textContent=inRound?RD.done:base.filter(id=>F.has(id)).length;
@@ -3436,7 +3453,8 @@ const ACH=[
   {id:"shape",n:"Shape Shifter",i:"\u{1F537}",d:"Name 20 countries from their silhouettes",t:()=>(S.counts.sil||0)>=20},
   {id:"raceflag",n:"Flag Sprinter",i:"\u{1F3C1}",d:"Race all of Europe from flags",t:()=>!!(REC["Europe|flag"]&&REC["Europe|flag"].runs.length)},
   {id:"racecap",n:"Capital Sprinter",i:"\u{1F3D9}",d:"Race all of Europe from capitals",t:()=>!!(REC["Europe|capital"]&&REC["Europe|capital"].runs.length)},
-  {id:"chain1",n:"Link by Link",i:"\u{1F517}",d:"Finish a neighbour chain",t:()=>(S.counts.chain||0)>=1}
+  {id:"chain1",n:"Link by Link",i:"\u{1F517}",d:"Finish a neighbour chain",t:()=>(S.counts.chain||0)>=1},
+  {id:"hot5",n:"Warm Hands",i:"\u{1F525}",d:"Find the hidden country in 5 guesses or fewer",t:()=>Object.values(S.counts.hotBest||{}).some(n=>n<=5)}
 ];
 function checkExp(silent){
   EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp",Math.floor((1+EXPS.indexOf(e))/2))})}});
@@ -4216,13 +4234,14 @@ $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
   else if(R.phase==="done"||R.phase==="idle")speedEnter();
 };
-const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race"};
-const cap=m=>m==="find"?"Find":m==="speed"?"Speed":"Wander";
+const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
+const cap=m=>m==="find"?"Find":m==="speed"?"Speed":m==="hot"?"Hot":"Wander";
 function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.width=b.offsetWidth+"px";p.style.transform=`translateX(${b.offsetLeft}px)`}
 function sndMode(m){
   const c=AC();if(!c)return;const t=c.currentTime;
   if(m==="wander")[523.25,659.25,783.99].forEach((f,i)=>pluck(f,t+i*.09,.05,1.6,.5));
   else if(m==="find")[587.33,880].forEach((f,i)=>bell(f,t+i*.12,.035,1.8));
+  else if(m==="hot")[392,523.25,698.46].forEach((f,i)=>pluck(f,t+i*.08,.05,1.5,.5));
   else{blip(t,500,1500,.14,.05,.15);blip(t+.1,800,2200,.12,.04,.15)}
 }
 function modeWash(m){
@@ -4238,7 +4257,7 @@ function setMode(m,quiet,noIdle){
   if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(tms){tms.cancel=true;tms=null;briefHide()}
-  const from=S.mode;closeLens();clearAuto();usStop();
+  const from=S.mode;closeLens();clearAuto();usStop();if(from==="hot")hotStop();
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
@@ -4246,7 +4265,7 @@ function setMode(m,quiet,noIdle){
   S.mode=m;
   document.documentElement.dataset.mode=m;cvColors();if(nbApplied!==nbNow())applyNb();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
-  ["Find","Speed","Wander"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
+  ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
   for(const gid of ["gcanvas","glcanvas"]){const gc=$(gid);gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
@@ -4254,11 +4273,13 @@ function setMode(m,quiet,noIdle){
   hideCard();clearMissed();
   size();paint();updateProgress();
   if(m==="speed"){stopDrift();speedEnter()}
+  else if(m==="hot"){stopDrift();hotEnter()}
   else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
   else{scheduleDrift()}
 }$("modeFind").onclick=()=>setMode("find");
 $("modeSpeed").onclick=()=>setMode("speed");
 $("modeWander").onclick=()=>setMode("wander");
+$("modeHot").onclick=()=>setMode("hot");
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&S.done&&S.mode==="find"&&!S.qIdle&&document.activeElement===document.body&&!modal.classList.contains("on"))nextRound()});
 // browsers only allow audio after a gesture; the first touch wakes it up
 ["pointerdown","keydown","touchend","click"].forEach(ev=>window.addEventListener(ev,audioGesture,true));
@@ -4519,7 +4540,7 @@ function silDraw(id){
   sv.append("path").attr("d",d3.geoPath(proj)(feat));
 }
 let silHideT=null;const silKeep=()=>{clearTimeout(silHideT);silHideT=null};   // a pending fade-out must never hide the next question box
-function silHide(){silKeep();if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
+function silHide(){silKeep();HOT.on=false;$("silForm").hidden=false;$("hotList").innerHTML="";$("sil").classList.remove("hot");if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
 /* ---- NAME IT: the country glows on the visible globe and you type its name (Quiz and Race) ---- */
 function nameFly(id){const a=FACTS[id].a,k=a<2500?7:a<9000?5.5:a<30000?4:a<150000?2.8:a<600000?1.9:a<3e6?1.35:1;stopDrift();flyTo(LL(id),1100,Math.max(k,Math.min(zoomK,2.2)))}
 function nameBegin(id,race){
@@ -4576,9 +4597,9 @@ function silGuess(){
   $("silIn").select();
 }
 $("silForm").onsubmit=e=>{e.preventDefault();if(S.mode==="find"&&S.done&&!S.qIdle&&!modal.classList.contains("on")){nextRound();return}   // Enter again while the answer is settling goes straight to the next question
-  if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
-$("silShow").onclick=()=>{if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
-$("silSkip").onclick=()=>{if(US.on&&S.mode!=="speed"){sndTick();usNext();return}if(nmOn&&S.mode!=="speed"){sndTick();nextRound();return}if(!silOn)return;sndTick();nextRound()};
+  if(HOT.on)hotGuess();else if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
+$("silShow").onclick=()=>{if(HOT.on){if(HOT.done)hotStart();else hotGiveUp();return}if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
+$("silSkip").onclick=()=>{if(HOT.on){sndTick();hotEnter();return}if(US.on&&S.mode!=="speed"){sndTick();usNext();return}if(nmOn&&S.mode!=="speed"){sndTick();nextRound();return}if(!silOn)return;sndTick();nextRound()};
 /* Tab completes the typed text to the best match (press again to cycle through the others) */
 let tabSeed=null,tabList=[],tabI=0;
 function tabCands(t){
@@ -4606,6 +4627,97 @@ $("silIn").addEventListener("input",()=>{
 /* ======================================================================
    UNITED STATES: the 50 states on their own map (Quiz and Race), loaded when first needed
    ====================================================================== */
+/* ======================================================================
+   HOT AND COLD: a country is hidden, you type guesses, each guess is coloured by how close it is
+   ====================================================================== */
+const HEAT=d3.scaleLinear().domain([0,.3,.55,.78,1]).range(["#3f6fb5","#8fc0e4","#f1e7a3","#f2a24c","#d23b2c"]).clamp(true);
+const heatOf=d=>HEAT(Math.pow(1-Math.min(d,14000)/14000,1.6));
+function hotPts(id){   // a thinned set of boundary points, enough to measure the gap between two countries
+  const f=byId[id];if(f._hp)return f._hp;
+  const polys=(f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates]).map(p=>p[0]).sort((a,b)=>b.length-a.length).slice(0,30);
+  const tot=polys.reduce((a,r)=>a+r.length,0)||1,out=[];
+  polys.forEach(r=>{const want=Math.max(3,Math.round(300*r.length/tot)),st=Math.max(1,Math.floor(r.length/want));for(let i=0;i<r.length;i+=st)out.push(r[i])});
+  return f._hp=out.length?out:[f._c||LL(id)];
+}
+function hotDist(a,b){
+  if(a===b)return 0;
+  const A=hotPts(a),B=hotPts(b);let m=Infinity;
+  for(let i=0;i<A.length;i++)for(let j=0;j<B.length;j++){const d=d3.geoDistance(A[i],B[j]);if(d<m)m=d}
+  return m*6371;
+}
+const hotBorders=(a,b)=>(FACTS[a].b||[]).includes(FACTS[b].n)||(FACTS[b].b||[]).includes(FACTS[a].n);
+function hotResolve(txt){
+  const t=silNorm(txt);if(!t)return null;silBuild();
+  const ids=Object.keys(FACTS).filter(id=>byId[id]);
+  for(const id of ids)if(silNames.byId[id].has(t))return id;
+  if(silNames.all.has(t))return null;
+  for(const id of ids)for(const n of silNames.byId[id])if(n.length>=6&&Math.abs(n.length-t.length)<=1&&lev(t,n)<=1)return id;
+  return null;
+}
+function hotEnter(){
+  HOT.on=false;HC.clear();S.done=false;hideCard();clearMissed();
+  if(S.region==="United States"){S.region="World";syncChips()}
+  paint();updateProgress();showHotSheet();
+}
+function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
+function showHotSheet(){
+  const sh=$("sheet");sh.innerHTML="";
+  const chips=el("div",{class:"row",style:"margin:0"}),best=(S.counts.hotBest||{})[S.region];
+  ALLR.filter(r=>r!=="United States").forEach(r=>{
+    const n=r==="World"?playable.length:playable.filter(f=>inReg(f.id,r)).length;
+    chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);showHotSheet()}},r==="World"?"Earth":r,el("span",{class:"n"},n+"")));
+  });
+  sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
+  sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
+  sh.append(el("p",{class:"bestline"},best?`Your best here: ${best} guess${best===1?"":"es"}`:"No finish here yet."));
+  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
+  openModal(true);setTimeout(()=>{const b=$("startHot");if(b)b.focus({preventScroll:true})},60);
+}
+function hotStart(){
+  closeModal();
+  const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
+  HOT.target=rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
+  $("app").classList.add("nameit");
+  const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
+  $("silForm").hidden=false;$("silQ").textContent="Find the hidden country";$("silHint").textContent="Type any country. Warmer colours are closer.";
+  $("silIn").value="";$("silSug").innerHTML="";$("silShow").textContent="Give up";$("silSkip").hidden=true;
+  hotRender();paint();requestRender();updateProgress();
+  stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);
+  setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
+}
+function hotRender(){
+  const ul=$("hotList");ul.innerHTML="";
+  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n),el("span",{class:"hd"},g.id===HOT.target?"Found it":g.nb?"Borders it, head "+g.dir:distTxt(g.d)+", head "+g.dir))));
+  ul.hidden=!HOT.list.length;
+}
+function hotGuess(){
+  if(!HOT.on||HOT.done)return;
+  const inp=$("silIn"),txt=inp.value;if(!txt.trim())return;
+  const id=hotResolve(txt);
+  const bad=m=>{const fm=$("silForm");fm.classList.remove("shake");void fm.offsetWidth;fm.classList.add("shake");$("silHint").textContent=m;inp.select();sndMiss()};
+  if(!id)return bad("Not a country I know. Check the spelling.");
+  if(HOT.list.some(g=>g.id===id))return bad(`You already tried ${FACTS[id].n}.`);
+  const T=HOT.target,win=id===T,nb=!win&&hotBorders(id,T),d=win?0:nb?0:hotDist(id,T);
+  const g={id,d,nb,col:win?"#3fa66a":heatOf(d),dir:win?"":bearing(LL(id),LL(T))};
+  HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
+  hotRender();paint();requestRender();updateProgress();
+  if(win)return hotFinish(false);
+  sndTick();$("silHint").textContent=`${FACTS[id].n}: ${nb?"it borders the hidden country":distTxt(d)+" away"}.`;
+}
+function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
+function hotFinish(gaveUp){
+  HOT.done=true;const T=HOT.target,n=HOT.list.length;
+  HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
+  $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
+  $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
+  $("silHint").textContent=gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return b&&b<n?`Your best here: ${b}.`:"A new best for this area."})();
+  if(!gaveUp){
+    S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save();
+    sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900);
+  }
+  hotRender();updateProgress();
+}
 const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
 const US={on:false,data:null,names:[],cap:{},abbr:{},round:null,target:null,painted:new Set(),hl:null,svg:null,loading:null,style:"country"};
 US_RAW.split(";").forEach(x=>{const p=x.split(":");US.names.push(p[0]);US.abbr[p[0]]=p[1];US.cap[p[0]]=p[2]});
@@ -5143,7 +5255,7 @@ function glDesired(){
   const F=cf(),speed=S.mode==="speed",out=new Map();
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
-    const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
+    const found=F.has(id),shown=!speed&&!SESS&&S.mode!=="hot"&&!found&&S.shown.has(id);
     if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(nbNow()?"~":"")+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;

@@ -3789,7 +3789,12 @@ function mqStartExam(id,key){
 function mqStart(id,key){
   closeReader();
   const f=FACTS[id];let qs;
-  if(key==="cap")qs=qCapital(id,++mqAttempt);else if(key==="flg")qs=qFlag(id,++mqAttempt);else qs=qBuild(id,key,++mqAttempt);
+  if(key==="cap"){   // the capital is typed, never chosen from a list
+    const ALT={"South Africa":["Pretoria","Cape Town","Bloemfontein"],"Bolivia":["La Paz","Sucre"],"Netherlands":["Amsterdam","The Hague"],"Eswatini":["Mbabane","Lobamba"],"Malaysia":["Kuala Lumpur","Putrajaya"],"Sri Lanka":["Sri Jayawardenepura Kotte","Kotte","Colombo"],"Benin":["Porto-Novo","Cotonou"],"Ivory Coast":["Yamoussoukro","Abidjan"],"Tanzania":["Dodoma","Dar es Salaam"],"Montenegro":["Podgorica","Cetinje"]};   // countries with more than one capital accept each
+    const acc=[...new Set([f.cap,...String(f.cap).split(/\s*(?:,|\/|;| and )\s*/),...(ALT[f.n]||[])])].filter(Boolean);
+    mq={id,key,qs:[{q:`What is the capital of ${f.n}?`,accept:acc,show:f.cap}],i:0,right:0,exam:true,rev:[],title:f.n+": capital"};showQ();return;
+  }
+  if(key==="flg")qs=qFlag(id,++mqAttempt);else qs=qBuild(id,key,++mqAttempt);
   if(!qs.length){toast("\u{1F4D8}","Not enough material","This page cannot be quizzed yet.",2600);return}
   mq={id,key,qs,i:0,right:0,title:f.n+": "+(mTitle[key]||Q_NAMES[key])};showQ();
 }
@@ -3908,7 +3913,7 @@ function renderMasteryClassic(id,from,openKey){
 }
 function showExamQ(){
   const q=mq.qs[mq.i],sh=$("sheet"),id=mq.id;sh.innerHTML="";
-  sh.append(closeBtn(),el("button",{class:"chip sback",onclick:()=>renderMastery(id,mqFrom)},"\u2039 Back"),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},`Question ${mq.i+1} of ${mq.qs.length} \u00B7 type your answer`));
+  sh.append(closeBtn(),el("button",{class:"chip sback",onclick:()=>renderMastery(id,mqFrom)},"\u2039 Back"),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},mq.qs.length>1?`Question ${mq.i+1} of ${mq.qs.length} \u00B7 type your answer`:"Type your answer"));
   sh.append(el("p",{class:"mq"},q.q));
   const inp=el("input",{type:"text",placeholder:q.year?"A year, e.g. 1776":q.ids?"Type a country":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
@@ -3950,11 +3955,12 @@ function qDone(){
   else if(exam){if(pass)jrMark(id,"g",key)}
   else{if(pass)jrMark(id,"p",key)}
   if(pass)sndFlourish(FACTS[id].r);
-  sh.append(closeBtn(),el("h2",{},exam?(pass?"Star earned":"Not quite"):pass?"Passed":"Not quite"),
-    el("p",{},`${mq.right} of ${n} right.`+(exam?(pass?" Star earned.":" You need all "+n+". The questions stay the same."):single?(pass?" Done.":` You need ${need} to pass.`):pass?" Passed. Next: the typed exam for the star.":` You need ${need} to pass.`)));
-  if(exam)sh.append(el("div",{class:"exrev"},mq.rev.map(r=>el("p",{class:"exr"+(r.ok?" ok":"")},el("b",{},(r.ok?"\u2713 ":"\u2717 ")+r.q),el("br"),r.ok?"":("You said: "+(r.said||"(skipped)")+" \u00B7 answer: "+r.show)))));
+  const typedCap=key==="cap";
+  sh.append(closeBtn(),el("h2",{},typedCap?(pass?"Capital found":"Not quite"):exam?(pass?"Star earned":"Not quite"):pass?"Passed":"Not quite"),
+    el("p",{},typedCap?(pass?`${FACTS[id].cap} is the capital of ${FACTS[id].n}.`:`The capital of ${FACTS[id].n} is ${FACTS[id].cap}. Try again.`):`${mq.right} of ${n} right.`+(exam?(pass?" Star earned.":" You need all "+n+". The questions stay the same."):single?(pass?" Done.":` You need ${need} to pass.`):pass?" Passed. Next: the typed exam for the star.":` You need ${need} to pass.`)));
+  if(exam&&!typedCap)sh.append(el("div",{class:"exrev"},mq.rev.map(r=>el("p",{class:"exr"+(r.ok?" ok":"")},el("b",{},(r.ok?"\u2713 ":"\u2717 ")+r.q),el("br"),r.ok?"":("You said: "+(r.said||"(skipped)")+" \u00B7 answer: "+r.show)))));
   sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(id,mqFrom)},"Back to the path"),
-    (exam?pass:pass&&single)?"":el("button",{class:"btn",onclick:()=>exam?mqStartExam(id,key):mqStart(id,key)},"Try again")));
+    (exam?pass:pass&&single)?"":el("button",{class:"btn",onclick:()=>exam&&!single?mqStartExam(id,key):mqStart(id,key)},"Try again")));
   openModal();
 }
 let bookScroll=null;

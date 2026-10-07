@@ -168,7 +168,7 @@ void main(){
 }`;
 
 let glVao=null;
-let GLc=null,glProg=null,glLProg=null,glLVao=null,glLN=0,glLU={},glLost=false,glReady=false;
+let GLc=null,glProg=null,glLProg=null,glLVao=null,glLN=0,glLVaoC=null,glLNC=0,glLU={},glLost=false,glReady=false;
 const GP={on:false,busy:false,plan:null,last:0,gen:0,tex:null,cA:null,aCtx:null,pg:null,rimW:1,still:0,t0:0,sched:false};   // the deep-zoom detail patch
 const glU={},glT={land:null,art:null,art2:null};
 let glTW=4096,glTH=2048,glRimW=1.6,glAniso=null;
@@ -252,8 +252,8 @@ function glLInit(){
   glLProg=p;["uRes","uView","uRot","uS","uPx","uBorder"].forEach(n=>glLU[n]=GLc.getUniformLocation(p,n));
   glLVao=GLc.createVertexArray();
 }
-function glLBuild(){
-  const mesh=topojson.mesh(WORLD,WORLD.objects.countries),D=Math.PI/180,out=[];
+function glLMake(mesh){
+  const D=Math.PI/180,out=[];
   const v=(c)=>{const lo=c[0]*D,la=c[1]*D,cl=Math.cos(la);return [cl*Math.cos(lo),cl*Math.sin(lo),Math.sin(la)]};
   mesh.coordinates.forEach(line=>{
     for(let i=1;i<line.length;i++){
@@ -263,14 +263,18 @@ function glLBuild(){
       const A=v(a),B=v(b);out.push(A[0],A[1],A[2],B[0],B[1],B[2]);
     }
   });
-  const data=new Float32Array(out);glLN=data.length/6;
-  GLc.bindVertexArray(glLVao);
+  const data=new Float32Array(out),vao=GLc.createVertexArray();
+  GLc.bindVertexArray(vao);
   const buf=GLc.createBuffer();GLc.bindBuffer(GLc.ARRAY_BUFFER,buf);GLc.bufferData(GLc.ARRAY_BUFFER,data,GLc.STATIC_DRAW);
   GLc.enableVertexAttribArray(0);GLc.vertexAttribPointer(0,3,GLc.FLOAT,false,24,0);GLc.vertexAttribDivisor(0,1);
   GLc.enableVertexAttribArray(1);GLc.vertexAttribPointer(1,3,GLc.FLOAT,false,24,12);GLc.vertexAttribDivisor(1,1);
   GLc.bindVertexArray(null);
+  return {vao,n:data.length/6};
 }
-function glUploadFull(tex,canvas,fmt){
+function glLBuild(){
+  const all=glLMake(topojson.mesh(WORLD,WORLD.objects.countries)),co=glLMake(topojson.mesh(WORLD,WORLD.objects.countries,(a,b)=>a===b));   // all lines, and coastlines only (borderless mode)
+  glLVao=all.vao;glLN=all.n;glLVaoC=co.vao;glLNC=co.n;
+}function glUploadFull(tex,canvas,fmt){
   GLc.bindTexture(GLc.TEXTURE_2D,tex);
   GLc.pixelStorei(GLc.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);GLc.pixelStorei(GLc.UNPACK_FLIP_Y_WEBGL,false);
   GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,GLc.RGBA,GLc.UNSIGNED_BYTE,canvas);
@@ -303,6 +307,7 @@ function glStartLand(){
     const [key,fs]=st.list[st.i++];
     glPath.context(st.ctx);st.ctx.beginPath();fs.forEach(f=>glPath(f));st.ctx.fillStyle=glLandColor(key);st.ctx.fill();
     {const c0=d3.color(glLandColor(key));if(c0){const k=glTW/4096,cx=st.ctx;cx.save();cx.clip();cx.lineJoin="round";   // wet-edge pigment pool just inside every coast and border
+      if(S.nb&&key!=="nopl"){const ids=new Set(fs.map(f=>f.id));cx.beginPath();glPath(topojson.merge(WORLD,WORLD.objects.countries.geometries.filter(g=>ids.has(g.id))))}   // borderless: pool only along the merged outline
       cx.strokeStyle=c0.darker(.55).copy({opacity:.2}).formatRgb();cx.lineWidth=9*k;cx.stroke();
       cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=3.5*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
@@ -350,9 +355,21 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.beginPath();pgen(f);
   ctx.globalAlpha=pat?(shown?.5:glJit(id)):(shown?.4:1);
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
-  if(!shown){ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
-  ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
-  if(!shown&&tag.slice(-2)==="|m"){ctx.globalAlpha=.9;ctx.strokeStyle="#C9A24B";ctx.lineWidth=rimW*1.5;ctx.stroke()}   // mastered: a thin gold rim
+  if(tag.indexOf("~")<0){   // (borderless mode draws no per-country rim)
+    if(!shown){ctx.lineWidth=rimW*3.2;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
+    ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
+  }
+  if(!shown&&tag.slice(-2)==="|m"&&isFinite(cx+cy+S2)){   // mastered: a pearly foil sheen with a few glints instead of an outline
+    ctx.save();ctx.beginPath();pgen(f);ctx.clip();ctx.globalAlpha=1;
+    const g=ctx.createLinearGradient(cx-S2*.6,cy-S2*.6,cx+S2*.6,cy+S2*.6);
+    [[0,"rgba(255,255,255,0)"],[.30,"rgba(255,244,214,0)"],[.40,"rgba(255,250,232,.5)"],[.48,"rgba(255,222,140,.36)"],[.56,"rgba(235,246,255,.5)"],[.66,"rgba(255,214,235,.22)"],[.74,"rgba(255,255,255,0)"],[1,"rgba(255,236,190,.16)"]].forEach(c=>g.addColorStop(c[0],c[1]));
+    ctx.fillStyle=g;ctx.fillRect(cx-S2,cy-S2,S2*2,S2*2);
+    const rr=seeded("foil-"+id),n=Math.round(Math.max(4,Math.min(18,S2/14)));ctx.fillStyle="rgba(255,255,255,.95)";
+    for(let i=0;i<n;i++){const x=b[0][0]+rr()*(b[1][0]-b[0][0]),y=b[0][1]+rr()*(b[1][1]-b[0][1]),R=Math.max(1.8,Math.min(8,S2*(.014+rr()*.022)));
+      ctx.beginPath();ctx.moveTo(x,y-R*2);ctx.quadraticCurveTo(x,y,x+R*2,y);ctx.quadraticCurveTo(x,y,x,y+R*2);ctx.quadraticCurveTo(x,y,x-R*2,y);ctx.quadraticCurveTo(x,y,x,y-R*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,R*.45,0,6.2832);ctx.fill()}
+    ctx.restore();
+  }
   ctx.restore();
 }
 function glEnsureArt(){if(glArt)return;glArt=glMakeCanvas(glTW,glTH);glArtCtx=glArt.getContext("2d");glUploadFull(glT.art,glArt)}   // the art texture must exist at full size before any sub-rect upload
@@ -361,7 +378,7 @@ function glDesired(){
   for(let i=0;i<playable.length;i++){
     const id=playable[i].id;if(glFading.has(id))continue;
     const found=F.has(id),shown=!speed&&!SESS&&!found&&S.shown.has(id);
-    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(found&&jrLevel(id)===3?"|m":""));
+    if(found||shown)out.set(id,(shown?"w|":"f|")+artKey(id)+(S.nb?"~":"")+(found&&jrLevel(id)===3?"|m":""));
   }
   return out;
 }
@@ -526,7 +543,8 @@ function glPatchAdd(ids){
 GLX.resize=function(){
   if(!GLX.hasGL)return;
   const dpr=cvDpr;
-  glC.width=Math.round(innerWidth*dpr);glC.height=Math.round(innerHeight*dpr);
+  const nw=Math.round(innerWidth*dpr),nh=Math.round(innerHeight*dpr);
+  if(glC.width!==nw||glC.height!==nh){glC.width=nw;glC.height=nh}
   glC.style.width=innerWidth+"px";glC.style.height=innerHeight+"px";glC.style.top=(-stageTop)+"px";glC.style.left=(-stageLeft)+"px";
 };
 GLX.colors=function(){if(GLX.hasGL){glPatchInvalidate();glStartLand();GLX.paint()}};
@@ -562,12 +580,12 @@ GLX.draw=function(s,cen0){
   GLc.activeTexture(GLc.TEXTURE6);GLc.bindTexture(GLc.TEXTURE_2D,GP.tex.art);GLc.uniform1i(glU.uPArt,6);
   GLc.drawArrays(GLc.TRIANGLE_STRIP,0,4);
   if(glLN){                                                      // border hairlines, always about 1 device pixel wide
-    GLc.useProgram(glLProg);GLc.bindVertexArray(glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
+    GLc.useProgram(glLProg);GLc.bindVertexArray(S.nb?glLVaoC:glLVao);GLc.enable(GLc.BLEND);GLc.blendFunc(GLc.ONE,GLc.ONE_MINUS_SRC_ALPHA);
     GLc.uniform2f(glLU.uRes,innerWidth,innerHeight);GLc.uniform3f(glLU.uView,stageLeft+W/2,stageTop+cy(),s);
     GLc.uniform3f(glLU.uRot,r[0]*D,r[1]*D,r[2]*D);GLc.uniform1f(glLU.uS,s);GLc.uniform1f(glLU.uPx,(S.mode!=="speed"&&isDark()?1.25:1)/cvDpr);
     const lc=S.mode==="speed"?[.55,.86,1,.5]:isDark()?[.97,.93,.82,.72]:[.27,.31,.36,.55];   // cool slate on paper, soft cream on the dark sea
     GLc.uniform4f(glLU.uBorder,lc[0],lc[1],lc[2],lc[3]);
-    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,glLN);
+    GLc.drawArraysInstanced(GLc.TRIANGLE_STRIP,0,4,S.nb?glLNC:glLN);
     GLc.disable(GLc.BLEND);GLc.bindVertexArray(glVao);
   }
 };

@@ -3476,7 +3476,7 @@ function hotStart(){
 }
 function hotRender(){
   const ul=$("hotList");ul.innerHTML="";
-  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n),el("span",{class:"hd"},g.id===HOT.target?"Found it":g.nb?"Borders it, head "+g.dir:distTxt(g.d)+", head "+g.dir))));
+  [...HOT.list].sort((a,b)=>a.d-b.d).forEach(g=>ul.append(el("li",{class:g===HOT.last?"last":""},el("i",{style:`background:${g.col}`}),el("span",{class:"hn"},FACTS[g.id].n))));
   ul.hidden=!HOT.list.length;
 }
 function hotGuess(){
@@ -3491,7 +3491,7 @@ function hotGuess(){
   HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
   hotRender();paint();requestRender();updateProgress();
   if(win)return hotFinish(false);
-  sndTick();$("silHint").textContent=`${FACTS[id].n}: ${nb?"it borders the hidden country":distTxt(d)+" away"}.`;
+  sndTick();nameFly(id);$("silHint").textContent="Warmer colours are closer.";
 }
 function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){

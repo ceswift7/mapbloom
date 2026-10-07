@@ -3136,6 +3136,23 @@ $("silForm").onsubmit=e=>{e.preventDefault();if(S.mode==="find"&&S.done&&!S.qIdl
   if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
 $("silShow").onclick=()=>{if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
 $("silSkip").onclick=()=>{if(US.on&&S.mode!=="speed"){sndTick();usNext();return}if(nmOn&&S.mode!=="speed"){sndTick();nextRound();return}if(!silOn)return;sndTick();nextRound()};
+/* Tab completes the typed text to the best match (press again to cycle through the others) */
+let tabSeed=null,tabList=[],tabI=0;
+function tabCands(t){
+  if(US.on)return US.names.filter(n=>usNorm(n).includes(t)).sort((a,b)=>(usNorm(b).startsWith(t)?1:0)-(usNorm(a).startsWith(t)?1:0));
+  return Object.keys(FACTS).filter(id=>silNorm(FACTS[id].n).includes(t)).sort((a,b)=>(silNorm(FACTS[b].n).startsWith(t)?1:0)-(silNorm(FACTS[a].n).startsWith(t)?1:0)).map(id=>FACTS[id].n);
+}
+$("silIn").addEventListener("keydown",e=>{
+  if(e.key!=="Tab"||e.shiftKey||e.altKey||e.ctrlKey||e.metaKey)return;
+  const inp=$("silIn"),v=inp.value;if(!v.trim())return;
+  const cur=tabList[tabI];
+  if(tabSeed===null||v!==cur){tabSeed=silNorm(v);tabList=tabCands(tabSeed);tabI=-1}
+  if(!tabList.length)return;
+  e.preventDefault();
+  tabI=(tabI+1)%tabList.length;inp.value=tabList[tabI];
+  inp.setSelectionRange(inp.value.length,inp.value.length);
+  $("silSug").innerHTML="";
+});
 $("silIn").addEventListener("input",()=>{
   const t=silNorm($("silIn").value),ul=$("silSug");ul.innerHTML="";
   if(t.length<2)return;

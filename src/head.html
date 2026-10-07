@@ -369,15 +369,24 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bk-tab::after{content:"";position:absolute;left:0;right:0;top:0;height:35%;border-radius:10px 10px 0 0;background:linear-gradient(rgba(255,255,255,.2),transparent);pointer-events:none}
 .bk-tab:hover{opacity:1}
 .bk-tab[aria-selected="true"]{opacity:1;transform:translateY(0);height:38px;margin-top:-3px;box-shadow:none}
-/* on a computer the bookmarks stick out of the right-hand edge of the book, like the tabs of a real notebook */
+/* the bookmarks stick out of the top of the book, at the right-hand corner, and are always there */
+.bk-tabs{left:auto;right:56px}
+.bkctl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;position:relative;z-index:3}
+.bkmid{display:flex;align-items:center;gap:12px}
+.bkctl .chip:disabled{opacity:.35;pointer-events:none}
+.pgl,.pgr{position:absolute;bottom:9px;z-index:3;font:italic 13px var(--serif);color:var(--ink-faint);pointer-events:none;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgl{left:30px}.pgr{right:30px}
+.bkpages{perspective:2400px}
+.turnleaf{position:absolute;top:0;height:100%;width:50%;z-index:5;transform-style:preserve-3d;pointer-events:none}
+.turnleaf.fwd{left:50%;transform-origin:left center}
+.turnleaf.back{left:0;transform-origin:right center}
+.tlface{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background-color:var(--sheet);background-image:var(--page-img,none);background-size:128px 128px;box-shadow:0 0 28px rgba(40,25,10,.28)}
+.tlface.b{transform:rotateY(180deg)}
+.tlface>.bkpage{height:100%}
 @media (min-width:721px){
-  .bk-tabs{left:auto;right:-30px;top:64px;flex-direction:column;gap:7px}
-  .bk-tab{height:auto;width:33px;padding:16px 0;border-radius:0 10px 10px 0;writing-mode:vertical-rl;letter-spacing:.04em;transform:translateX(-5px);box-shadow:inset -10px 0 10px -10px rgba(0,0,0,.35)}
-  .bk-tab::before{inset:3px 0 3px 3px;border:1.2px dashed rgba(255,255,255,.45);border-left:0;border-radius:0 7px 7px 0}
-  .bk-tab::after{left:0;right:auto;top:0;bottom:0;width:38%;height:auto;border-radius:0 10px 10px 0;background:linear-gradient(90deg,rgba(255,255,255,.2),transparent)}
-  .bk-tab[aria-selected="true"]{transform:translateX(0);height:auto;width:38px;margin-top:0;box-shadow:none}
-}
-.expcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px 11px;margin:0 0 8px;cursor:pointer}
+  .sheet.book{width:940px;max-width:none}
+  .bkpages{height:600px}
+}.expcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:10px 14px 11px;margin:0 0 8px;cursor:pointer}
 .expcard.on{border-color:var(--ink)}
 .expcard b{font-family:var(--serif);font-weight:500;font-size:16.5px}
 .expcard small{float:right;color:var(--ink-faint);font-size:12px;margin-top:3px}
@@ -391,7 +400,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   .stamps.bkstamps{grid-template-columns:repeat(3,1fr)}
   .bkpage.l,.bkpage.r{padding-left:18px;padding-right:18px}
   .bkpage.r{padding-top:0;padding-bottom:20px}
-  .bk-tabs{left:10px;gap:3px}.bk-tab{padding:0 9px;font-size:11.5px}
+  .bk-tabs{left:auto;right:10px;gap:3px}.bk-tab{padding:0 9px;font-size:11.5px}
   .sheet.book .x{top:8px;right:8px}
 }
 .adet{border-top:1px dashed var(--panel-line);padding:9px 0}
@@ -528,7 +537,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .mpane p{font-size:15px;line-height:1.55;margin:0 0 8px}
 .mmod-read .primary-chip{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .cbpages{perspective:1800px}
-.bkctl{display:flex;align-items:center;gap:8px;margin-top:10px;position:relative;z-index:3}
+.bkctl-old{display:none}
 .bkctl .grow{flex:1}.bkctl .chip{background:rgba(255,240,215,.14);border-color:rgba(255,225,180,.35);color:#f3e3c3}
 .bkctl .cbind{color:#e9d6b0;font:12.5px var(--sans);min-width:54px;text-align:center}
 .cbstage{position:absolute;inset:0;z-index:6;pointer-events:none;perspective:1800px;animation:cbFade 2.2s linear forwards}

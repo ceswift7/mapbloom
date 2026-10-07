@@ -2259,7 +2259,9 @@ function toast(ic,title,text,ms=3800,onClick){
    ====================================================================== */
 const modal=$("modal");let modalTrap=false;
 function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:()=>{if(S.mode==="speed"&&R.phase==="idle"){closeModal()}else closeModal()}},"✕")}
-function openModal(book){$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
+window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
+function openModal(book){$("sheet").style.zoom="";$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
 /* ---- the reading window: the country's pages beside the mastery path, closed whenever a quiz or exam starts so answers stay from memory ---- */
 let rdWin=null;
 function closeReader(){modal.classList.remove("rd");if(rdWin){rdWin.remove();rdWin=null;jrReset()}}
@@ -2624,17 +2626,16 @@ function mTree(id,j,secs){
   svg=`<svg class="mtree" viewBox="0 0 360 440" role="img" aria-label="Mastery path">${ln}<g class="crown${lvl===3?" on":""}"><circle cx="180" cy="56" r="19"/><path d="M180 44l3.5 7.2 7.9 1-5.8 5.5 1.5 7.8-7.1-3.8-7.1 3.8 1.5-7.8-5.8-5.5 7.9-1z"/></g>${nodes}</svg>`;
   const box=el("div",{});box.innerHTML=svg;return box;
 }
-/* ---- the country in the journal book: opening a country riffles a few pages and lands on its section. The left page is the country
-   (flag, status, quick facts and its mastery path); the right page reads through its pages, one turn at a time ---- */
+/* ---- the country in the journal book: opening a country riffles a few blank pages and lands on its section. Its first page is the country
+   (flag, status, quick facts and the mastery path); the pages after it read through the country, two to a spread, with real page turns ---- */
 let cbTimers=[];const cbPos={};
-const cbWords=()=>{const ids=Object.keys(LEARN),out=[];for(let i=0;i<14;i++){const L=LEARN[ids[Math.floor(Math.random()*ids.length)]]||{},t=L.g||L.c||L.h||L.o||"";if(typeof t==="string"&&t)out.push(t.slice(0,300))}return out};
 function openCountryBook(id,from,opts){
   opts=opts||{};closeReader();cbTimers.forEach(clearTimeout);cbTimers=[];
   const f=FACTS[id],L=LEARN[id]||{},fd=typeof FOOD!=="undefined"?FOOD[id]:null,P=(k,t)=>blocks(id,k,t);
   const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["g","The land",()=>L.g&&P("g",L.g)],["c","People and culture",()=>L.c&&P("c",L.c)],["f","Food and dishes",()=>fd&&fd.x&&P("f",fd.x)],
     ["h","A short history",()=>L.h&&[P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:""]],["n","Where the name comes from",()=>L.n&&P("n",L.n)],["d","Did you know",()=>el("ul",{},funFacts(id).map(t=>el("li",{},t)))]];
-  const pages=defs.filter(d=>d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn}));
-  let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=i}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],pages.length-1);
+  const reading=defs.filter(d=>d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn})),pages=[{k:"country",t:f.n},...reading],N=Math.ceil(pages.length/2);
+  let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=Math.floor(i/2)}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],N-1);
   const sh=$("sheet");sh.innerHTML="";
   const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book")renderBook("mastery",BK.spread);else closeModal()};
   const quickDl=()=>{const dl=el("dl",{class:"kv cbkv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Area",areaTxt(f.a));add("Calling code",L.k);add("Drives on the",L.d);return dl};
@@ -2643,50 +2644,47 @@ function openCountryBook(id,from,opts){
     if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
     if(a==="cap"||a==="flg")return mqStart(id,a);
     const [k,t]=a.split(":");
-    if(t==="r"){const pi=pages.findIndex(p=>p.k===k);if(pi>=0&&pi!==cur)turnTo(pi);return}
+    if(t==="r"){const pi=pages.findIndex(p=>p.k===k);if(pi>=0)moveTo(Math.floor(pi/2));return}
     if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("✏️","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
     mqStart(id,k);
   };
-  const leftPage=()=>{
-    const j=jrObj(id),lv=jrLevel(id),d=el("div",{class:"bkpage l cbl"}),w=el("div",{class:"learn cbwrap"});w.style.setProperty("--p",`var(--c-${f.r})`);
+  const countryNodes=()=>{
+    const j=jrObj(id),lv=jrLevel(id),w=el("div",{class:"learn cbwrap"});w.style.setProperty("--p",`var(--c-${f.r})`);
     w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl());
-    const tree=mTree(id,j,jrQSecs(id));tree.addEventListener("click",onTree);tree.classList.add("cbtree");w.append(tree);
-    d.append(w);return d};
-  const rightPage=pg=>{const d=el("div",{class:"bkpage r"}),w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
-    if(pg){const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),pg.t));[pg.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s)}
-    d.append(w);return d};
-  const bookEl=el("div",{class:"bkpages cbpages"}),ind=el("span",{class:"cbind"});
-  const prev=el("button",{class:"chip",onclick:()=>turnTo(cur-1)},"‹ Previous"),next=el("button",{class:"chip",onclick:()=>turnTo(cur+1)},"Next ›");
-  const renderRight=()=>{
+    const tree=mTree(id,j,jrQSecs(id));tree.addEventListener("click",onTree);tree.classList.add("cbtree");w.append(tree);return [w]};
+  const readNodes=pg=>{const w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
+    const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),pg.t));[pg.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s);return [w]};
+  const nodesOf=i=>{const pg=pages[i];return pg?(pg.k==="country"?countryNodes():readNodes(pg)):[]};
+  const mk=(sp,side)=>el("div",{class:"bkpage "+(side?"r":"l")},...nodesOf(sp*2+side));
+  const bookEl=el("div",{class:"bkpages cbpages"});
+  const prev=el("button",{class:"chip bkprev",onclick:()=>moveTo(cur-1)},"‹ Previous"),next=el("button",{class:"chip bknext",onclick:()=>moveTo(cur+1)},"Next ›"),ind=el("span",{class:"cbind"});
+  const fill=()=>{
     cbTimers.forEach(clearTimeout);cbTimers=[];cbPos[id]=cur;
-    const old=bookEl.querySelector(".bkpage.r");if(old)old.remove();bookEl.append(rightPage(pages[cur]));
-    ind.textContent=`${pages[cur].t} · ${cur+1} of ${pages.length}`;prev.disabled=cur===0;next.disabled=cur===pages.length-1;next.textContent=cur===pages.length-1?"End":"Next ›";
-    const k=pages[cur].k;if("gcfhn".includes(k)&&!(jrObj(id).s||[]).includes(k))cbTimers.push(setTimeout(()=>{jrMark(id,"s",k);const l=bookEl.querySelector(".bkpage.l");if(l){const nl=leftPage();l.replaceWith(nl)}},1500));   // a page that stays open for a moment counts as read
+    bookEl.querySelectorAll(".bkpage").forEach(p=>p.remove());bookEl.prepend(mk(cur,1));bookEl.prepend(mk(cur,0));
+    bkCorners(bookEl,pages[cur*2]&&pages[cur*2].t,pages[cur*2+1]&&pages[cur*2+1].t);
+    ind.textContent=`${cur+1} of ${N}`;prev.disabled=cur===0;next.disabled=cur>=N-1;first.disabled=cur===0;
+    [cur*2,cur*2+1].forEach(i=>{const pg=pages[i];if(pg&&"gcfhn".includes(pg.k)&&pg.k!=="country"&&!(jrObj(id).s||[]).includes(pg.k))cbTimers.push(setTimeout(()=>{jrMark(id,"s",pg.k);if(cur===0){const l=bookEl.querySelector(".bkpage.l");if(l)l.replaceWith(mk(0,0))}},1500))});   // a page that stays open for a moment counts as read
   };
-  const turnTo=to=>{
-    if(to<0||to>=pages.length||to===cur||bookEl.dataset.busy)return;
-    sndPage();bookEl.dataset.busy="1";const dir=to>cur?1:-1,ms=reduced?1:220,narrow=innerWidth<720;
-    const r0=bookEl.querySelector(".bkpage.r");
-    const a=narrow?r0.animate([{opacity:1},{opacity:0}],{duration:ms}):r0.animate(dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"}]:[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"}],{duration:ms,easing:"ease-in",fill:"forwards"});
-    a.onfinish=()=>{cur=to;renderRight();const r1=bookEl.querySelector(".bkpage.r");
-      const b=narrow?r1.animate([{opacity:0},{opacity:1}],{duration:ms}):r1.animate(dir>0?[{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}],{duration:ms,easing:"ease-out"});
-      b.onfinish=()=>{delete bookEl.dataset.busy}};
+  const moveTo=to=>{
+    if(to<0||to>=N||to===cur||bookEl.dataset.busy)return;
+    bookEl.dataset.busy="1";sndPage();const dir=to>cur?1:-1;
+    leafTurn(bookEl,dir,()=>mk(to,0),()=>mk(to,1),()=>{cur=to;fill();delete bookEl.dataset.busy});
   };
-  bookEl.append(leftPage());renderRight();
-  const ctl=el("div",{class:"bkctl"},el("button",{class:"chip",onclick:back},"‹ Back"),el("span",{class:"grow"}),prev,ind,next);
-  sh.append(closeBtn(),el("div",{class:"bkcover"},bookEl,ctl));
-  openModal("book");
-  // the riffle: a handful of leaves, each carrying a blur of other countries' text, whip across the spine and settle on this country
+  const first=el("button",{class:"chip",onclick:()=>moveTo(0)},"⌂ First page of "+f.n);
+  const ctl=el("div",{class:"bkctl"},prev,el("div",{class:"bkmid"},el("button",{class:"chip",onclick:back},"‹ Back to the book"),ind,first),next);
+  sh.append(closeBtn(),bkTabsBar("mastery",k=>{sndPage();cbTimers.forEach(clearTimeout);renderBook(k,k==="mastery"?BK.spread:0)}),el("div",{class:"bkcover"},bookEl,ctl));
+  fill();
+  openModal("book");bkFit();
+  // the riffle: a handful of blank leaves whip across the spine and settle on this country
   if(opts.riffle&&!reduced&&innerWidth>=720){
-    const leaf=(i,cls)=>el("div",{class:"cbleafface "+cls});
-    const stage=el("div",{class:"cbstage rf"},el("div",{class:"rfhalf l"},leaf(0,"")),el("div",{class:"rfhalf r"},leaf(1,"")));
-    for(let i=0;i<5;i++){const lf=el("div",{class:"rfleaf"},leaf(i*2+2,"f"),el("div",{class:"cbleafface b"}));lf.style.animationDelay=(i*.14)+"s";stage.append(lf)}
+    const blank=cls=>el("div",{class:"cbleafface "+cls});
+    const stage=el("div",{class:"cbstage rf"},el("div",{class:"rfhalf l"}),el("div",{class:"rfhalf r"}));
+    for(let i=0;i<5;i++){const lf=el("div",{class:"rfleaf"},blank("f"),blank("b"));lf.style.animationDelay=(i*.14)+"s";stage.append(lf)}
     bookEl.append(stage);setTimeout(()=>stage.remove(),1700);
   }
-  const key=e=>{if(!document.body.contains(bookEl)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")turnTo(cur+1);else if(e.key==="ArrowLeft")turnTo(cur-1)};
+  const key=e=>{if(!document.body.contains(bookEl)){document.removeEventListener("keydown",key);return}if(e.key==="ArrowRight")moveTo(cur+1);else if(e.key==="ArrowLeft")moveTo(cur-1)};
   document.addEventListener("keydown",key);
-}
-function renderMastery(id,from,riffle){mqFrom=from||null;openCountryBook(id,from,{riffle:!!riffle})}
+}function renderMastery(id,from,riffle){mqFrom=from||null;openCountryBook(id,from,{riffle:!!riffle})}
 function renderMasteryClassic(id,from,openKey){
   mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
   sh.append(closeBtn());
@@ -2766,6 +2764,17 @@ function qDone(){
 }
 let bookScroll=null;
 const BK={tab:"atlas",spread:0,pages:[],labels:null};
+/* a real page turn: the page swings right over the spine (or left back over it), its far side showing the other new page, and the next two pages lie open underneath */
+function leafTurn(pg,dir,mkL,mkR,done){
+  const ms=reduced?1:780,lp=pg.querySelector(".bkpage.l"),rp=pg.querySelector(".bkpage.r");
+  if(innerWidth<720||reduced||!lp||!rp){const o=pg.animate([{opacity:1},{opacity:0}],{duration:reduced?1:180,fill:"forwards"});o.onfinish=()=>{if(!pg.isConnected)return;done();pg.animate([{opacity:0},{opacity:1}],{duration:reduced?1:180}).onfinish=()=>{}};return}
+  const fwd=dir>0,leaf=el("div",{class:"turnleaf "+(fwd?"fwd":"back")}),front=el("div",{class:"tlface f"}),back=el("div",{class:"tlface b"});
+  front.append((fwd?rp:lp).cloneNode(true));back.append(fwd?mkL():mkR());leaf.append(front,back);
+  if(fwd){rp.replaceWith(mkR())}else{lp.replaceWith(mkL())}
+  pg.append(leaf);
+  const a=leaf.animate(fwd?[{transform:"rotateY(0deg)"},{transform:"rotateY(-180deg)"}]:[{transform:"rotateY(0deg)"},{transform:"rotateY(180deg)"}],{duration:ms,easing:"cubic-bezier(.45,.05,.25,1)",fill:"forwards"});
+  a.onfinish=()=>{leaf.remove();if(pg.isConnected)done()};   // a turn that finishes after the book was closed or replaced must not touch the new one
+}
 const BOOK_TABS=[["atlas","Atlas","#6FA27E"],["stamps","Stamps","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
 function masteryPageList(){
   const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
@@ -2792,7 +2801,7 @@ function atlasPageList(){
 function stampPageList(){
   const got=ACH.filter(a=>S.ach[a.id]).length,half=Math.ceil(ACH.length/2);
   const grid=list=>el("div",{class:"stamps bkstamps"},list.map(a=>el("div",{class:"stamp"+(S.ach[a.id]?" got":""),title:a.d},el("div",{class:"ring"},a.i),el("b",{style:"display:block;font-weight:500"},a.n),a.d)));
-  return {pages:[[el("h2",{},"Stamps"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]],labels:["Stamps"]};
+  return {pages:[[el("h2",{},"Stamps"),el("h3",{style:"margin-top:10px"},`${got} of ${ACH.length} stamps`),grid(ACH.slice(0,half))],[el("div",{style:"height:50px"}),grid(ACH.slice(half))]],labels:["",""]};
 }
 function expPageList(){
   const go=e=>{expSel=e.id;sndTick();const pi=1+EXPS.indexOf(e);bkGo(Math.floor(pi/2))};
@@ -2813,47 +2822,46 @@ function expPageList(){
 }
 const bkBuild=tab=>{const r=({atlas:atlasPageList,stamps:stampPageList,exp:expPageList,mastery:masteryPageList})[tab]();BK.pages=r.pages;BK.labels=r.labels;BK.tab=tab};
 const bkSpreads=()=>Math.max(1,Math.ceil(BK.pages.length/2));
+const bkTabsBar=(active,onPick)=>el("div",{class:"bk-tabs",role:"tablist"},BOOK_TABS.map(([k,l,c])=>{const b=el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===active),style:"--tabc:"+c,onclick:()=>onPick(k)},l);b.dataset.k=k;return b}));
+const bkPage=(t,side)=>el("div",{class:"bkpage "+(side?"r":"l")},...(t.pages[t.spread*2+side]||[]));
+function bkCorners(pg,a,b){
+  pg.querySelectorAll(".pgl,.pgr").forEach(x=>x.remove());
+  pg.append(el("span",{class:"pgl"},a||""),el("span",{class:"pgr"},b||""));
+}
 function bkFill(){
   const sh=$("sheet"),pg=sh.querySelector(".bkpages");if(!pg)return;
   pg.querySelectorAll(".bkpage").forEach(p=>p.remove());
-  const L=el("div",{class:"bkpage l"},...(BK.pages[BK.spread*2]||[])),R=el("div",{class:"bkpage r"},...(BK.pages[BK.spread*2+1]||[]));
-  pg.append(L,R);
-  const n=bkSpreads(),ind=sh.querySelector(".cbind"),prev=sh.querySelector(".bkprev"),next=sh.querySelector(".bknext"),ctl=sh.querySelector(".bkctl");
-  if(ctl)ctl.style.visibility=n>1?"visible":"hidden";
-  if(ind){const a=BK.labels&&BK.labels[BK.spread*2],b=BK.labels&&BK.labels[BK.spread*2+1];ind.textContent=BK.tab==="mastery"?`${a||""}${b?" / "+b:""} · ${BK.spread+1} of ${n}`:`${BK.spread+1} of ${n}`}
-  if(prev)prev.disabled=BK.spread===0;if(next)next.disabled=BK.spread>=n-1;
+  pg.append(bkPage(BK,0),bkPage(BK,1));
+  const n=bkSpreads(),ind=sh.querySelector(".cbind"),prev=sh.querySelector(".bkprev"),next=sh.querySelector(".bknext");
+  bkCorners(pg,BK.labels&&BK.labels[BK.spread*2],BK.labels&&BK.labels[BK.spread*2+1]);
+  if(ind)ind.textContent=n>1?`${BK.spread+1} of ${n}`:"";
+  if(prev){prev.disabled=BK.spread===0;prev.style.visibility=n>1?"visible":"hidden"}
+  if(next){next.disabled=BK.spread>=n-1;next.style.visibility=n>1?"visible":"hidden"}
   sh.querySelectorAll(".bk-tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.k===BK.tab)));
   requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),BK.tab));
 }
-/* a page turn: the right page folds over the spine, the content changes, then the new page folds back out */
-function bkFlip(change,dir){
+function bkTarget(tab,spread){const r=({atlas:atlasPageList,stamps:stampPageList,exp:expPageList,mastery:masteryPageList})[tab]();return {tab,spread,pages:r.pages,labels:r.labels}}
+function bkMove(t,dir){
   const pg=$("sheet").querySelector(".bkpages");if(!pg||pg.dataset.busy)return;
   pg.dataset.busy="1";sndPage();
-  const ms=reduced?1:230,narrow=innerWidth<720,r0=pg.querySelector(".bkpage.r");
-  const out=narrow||!r0?pg.animate([{opacity:1},{opacity:0}],{duration:ms,fill:"forwards"}):r0.animate(dir>0?[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"}]:[{transform:"rotateY(0)",transformOrigin:"left center"},{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"}],{duration:ms,easing:"ease-in",fill:"forwards"});
-  out.onfinish=()=>{
-    change();bkFill();
-    const r1=pg.querySelector(".bkpage.r"),inn=narrow?pg.animate([{opacity:0},{opacity:1}],{duration:ms}):r1.animate(dir>0?[{transform:"rotateY(88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}]:[{transform:"rotateY(-88deg)",transformOrigin:"left center",filter:"brightness(.8)"},{transform:"rotateY(0)",transformOrigin:"left center"}],{duration:ms,easing:"ease-out"});
-    inn.onfinish=()=>{delete pg.dataset.busy};
-  };
+  $("sheet").querySelectorAll(".bk-tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.k===t.tab)));
+  leafTurn(pg,dir,()=>bkPage(t,0),()=>bkPage(t,1),()=>{BK.tab=t.tab;BK.spread=t.spread;BK.pages=t.pages;BK.labels=t.labels;bkFill();delete pg.dataset.busy});
 }
-function bkGo(sp){if(sp===BK.spread||sp<0||sp>=bkSpreads())return;const dir=sp>BK.spread?1:-1;bkFlip(()=>{BK.spread=sp},dir)}
+function bkGo(sp){if(sp===BK.spread||sp<0||sp>=bkSpreads())return;bkMove({tab:BK.tab,spread:sp,pages:BK.pages,labels:BK.labels},sp>BK.spread?1:-1)}
 function bkSwitch(k){
   if(k===BK.tab)return;const dir=BOOK_TABS.findIndex(t=>t[0]===k)>BOOK_TABS.findIndex(t=>t[0]===BK.tab)?1:-1;
-  bkFlip(()=>{bkBuild(k);BK.spread=0},dir);
+  bkMove(bkTarget(k,0),dir);
 }
 function renderBook(tab,spread){
   tab=tab||"atlas";const sh=$("sheet");sh.innerHTML="";
   bkBuild(tab);BK.spread=Math.max(0,Math.min(spread||0,bkSpreads()-1));
-  const bar=el("div",{class:"bk-tabs",role:"tablist"},BOOK_TABS.map(([k,l,c])=>{const b=el("button",{class:"bk-tab",role:"tab","aria-selected":String(k===tab),style:"--tabc:"+c,onclick:()=>bkSwitch(k)},l);b.dataset.k=k;return b}));
   const prev=el("button",{class:"chip bkprev",onclick:()=>bkGo(BK.spread-1)},"‹ Previous"),next=el("button",{class:"chip bknext",onclick:()=>bkGo(BK.spread+1)},"Next ›");
-  const ctl=el("div",{class:"bkctl"},el("span",{class:"grow"}),prev,el("span",{class:"cbind"}),next);
-  sh.append(closeBtn(),bar,el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"})),ctl));
+  const ctl=el("div",{class:"bkctl"},prev,el("span",{class:"cbind"}),next);
+  sh.append(closeBtn(),bkTabsBar(tab,bkSwitch),el("div",{class:"bkcover"},el("div",{class:"bkpages"},el("canvas",{class:"bkmarks","aria-hidden":"true"})),ctl));
   openModal("book");
-  bkFill();
+  bkFill();bkFit();
   const pagesEl=sh.querySelector(".bkpages");pagesEl.addEventListener("toggle",()=>requestAnimationFrame(()=>drawBookMarks(sh.querySelector(".bkmarks"),BK.tab)),true);
-}
-document.addEventListener("keydown",e=>{
+}document.addEventListener("keydown",e=>{
   if((e.key!=="ArrowRight"&&e.key!=="ArrowLeft")||!document.querySelector("#sheet .bkpages:not(.cbpages)"))return;
   const a=document.activeElement;if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"))return;
   bkGo(BK.spread+(e.key==="ArrowRight"?1:-1));

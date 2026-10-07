@@ -3613,7 +3613,7 @@ const QT={g:[...QT_LAND,...qAuthored("g")],c:[...QT_PEOPLE,...qAuthored("c")],f:
   return qs;
 }
 /* ---- the typed mastery exam: five fixed questions per page, the same every time, answers typed from memory ---- */
-const EX_T={g:["hi","riv","sea","rng","wond"],c:["pers","grp","hol","art","spt"],f:["dish","drk","stp","des","snk"],h:["ind","evt","evt2","ldr","emp"],n:["lng","mng","off","old","who"]};
+const EX_T={g:["hi","riv","sea","wond"],c:["rel","spt","pers"],f:["dish","drk","stp","des","snk"],h:["frm","ldr","emp"],n:["lng","mng","off","old","who"]};
 const EX_X={g:["cli"],c:["rel"],f:["ing"],h:["frm"],n:[]};
 const EX_Q={
   hi:"Name the highest point in {n}.",riv:"Name a major river that flows through {n}.",sea:"Name a sea or ocean that borders {n}.",rng:"Name a mountain range, desert or highland region in {n}.",wond:"Name a natural wonder or famous landmark in {n}.",cli:"Name the climate most typical of {n}.",
@@ -3639,30 +3639,51 @@ function exMatch(txt,acc){
 }
 function exYear(txt){const m=String(txt).match(/-?\d{1,4}/);if(!m)return null;let y=+m[0];if(/\b(bc|bce)\b/i.test(txt)&&y>0)y=-y;return y}
 /* facts with several right answers (rivers, dishes, people...) come with the first letter of the expected one, so no true answer is marked wrong */
-const EX_OPEN=new Set(["riv","sea","rng","wond","pers","grp","hol","art","dish","drk","stp","des","snk","ing","ldr","emp","old"]);
-const exInit=v=>{const m=exN(v).match(/[a-z0-9]/);return m?m[0]:""};
+/* Exam questions are worded so that the right answer is definite. Where a country has several true answers (a river, a dish, a person), the question says
+   "best-known" or "a famous", every answer on our list counts, the failed screen lists them, and a wrong answer to such an open question can be counted by the player. */
+function exCodeDigits(s){return String(s).replace(/\D/g,"")}
 function qExam(id,key){
-  const f=FACTS[id],n=qNm(id),out=[],add=(q,acc,year)=>out.push({q:q.replace("{n}",n),accept:acc,year:!!year,show:year?fmtY(acc[0]):acc.slice(0,3).join(", ")});
-  const h=(QZ[id]||{}).h||{},ev=h.evt||[];
-  const order=[...EX_T[key],...(EX_X[key]||[])];
-  for(const t of order){
-    if(out.length>=5)break;
-    if(t==="ind"){if(h.ind)add(`In what year did ${n} become independent?`,[h.ind],true);continue}
-    if(t==="evt"||t==="evt2"){const e=ev[t==="evt"?0:1];if(e)add(`In what year did this happen: ${e.t}?`,[e.y],true);continue}
-    const v=qV(id,key,t);if(!v||!v.length||(t==="cli"&&f.a>=1.5e6))continue;
-    if(EX_OPEN.has(t)&&EX_Q[t]){
-      const L=exInit(v[0]),acc=v.filter(x=>exInit(x)===L).map(String);
-      add(EX_Q[t].replace(/[.?]$/,"")+`. Hint: it starts with "${L.toUpperCase()}".`,acc);continue;
-    }
-    add(EX_Q[t],v.map(String));
-  }
-  const nb=qNb(id).map(qNm),extra=[
-    ()=>f.cap&&add(`What is the capital of ${n}?`,[f.cap]),
-    ()=>f.l&&f.l.length&&add(`Name a language spoken in ${n}.`,f.l),
-    ()=>f.cur&&add(`What currency does ${n} use?`,[f.cur]),
-    ()=>nb.length&&add(`Name a country that shares a land border with ${n}.`,nb)
-  ];
-  for(const x of extra){if(out.length>=5)break;x()}
+  const f=FACTS[id],n=qNm(id),L=LEARN[id]||{},h=(QZ[id]||{}).h||{},ev=h.evt||[],out=[],used=new Set();
+  const list=t=>{const v=qV(id,key,t);return v&&v.length?v.map(String):null};
+  const add=(tag,q,acc,x)=>{if(used.has(tag))return;used.add(tag);out.push(Object.assign({q:q.replace("{n}",n),accept:acc.map(String),show:acc.slice(0,5).join(", ")},x||{}))};
+  const open=(tag,q,t)=>{const v=list(t);if(v)add(tag,q,v,{open:true})};
+  const nb=qNb(id).map(qNm);
+  const C={
+    hi:()=>{const v=list("hi");if(v)add("hi",`What is the highest point in ${n}?`,v)},
+    cap:()=>f.cap&&add("cap",`What is the capital of ${n}?`,[f.cap]),
+    nbr:()=>nb.length&&add("nbr",`Name any country that shares a land border with ${n}.`,nb,{open:true}),
+    riv:()=>open("riv",`What is the best-known river in ${n}?`,"riv"),
+    area:()=>f.a&&add("area",`About how many square kilometres is ${n}? (type a number; within 25% counts)`,[f.a],{num:f.a,tol:.25,show:fmt(f.a)+" km²"}),
+    wond:()=>open("wond",`What is a famous natural wonder or landmark in ${n}?`,"wond"),
+    sea:()=>open("sea",`Name a sea or ocean that touches ${n}.`,"sea"),
+    cur:()=>f.cur&&add("cur",`What currency does ${n} use?`,[f.cur]),
+    rel:()=>{const v=list("rel");if(v)add("rel",`What is the main religion in ${n}?`,v)},
+    spt:()=>{const v=list("spt");if(v)add("spt",`What is the most popular sport in ${n}?`,v)},
+    lang:()=>f.l&&f.l.length&&add("lang",`Name a language spoken in ${n}.`,f.l,{open:true}),
+    code:()=>L.k&&add("code",`What is the international calling code of ${n}? (digits)`,[L.k],{code:exCodeDigits(L.k)}),
+    pers:()=>open("pers",`Name a famous person from ${n}.`,"pers"),
+    pop:()=>L.p&&add("pop",`About how many people live in ${n}? (type a number, such as 5 million; within 30% counts)`,[L.p],{num:L.p,tol:.3,show:popTxt(L.p)}),
+    dish:()=>open("dish",`What is the best-known dish of ${n}?`,"dish"),
+    drk:()=>open("drk",`What is a traditional drink of ${n}?`,"drk"),
+    stp:()=>open("stp",`What is a traditional staple food in ${n}?`,"stp"),
+    des:()=>open("des",`Name a traditional dessert or sweet of ${n}.`,"des"),
+    snk:()=>open("snk",`Name a popular snack or street food in ${n}.`,"snk"),
+    ing:()=>open("ing",`Name an ingredient closely linked to the cooking of ${n}.`,"ing"),
+    ind:()=>h.ind&&add("ind",`In what year did ${n} become independent?`,[h.ind],{year:true,show:fmtY(h.ind)}),
+    ev1:()=>ev[0]&&add("ev1",`In what year did this happen: ${ev[0].t}?`,[ev[0].y],{year:true,show:fmtY(ev[0].y)}),
+    ev2:()=>ev[1]&&add("ev2",`In what year did this happen: ${ev[1].t}?`,[ev[1].y],{year:true,show:fmtY(ev[1].y)}),
+    frm:()=>{const v=list("frm");if(v)add("frm",`From whom did ${n} gain independence?`,v)},
+    ldr:()=>open("ldr",`Name a leader linked to the history of ${n}.`,"ldr"),
+    emp:()=>open("emp",`Name an ancient civilisation, empire or kingdom linked to ${n}.`,"emp"),
+    lng:()=>{const v=list("lng");if(v)add("lng",`From which language does the name ${n} come?`,v)},
+    mng:()=>{const v=list("mng");if(v)add("mng",`What does the name ${n} mean?`,v)},
+    off:()=>{const v=list("off");if(v)add("off",`What is the official name of ${n}?`,v)},
+    old:()=>open("old",`Name a former name of ${n}.`,"old"),
+    who:()=>{const v=list("who");if(v)add("who",`After whom, or what, is ${n} named?`,v)}
+  };
+  const order={g:["hi","cap","nbr","riv","area","sea","wond"],c:["cur","rel","spt","lang","code","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
+  for(const t of order){if(out.length>=5)break;C[t]()}
+  for(const t of ["cap","cur","lang","nbr","code","area"]){if(out.length>=5)break;C[t]()}
   return out.slice(0,5);
 }function qCapital(id,attempt){
   const rnd=seeded(`qc-${id}-${attempt}`),f=FACTS[id],w=qPeers(id,rnd,8,o=>FACTS[o].cap&&FACTS[o].cap!==f.cap).map(o=>FACTS[o].cap);
@@ -3738,16 +3759,19 @@ function showExamQ(){
   const inp=el("input",{type:"text",placeholder:q.year?"A year, e.g. 1776":q.ids?"Type a country":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
   let locked=false;
+  const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
+  const judge=txt=>q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===q.accept[0]:q.code?exCodeDigits(txt)===q.code:q.num?(()=>{const v=exNum(txt);return v!=null&&Math.abs(v-q.num)<=q.num*q.tol})():exMatch(txt,q.accept);
   const settle=(txt,skip)=>{
     if(locked)return;locked=true;inp.disabled=true;form.querySelector("button").disabled=true;
-    const ok=!skip&&(q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===q.accept[0]:exMatch(txt,q.accept));
+    const ok=!skip&&judge(txt);
     if(ok){mq.right++;sndHit(FACTS[id].r,false)}else sndMiss();
     mq.rev.push({q:q.q,ok,said:txt,show:q.show});
-    nx.append(el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":`Not quite. ${q.year?"It was":q.ids?"Answer:":"For example:"} ${q.show}.`),
-      el("div",{class:"row",style:"margin-top:10px"},el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish")));
-    setTimeout(()=>{const b=nx.querySelector("button");if(b)b.focus({preventScroll:true})},30);
-  };
-  form.onsubmit=e=>{e.preventDefault();if(inp.value.trim())settle(inp.value)};
+    const msg=el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":(q.year?`Not quite. It was ${q.show}.`:q.num||q.code?`Not quite. It is ${q.show}.`:q.open?`Not on our list. Answers we accept include: ${q.show}.`:`Not quite. The answer is ${q.show}.`));
+    nx.append(msg);
+    if(!ok&&q.open&&!skip){const ov=el("button",{class:"chip",type:"button",onclick:()=>{ov.remove();mq.right++;mq.rev[mq.rev.length-1].ok=true;msg.textContent="Counted, since your answer was also right.";msg.style.color=""}},"My answer was also right");nx.append(ov)}
+    nx.append(el("div",{class:"row",style:"margin-top:10px"},el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish")));
+    setTimeout(()=>{const b=nx.querySelector(".btn.primary");if(b)b.focus({preventScroll:true})},30);
+  };  form.onsubmit=e=>{e.preventDefault();if(inp.value.trim())settle(inp.value)};
   sh.append(form,el("div",{class:"row",style:"margin-top:8px"},el("button",{class:"chip",type:"button",onclick:()=>settle("",true)},"I don\u2019t know")),nx);
   openModal();setTimeout(()=>{try{inp.focus({preventScroll:true})}catch(e){}},80);
 }
@@ -3774,7 +3798,7 @@ function qDone(){
   if(pass)sndFlourish(FACTS[id].r);
   sh.append(closeBtn(),el("h2",{},exam?(pass?"Star earned":"Not quite"):pass?"Passed":"Not quite"),
     el("p",{},`${mq.right} of ${n} right.`+(exam?(pass?" Every answer was right: the star is yours.":" The exam needs all "+n+". The questions stay the same, so you can try again."):single?(pass?" Done.":` You need ${need} to pass.`):pass?" Passed. The star comes from the typed exam.":` You need ${need} to pass.`)));
-  if(exam)sh.append(el("div",{class:"exrev"},mq.rev.map(r=>el("p",{class:"exr"+(r.ok?" ok":"")},el("b",{},(r.ok?"\u2713 ":"\u2717 ")+r.q),el("br"),r.ok?"":("You said: "+(r.said||"(skipped)")+" \u00B7 e.g. "+r.show)))));
+  if(exam)sh.append(el("div",{class:"exrev"},mq.rev.map(r=>el("p",{class:"exr"+(r.ok?" ok":"")},el("b",{},(r.ok?"\u2713 ":"\u2717 ")+r.q),el("br"),r.ok?"":("You said: "+(r.said||"(skipped)")+" \u00B7 answer: "+r.show)))));
   sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>renderMastery(id,mqFrom)},"Back to the path"),
     (exam?pass:pass&&single)?"":el("button",{class:"btn",onclick:()=>exam?mqStartExam(id,key):mqStart(id,key)},"Try again")));
   openModal();

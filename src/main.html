@@ -2090,7 +2090,7 @@ function renderLearn(id,rootArg,nav){
   const add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};
   add("Population",L.p?fmt(L.p):null);
   add("Density",L.p?densTxt(L.p,f.a):null);
-  add("Capital",f.cap);add("Calling code",L.k);add("Drives on the",L.d);
+  add("Capital",f.cap);add("Drives on the",L.d);
   sec("Quick data",dl);
   if(L.g)sec("The land",P("g",L.g));
   if(L.c)sec("People and culture",P("c",L.c));
@@ -2388,8 +2388,6 @@ const QT_PEOPLE=[
     return qMk(`Which language is spoken in ${qNm(id)}?`,c,shuffle(w,r),`${qNm(id)}: ${f.l.join(", ")}.`,()=>f.l.includes(c)&&!w.slice(0,3).some(x=>mine.includes(x.toLowerCase())),r)},
   (id,r)=>{const f=FACTS[id];if(!f.cur)return null;const w=[...new Set(qPeers(id,r,12,o=>FACTS[o].cur&&FACTS[o].cur!==f.cur).map(o=>FACTS[o].cur))];
     return qMk(`What is the currency of ${qNm(id)}?`,f.cur,shuffle(w,r),`${qNm(id)} uses the ${f.cur}.`,()=>true,r)},
-  (id,r)=>{const k=(LEARN[id]||{}).k;if(!k)return null;const w=[...new Set(qPeers(id,r,14,o=>(LEARN[o]||{}).k&&(LEARN[o]||{}).k!==k).map(o=>(LEARN[o]||{}).k))];
-    return qMk(`What is the international calling code of ${qNm(id)}?`,k,shuffle(w,r),`${qNm(id)}: ${k}.`,()=>true,r)},
   (id,r)=>{const p=(LEARN[id]||{}).p;if(!p)return null;const bi=Q_BRACKETS.findIndex(b=>p>=b[0]&&p<b[1]);if(bi<0)return null;
     const w=Q_BRACKETS.map((b,i)=>i===bi?null:b[2]).filter(Boolean).sort((a,b)=>Math.abs(Q_BRACKETS.findIndex(x=>x[2]===a)-bi)-Math.abs(Q_BRACKETS.findIndex(x=>x[2]===b)-bi));
     return qMk(`About how many people live in ${qNm(id)}?`,Q_BRACKETS[bi][2],w.slice(0,3),`${qNm(id)} has about ${popTxt(p)} people.`,()=>p>=Q_BRACKETS[bi][0]&&p<Q_BRACKETS[bi][1],r)}
@@ -2530,7 +2528,6 @@ function exYear(txt){const m=String(txt).match(/-?\d{1,4}/);if(!m)return null;le
 /* facts with several right answers (rivers, dishes, people...) come with the first letter of the expected one, so no true answer is marked wrong */
 /* Exam questions are worded so that the right answer is definite. Where a country has several true answers (a river, a dish, a person), the question says
    "best-known" or "a famous", every answer on our list counts, the failed screen lists them, and a wrong answer to such an open question can be counted by the player. */
-function exCodeDigits(s){return String(s).replace(/\D/g,"")}
 function qExam(id,key){
   const f=FACTS[id],n=qNm(id),L=LEARN[id]||{},h=(QZ[id]||{}).h||{},ev=h.evt||[],out=[],used=new Set();
   const list=t=>{const v=qV(id,key,t);return v&&v.length?v.map(String):null};
@@ -2549,7 +2546,7 @@ function qExam(id,key){
     rel:()=>{const v=list("rel");if(v)add("rel",`What is the main religion in ${n}?`,v)},
     spt:()=>{const v=list("spt");if(v)add("spt",`What is the most popular sport in ${n}?`,v)},
     lang:()=>f.l&&f.l.length&&add("lang",`Name a language spoken in ${n}.`,f.l,{open:true}),
-    code:()=>L.k&&add("code",`What is the international calling code of ${n}? (digits)`,[L.k],{code:exCodeDigits(L.k)}),
+
     pers:()=>open("pers",`Name a famous person from ${n}.`,"pers"),
     pop:()=>L.p&&add("pop",`About how many people live in ${n}? (e.g. 5 million; within 30%)`,[L.p],{num:L.p,tol:.3,show:popTxt(L.p)}),
     dish:()=>open("dish",`What is the best-known dish of ${n}?`,"dish"),
@@ -2570,9 +2567,9 @@ function qExam(id,key){
     old:()=>open("old",`Name a former name of ${n}.`,"old"),
     who:()=>{const v=list("who");if(v)add("who",`After whom, or what, is ${n} named?`,v)}
   };
-  const order={g:["hi","cap","nbr","riv","area","sea","wond"],c:["cur","rel","spt","lang","code","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
+  const order={g:["hi","cap","nbr","riv","area","sea","wond"],c:["cur","rel","spt","lang","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
   for(const t of order){if(out.length>=5)break;C[t]()}
-  for(const t of ["cap","cur","lang","nbr","code","area"]){if(out.length>=5)break;C[t]()}
+  for(const t of ["cap","cur","lang","nbr","area"]){if(out.length>=5)break;C[t]()}
   return out.slice(0,5);
 }function qCapital(id,attempt){
   const rnd=seeded(`qc-${id}-${attempt}`),f=FACTS[id],w=qPeers(id,rnd,8,o=>FACTS[o].cap&&FACTS[o].cap!==f.cap).map(o=>FACTS[o].cap);
@@ -2638,7 +2635,7 @@ function openCountryBook(id,from,opts){
   let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=Math.floor(i/2)}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],N-1);
   const sh=$("sheet");sh.innerHTML="";
   const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book")renderBook("mastery",BK.spread);else closeModal()};
-  const quickDl=()=>{const dl=el("dl",{class:"kv cbkv"}),add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Density",L.p?densTxt(L.p,f.a):null);add("Area",areaTxt(f.a));add("Calling code",L.k);add("Drives on the",L.d);return dl};
+  const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),v))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Drives on the",L.d);return g};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
     if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
@@ -2719,13 +2716,13 @@ function showExamQ(){
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
   let locked=false;
   const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
-  const judge=txt=>q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===q.accept[0]:q.code?exCodeDigits(txt)===q.code:q.num?(()=>{const v=exNum(txt);return v!=null&&Math.abs(v-q.num)<=q.num*q.tol})():exMatch(txt,q.accept);
+  const judge=txt=>q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===q.accept[0]:q.num?(()=>{const v=exNum(txt);return v!=null&&Math.abs(v-q.num)<=q.num*q.tol})():exMatch(txt,q.accept);
   const settle=(txt,skip)=>{
     if(locked)return;locked=true;inp.disabled=true;form.querySelector("button").disabled=true;
     const ok=!skip&&judge(txt);
     if(ok){mq.right++;sndHit(FACTS[id].r,false)}else sndMiss();
     mq.rev.push({q:q.q,ok,said:txt,show:q.show});
-    const msg=el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":(q.year?`Not quite. It was ${q.show}.`:q.num||q.code?`Not quite. It is ${q.show}.`:q.open?`Not on our list. Accepted: ${q.show}.`:`Not quite. The answer is ${q.show}.`));
+    const msg=el("p",{class:"mwhy",style:ok?"":"color:var(--hot)"},ok?"Correct.":(q.year?`Not quite. It was ${q.show}.`:q.num?`Not quite. It is ${q.show}.`:q.open?`Not on our list. Accepted: ${q.show}.`:`Not quite. The answer is ${q.show}.`));
     nx.append(msg);
     if(!ok&&q.open&&!skip){const ov=el("button",{class:"chip",type:"button",onclick:()=>{ov.remove();mq.right++;mq.rev[mq.rev.length-1].ok=true;msg.textContent="Counted.";msg.style.color=""}},"My answer was also right");nx.append(ov)}
     nx.append(el("div",{class:"row",style:"margin-top:10px"},el("button",{class:"btn primary",onclick:()=>{mq.i++;if(mq.i<mq.qs.length)showQ();else qDone()}},mq.i+1<mq.qs.length?"Next":"Finish")));

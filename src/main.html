@@ -58,7 +58,7 @@ try{
   if([0,10,20].includes(s.rlen)) S.rlen=s.rlen;
   if(s.seen&&typeof s.seen==="object") S.seen=s.seen;
   if(s.view&&Array.isArray(s.view.r)) S.view=s.view;
-  if(typeof s.hints==="boolean"&&s.h18) S.hints=s.hints;   // v18: hints default to off, once, for everyone
+  S.hints=false;   // hints are switched off for now: no up-front hint option, no clues after a miss
   if(["auto","light","dark"].includes(s.theme)) S.theme=s.theme;
   if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
   if(["off","fast","normal","slow"].includes(s.autoNext)) S.autoNext=s.autoNext;
@@ -1596,7 +1596,7 @@ function showQuizSheet(){
     step(1,"What to find",how,q),
     step(2,"Where",S.region==="United States"?"The 50 states, on their own map. Flag and silhouette styles are not available for states, so Locate is used.":S.region==="World"?"Any country in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
     step(3,"Round","A round starts on a blank map, so painted land never gives the answer away. Your lifetime map is kept.",(()=>{const w=el("div",{class:"row",style:"margin:0"});[[10,"10 countries"],[20,"20 countries"],[0,"Whole region"]].forEach(([n,l])=>w.append(el("button",{class:"chip","aria-pressed":String(S.rlen===n),onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}},l)));return w})()),
-    step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Only ask about countries you have not painted yet.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Hints","Region, distance and direction clues after a miss.",toggle(S.hints,v=>{S.hints=v;save();sndTick()},"Hints")),opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
+    step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Only ask about countries you have not painted yet.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide the lines between countries; only coastlines remain.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
     el("div",{class:"qfoot"},el("button",{class:"btn primary bigstart",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Challenges"),

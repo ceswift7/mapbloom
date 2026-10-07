@@ -954,7 +954,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
     </div>
 
     <div class="progress">
-      <p><b id="foundN">0</b> of <span id="totalN">0</span> <span id="progLabel">countries painted</span><button class="unit" id="unitBtn" aria-label="Switch distance units" title="Distance units"><b id="unitA">mi</b> / <span id="unitB">km</span></button></p>
+      <p><b id="foundN">0</b> of <span id="totalN">0</span> <span id="progLabel">countries painted</span></p>
       <div class="bar" id="bar"></div>
     </div>
     <div class="chips" role="group" aria-label="Turn the globe to a region" id="chips"></div>
@@ -3508,12 +3508,12 @@ function themeAnimate(k,srcEl,after){
   vt.finished.finally(()=>{themeBusy=false});
 }function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
 function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
-function syncUnit(){$("unitA").textContent=S.unit;$("unitB").textContent=S.unit==="mi"?"km":"mi"}
+function syncUnit(){}
 function setUnit(u){S.unit=u;save();syncUnit();if($("card").classList.contains("on"))showCard(cardId,true)}
 $("themeBtn").onclick=()=>{sndTick();themeAnimate(isDark()?"light":"dark",$("themeBtn"))};
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.theme==="auto"){syncThemeBtn();cvColors();if(CANVAS)requestRender()}});
 applyTheme();
-$("unitBtn").onclick=()=>{sndTick();setUnit(S.unit==="mi"?"km":"mi")};
+
 function step(n,title,sub,ctl){return el("div",{class:"step"},el("i",{},String(n)),el("b",{},title),sub?el("small",{},sub):"",el("div",{class:"ctl"},ctl))}
 function fold(title,content,open){const d=el("details",{class:"fold"},el("summary",{},title));if(open)d.open=true;d.append(content);return d}
 function opt(title,sub,control){return el("div",{class:"opt"},el("div",{},el("b",{},title),sub?el("small",{},sub):""),control)}
@@ -3971,7 +3971,7 @@ const BK={tab:"atlas",spread:0,pages:[],labels:null},BKpos={};   // BKpos rememb
 /* a real page turn: the page swings right over the spine (or left back over it), its far side showing the other new page, and the next two pages lie open underneath */
 function leafTurn(pg,dir,mkL,mkR,done){
   const ms=reduced?1:780,lp=pg.querySelector(".bkpage.l"),rp=pg.querySelector(".bkpage.r");
-  if(innerWidth<720||reduced||!lp||!rp){const o=pg.animate([{opacity:1},{opacity:0}],{duration:reduced?1:180,fill:"forwards"});o.onfinish=()=>{if(!pg.isConnected)return;done();pg.animate([{opacity:0},{opacity:1}],{duration:reduced?1:180}).onfinish=()=>{}};return}
+  if(innerWidth<720||reduced||!lp||!rp){const o=pg.animate([{opacity:1},{opacity:0}],{duration:reduced?1:180,fill:"forwards"});o.onfinish=()=>{if(!pg.isConnected)return;done();o.cancel();pg.animate([{opacity:0},{opacity:1}],{duration:reduced?1:180})};return}   // cancel the held fade-out, or the pages stay invisible
   const fwd=dir>0,leaf=el("div",{class:"turnleaf "+(fwd?"fwd":"back")}),front=el("div",{class:"tlface f"}),back=el("div",{class:"tlface b"});
   front.append((fwd?rp:lp).cloneNode(true));back.append(fwd?mkL():mkR());leaf.append(front,back);
   if(fwd){rp.replaceWith(mkR())}else{lp.replaceWith(mkL())}

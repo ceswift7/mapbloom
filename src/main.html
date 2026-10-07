@@ -19,7 +19,7 @@ const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="M
 const isTouch=isIOS||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches);
 let LITE=false;
 const rendererPref=(location.search.match(/[?&]renderer=(gl|canvas|svg)/)||[])[1];
-let engineSaved=null;try{const sv=JSON.parse(localStorage.getItem("mapbloom")||"{}");engineSaved=sv.engine2||(sv.engine==="svg"?"svg":null)}catch(e){}
+let engineSaved=null;try{const sv=JSON.parse(localStorage.getsem("mapbloom")||"{}");engineSaved=sv.engine2||(sv.engine==="svg"?"svg":null)}catch(e){}
 const ENG=rendererPref||engineSaved||"gl";                 // gl (GPU globe) > canvas (2D) > svg (classic)
 const GLWANT=ENG==="gl";
 const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw:null,paint:null,colors:null,resize:null,fade:null,whenIdle:cb=>cb()};
@@ -589,6 +589,26 @@ function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(nu
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
    each island is big enough to tap. Tiny countries outside a group get a beacon.
    ====================================================================== */
+/* ---- zoomed in on the Pacific and the Antilles, each island gets a pale reef halo, and the low coral atolls a lagoon with a sand rim,
+   drawn from the island's own outline: the shape is the clue, never a name ---- */
+const gReef=svg.append("g").attr("class","reef").style("pointer-events","none"),reefEl={};
+function reefUpdate(cen){
+  const vis=cen&&zoomK>=3.2&&typeof AREA_SET!=="undefined";
+  if(!vis){if(gReef.attr("data-on")){gReef.attr("data-on",null).style("display","none")}return}
+  gReef.attr("data-on","1").style("display",null).style("opacity",Math.min(1,(zoomK-3.2)/1.2).toFixed(2));
+  const ids=[...AREA_SET["Pacific Islands"],...AREA_SET["Antilles"]];
+  ids.forEach(id=>{
+    const f=byId[id];if(!f)return;
+    let e=reefEl[id];
+    if(!e){const a=FACTS[id].a;e=reefEl[id]={g:gReef.append("g"),atoll:a<1500&&FACTS[id].grp!=="Caribbean"||a<450};
+      ["h1","h2","h3"].forEach(c=>e.g.append("path").attr("class","rf "+c));
+      if(e.atoll){e.g.append("path").attr("class","rf lg");e.g.append("path").attr("class","rf sand")}
+    }
+    const near=d3.geoDistance(LL(id),cen)<.55;
+    if(!near){if(e.on){e.g.style("display","none");e.on=false}return}
+    const d=path(f)||"";e.g.style("display",null);e.on=true;e.g.selectAll("path").attr("d",d);
+  });
+}
 const gBeacon=svg.append("g"),gPills=svg.append("g");
 const lensOf=id=>null;   // the lens is gone: island groups are zoom-out bubbles that fly you in
 const CL_DEF=[{name:"Pacific",ids:playable.map(f=>f.id).filter(id=>["Polynesia","Micronesia","Melanesia"].includes(FACTS[id].grp))},
@@ -651,13 +671,14 @@ CL_DEF.forEach(g=>{const e=gPills.append("g").attr("class","pill hide").attr("ta
   g.lab=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle").text(g.name);
   const go=()=>{sndTick();stopDrift();if(S.mode==="speed"&&R.phase==="run"&&!R.ret)R.ret={ll:[-projection.rotate()[0],-projection.rotate()[1]],k:zoomK};flyTo(g.c,900,clusterZoom(g))};
   e.on("click",ev=>{ev.stopPropagation();go()}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go()}});g.el=e});function positionIslands(cen){
-  const s=baseScale*zoomK;
+  const s=baseScale*zoomK;reefUpdate(cen);
   pillList.forEach(g=>{
     const p=projection(g.c),vis=cen&&d3.geoDistance(g.c,cen)<1.42&&p;
     if(!p)return;
     g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`).classed("hide",!vis||(lensOpen&&lensG===g));
   });
-  CL_DEF.forEach(g=>{const p=projection(g.c),show=cen&&p&&d3.geoDistance(g.c,cen)<1.2&&zoomK<Math.min(2.2,clusterZoom(g)*.8);g.show=!!show;g.el.classed("hide",!show);if(p)g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`)});
+  CL_DEF.forEach(g=>{const p=projection(g.c),show=false;   // the big group bubbles are gone: islands are found on the map itself
+  g.show=!!show;g.el.classed("hide",!show);if(p)g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`)});
   beaconList.forEach(b=>{
     const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16&&!CL_DEF.some(g=>g.show&&g.ids.includes(b.id));
     b.g.attr("display",vis?null:"none");if(vis)b.g.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);

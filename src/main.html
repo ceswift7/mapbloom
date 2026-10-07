@@ -589,40 +589,6 @@ function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(nu
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
    each island is big enough to tap. Tiny countries outside a group get a beacon.
    ====================================================================== */
-/* ---- maritime borders of the Pacific island nations: a fine dotted line about 200 nautical miles (370 km) off every coast.
-   Drawn from the land shapes themselves (an approximation of each exclusive economic zone, not a legal boundary). ---- */
-const gMar=svg.append("g").attr("class","mar").style("pointer-events","none");
-const marPath=gMar.append("path");
-let marGeo=null,marBusy=false,marOn=false;
-function marBuild(){
-  marBusy=true;
-  const W2=2048,H2=1024,cv=document.createElement("canvas");cv.width=W2;cv.height=H2;const c=cv.getContext("2d",{willReadFrequently:true});
-  const proj=d3.geoEquirectangular().scale(W2/(2*Math.PI)).translate([W2/2,H2/2]).precision(.2),pg=d3.geoPath(proj,c);
-  const r=3.33*W2/360;   // 370 km in degrees of arc, as pixels
-  c.lineJoin="round";c.lineWidth=2*r;c.fillStyle=c.strokeStyle="#fff";
-  const ids=AREA_SET["Pacific Islands"];
-  [-W2,0,W2].forEach(dx=>{c.save();c.translate(dx,0);ids.forEach(id=>{const f=byId[id];if(!f)return;c.beginPath();pg(f);c.fill();c.stroke()});c.restore()});
-  const img=c.getImageData(0,0,W2,H2).data,vals=new Float32Array(W2*H2);
-  for(let i=0;i<vals.length;i++)vals[i]=img[i*4+3]/255;
-  const mp=d3.contours().size([W2,H2]).thresholds([.5])(vals)[0],lines=[];
-  mp.coordinates.forEach(poly=>poly.forEach(ring=>{
-    let run=[];
-    const flush=()=>{if(run.length>2)lines.push(run);run=[]};
-    for(let i=0;i<ring.length;i++){
-      const x=ring[i][0],y=ring[i][1];
-      if(x<=1||x>=W2-1||y<=1||y>=H2-1){flush();continue}   // the cut edges of the picture are not borders
-      if(i%2===0)run.push([x/W2*360-180,90-y/H2*180]);
-    }
-    flush();
-  }));
-  marGeo={type:"MultiLineString",coordinates:lines};marBusy=false;
-}
-function marUpdate(cen){
-  const want=S.mode==="wander"&&cen&&zoomK>=1.2&&d3.geoDistance(cen,CL_DEF[0].c)<1.9;
-  if(want&&!marGeo&&!marBusy){setTimeout(()=>{if(!marGeo)try{marBuild();render(true)}catch(e){marGeo=false;marBusy=false}},60);return}
-  if(!want||!marGeo){if(marOn){marPath.attr("d",null);marOn=false}return}
-  marOn=true;marPath.attr("d",path(marGeo)||null).style("opacity",Math.min(1,(zoomK-1.2)/.6).toFixed(2));
-}
 const gBeacon=svg.append("g"),gPills=svg.append("g");
 const lensOf=id=>null;   // the lens is gone: island groups are zoom-out bubbles that fly you in
 const CL_DEF=[{name:"Pacific",ids:playable.map(f=>f.id).filter(id=>["Polynesia","Micronesia","Melanesia"].includes(FACTS[id].grp))},
@@ -685,7 +651,7 @@ CL_DEF.forEach(g=>{const e=gPills.append("g").attr("class","pill hide").attr("ta
   g.lab=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle").text(g.name);
   const go=()=>{sndTick();stopDrift();if(S.mode==="speed"&&R.phase==="run"&&!R.ret)R.ret={ll:[-projection.rotate()[0],-projection.rotate()[1]],k:zoomK};flyTo(g.c,900,clusterZoom(g))};
   e.on("click",ev=>{ev.stopPropagation();go()}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go()}});g.el=e});function positionIslands(cen){
-  const s=baseScale*zoomK;marUpdate(cen);
+  const s=baseScale*zoomK;
   pillList.forEach(g=>{
     const p=projection(g.c),vis=cen&&d3.geoDistance(g.c,cen)<1.42&&p;
     if(!p)return;

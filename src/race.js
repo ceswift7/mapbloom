@@ -25,7 +25,7 @@ function speedEnter(compact){
 function showRaceCompact(){
   const st=RACE_STYLES.find(x=>x[0]===S.rv)||RACE_STYLES[0],bb=bestOf(rkey(S.region)),us=S.region==="United States",n=us?50:regionCount(S.region);
   modeCompact({title:"Race",desc:MODE_DESC.speed,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],["r20",n+(us?" states":" countries")+(isFinite(bb)?" · best "+fmtT(bb,0):"")]],
-    startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
+    moreHint:"Race style, region and your best times",startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
 }
 function abortRace(){
   silHide();R.ret=null;R.phase="idle";R.found=new Set();R.cur=null;R.queue=[];R.pen=0;stopMusic();

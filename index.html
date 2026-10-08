@@ -972,7 +972,21 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .csum{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0 2px}
 .cs{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--panel-line);border-radius:8px;padding:5px 10px}
 .csi svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.cfoot{justify-content:space-between;margin-top:16px}
+.cfoot{justify-content:stretch;margin-top:12px}
+.cfoot .btn{flex:1}
+.clabel{margin:14px 0 0;font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.sheet.compact .csum{margin:8px 0 10px}
+/* the card is the top of a stack: a clear "More options" bar, and sheets peeking out beneath, show it opens into a bigger menu */
+.cexp{display:flex;align-items:center;gap:11px;width:100%;box-sizing:border-box;text-align:left;font:inherit;color:var(--ink);background:color-mix(in srgb,var(--ink) 5%,transparent);border:1.5px dashed color-mix(in srgb,var(--ink) 34%,var(--panel-line));border-radius:12px;padding:10px 12px;cursor:pointer;transition:background .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease)}
+.cexp:hover,.cexp:focus-visible{background:color-mix(in srgb,var(--ink) 10%,transparent);border-color:var(--ink);transform:translateY(-1px)}
+.cexp .cet{flex:1;min-width:0;display:block}
+.cexp .cet b{display:block;font-size:14px;font-weight:600}
+.cexp .cet small{display:block;font-size:11.5px;line-height:1.3;color:var(--ink-soft);margin-top:1px}
+.cexp .csi svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cexp .cexc{animation:cexBob 2.2s ease-in-out infinite}
+@keyframes cexBob{0%,60%,100%{transform:translateY(0)}80%{transform:translateY(3px)}}
+.sheet.compact{box-shadow:0 30px 70px -30px rgba(0,0,0,.55),0 9px 0 -3px color-mix(in srgb,var(--sheet) 82%,var(--ink)),0 18px 0 -6px color-mix(in srgb,var(--sheet) 62%,var(--ink))}
+@media (prefers-reduced-motion:reduce){.cexp .cexc{animation:none}}
 .sheet.grow{animation:sheetGrow .34s var(--ease)}
 @keyframes sheetGrow{from{opacity:.55;transform:scale(.93)}to{opacity:1;transform:none}}
 /* one easing and one set of durations across the interface; close buttons are rounded rectangles, never ellipses */
@@ -3100,7 +3114,7 @@ function showQuizCompact(){
   chainStop();
   const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" countries";
   modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
-    startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
+    moreHint:"What to find, region, round length, daily challenges, records",startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
 }
 function beginFree(){
   if(S.region==="United States"){usQuizBegin();return}
@@ -3310,7 +3324,7 @@ function speedEnter(compact){
 function showRaceCompact(){
   const st=RACE_STYLES.find(x=>x[0]===S.rv)||RACE_STYLES[0],bb=bestOf(rkey(S.region)),us=S.region==="United States",n=us?50:regionCount(S.region);
   modeCompact({title:"Race",desc:MODE_DESC.speed,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],["r20",n+(us?" states":" countries")+(isFinite(bb)?" · best "+fmtT(bb,0):"")]],
-    startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
+    moreHint:"Race style, region and your best times",startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
 }
 function abortRace(){
   silHide();R.ret=null;R.phase="idle";R.found=new Set();R.cur=null;R.queue=[];R.pen=0;stopMusic();
@@ -4052,6 +4066,8 @@ const ICONS={
   autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>',
   home:'<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
   book:'<path d="M2 4h6a4 4 0 014 4v13a3 3 0 00-3-3H2zM22 4h-6a4 4 0 00-4 4v13a3 3 0 013-3h7z"/>',
+  sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  chevd:'<path d="M6 9l6 6 6-6"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>'
 };
@@ -4092,8 +4108,10 @@ function expandFrom(fn){fn();const sh=$("sheet");sh.classList.remove("grow");voi
 function modeCompact(o){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},o.title),el("p",{class:"modesub"},o.desc),
+    el("div",{class:"clabel"},"Your setup"),
     el("div",{class:"csum"},...o.chips.map(([ic,t])=>el("span",{class:"cs"},el("span",{class:"csi",html:svgIcon(ic)}),t))),
-    el("div",{class:"sheetfoot cfoot"},el("button",{class:"tbtn",type:"button",onclick:o.expand},"Options ▾"),el("span",{class:"grow"}),el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
+    el("button",{class:"cexp",type:"button",onclick:o.expand,"aria-label":"More options: "+(o.moreHint||"change the setup")},el("span",{class:"csi cexi",html:svgIcon("sliders")}),el("span",{class:"cet"},el("b",{},"More options"),el("small",{},o.moreHint||"Change the setup")),el("span",{class:"csi cexc",html:svgIcon("chevd")})),
+    el("div",{class:"sheetfoot cfoot"},el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
   openModal("compact");
   sh.onclick=e=>{if(e.target.closest("button"))return;o.expand()};
   setTimeout(()=>{const b=$("cStart");if(b)b.focus({preventScroll:true})},60);
@@ -5284,7 +5302,7 @@ function hotEnter(compact){
 function showHotCompact(){
   const best=(S.counts.hotBest||{})[S.region];
   modeCompact({title:"Hot & cold",desc:MODE_DESC.hot,chips:[["hot","Guess by temperature"],["rall",regionLabel(S.region)],["r20",regionCount(S.region)+" countries"+(best?" · best "+best:"")]],
-    startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
+    moreHint:"Region and your best records",startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
 }
 function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){

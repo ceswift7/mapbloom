@@ -170,6 +170,8 @@ const ICONS={
   autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>',
   home:'<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
   book:'<path d="M2 4h6a4 4 0 014 4v13a3 3 0 00-3-3H2zM22 4h-6a4 4 0 00-4 4v13a3 3 0 013-3h7z"/>',
+  sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  chevd:'<path d="M6 9l6 6 6-6"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>'
 };
@@ -210,8 +212,10 @@ function expandFrom(fn){fn();const sh=$("sheet");sh.classList.remove("grow");voi
 function modeCompact(o){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},o.title),el("p",{class:"modesub"},o.desc),
+    el("div",{class:"clabel"},"Your setup"),
     el("div",{class:"csum"},...o.chips.map(([ic,t])=>el("span",{class:"cs"},el("span",{class:"csi",html:svgIcon(ic)}),t))),
-    el("div",{class:"sheetfoot cfoot"},el("button",{class:"tbtn",type:"button",onclick:o.expand},"Options ▾"),el("span",{class:"grow"}),el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
+    el("button",{class:"cexp",type:"button",onclick:o.expand,"aria-label":"More options: "+(o.moreHint||"change the setup")},el("span",{class:"csi cexi",html:svgIcon("sliders")}),el("span",{class:"cet"},el("b",{},"More options"),el("small",{},o.moreHint||"Change the setup")),el("span",{class:"csi cexc",html:svgIcon("chevd")})),
+    el("div",{class:"sheetfoot cfoot"},el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
   openModal("compact");
   sh.onclick=e=>{if(e.target.closest("button"))return;o.expand()};
   setTimeout(()=>{const b=$("cStart");if(b)b.focus({preventScroll:true})},60);

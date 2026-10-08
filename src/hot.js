@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    HOT AND COLD: a country is hidden, you type guesses, each guess is coloured by how close it is
    ====================================================================== */
 const HEAT=d3.scaleLinear().domain([0,.3,.55,.78,1]).range(["#3f6fb5","#8fc0e4","#f1e7a3","#f2a24c","#d23b2c"]).clamp(true);
@@ -35,7 +35,7 @@ function hotEnter(compact){
 function showHotCompact(){
   const best=(S.counts.hotBest||{})[S.region];
   modeCompact({title:"Hot & cold",desc:MODE_DESC.hot,chips:[["hot","Guess by temperature"],["rall",regionLabel(S.region)],["r20",regionCount(S.region)+" countries"+(best?" · best "+best:"")]],
-    startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
+    moreHint:"Region and your best records",startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
 }
 function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){

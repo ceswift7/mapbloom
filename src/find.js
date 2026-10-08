@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    FIND MODE (name / flag / capital quiz, practice, daily challenge)
    ====================================================================== */
 const quizOf=()=>D.active?"country":S.quiz;
@@ -258,7 +258,7 @@ function showQuizCompact(){
   chainStop();
   const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" countries";
   modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
-    startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
+    moreHint:"What to find, region, round length, daily challenges, records",startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
 }
 function beginFree(){
   if(S.region==="United States"){usQuizBegin();return}

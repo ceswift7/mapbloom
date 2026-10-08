@@ -3528,9 +3528,11 @@ function hotGuess(){
   if(win)return hotFinish(false);
   if(nb)sndBorder();else sndHeat(1-Math.min(d,14000)/14000);nameFly(id);$("silHint").textContent=nb?FACTS[id].n+" shares a border with the hidden country!":"Warmer colours are closer.";$("silHint").classList.toggle("bord",!!nb);
 }
+/* Enter on the result card plays again (a moment after the winning Enter, so that one never restarts it) */
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.repeat&&S.mode==="hot"&&HOT.on&&HOT.done&&performance.now()-(HOT.doneAt||0)>600&&!modal.classList.contains("on")){e.preventDefault();sndTick();hotStart()}});
 function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){
-  HOT.done=true;$("sil").classList.add("hotdone");const T=HOT.target,n=HOT.list.length;
+  HOT.done=true;HOT.doneAt=performance.now();try{$("silIn").blur()}catch(e){}$("sil").classList.add("hotdone");const T=HOT.target,n=HOT.list.length;
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
   $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;

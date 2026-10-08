@@ -234,7 +234,7 @@ body.cv #globe .sphere{fill:transparent !important}
 body.introing:not(.introglobe) #gcanvas,body.introing:not(.introglobe) #glcanvas{animation:none;opacity:0}
 body.introing.introglobe #gcanvas,body.introing.introglobe #glcanvas{animation:rise 1.5s cubic-bezier(.2,.7,.2,1) both}
 .app.silmode #gcanvas,.app.silmode #glcanvas{opacity:0 !important}
-@keyframes dip{0%{opacity:1}35%{opacity:.08}100%{opacity:1}}
+@keyframes dip{0%{opacity:1}35%{opacity:.6}100%{opacity:1}}
 #globe:active{cursor:grabbing}
 #globe:focus{outline:none}
 #globe:focus-visible .sphere-edge{stroke:var(--focus);stroke-width:2.5}
@@ -272,8 +272,8 @@ button.brand{background:none;border:0;padding:0;color:inherit;cursor:pointer;lin
 .hleft{display:flex;align-items:center;gap:12px;min-width:0}
 .exitbtn{display:inline-flex;align-items:center;gap:4px}.exitbtn[hidden]{display:none}
 .dockwrap{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.modedesc{margin:0;font:12.5px var(--sans);color:var(--ink-faint);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(48vw,420px);letter-spacing:.01em}
-.modeName small{display:block;margin-top:12px;font:500 clamp(14px,2.2vw,22px) var(--sans);font-style:normal;letter-spacing:.01em;opacity:.9}
+.modedesc{margin:0;font:12.5px var(--sans);color:var(--ink-soft);background:color-mix(in srgb,var(--panel) 84%,transparent);border:1px solid var(--panel-line);border-radius:999px;padding:2px 12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(48vw,420px);letter-spacing:.01em}
+.modeName small{display:block;margin-top:8px;font:500 clamp(13px,1.8vw,17px) var(--sans);font-style:normal;letter-spacing:.02em;color:var(--ink-soft)}
 .closebtn{width:auto !important;padding:0 14px 0 11px;gap:6px;display:inline-flex !important;align-items:center;border-radius:999px;height:34px;font-size:13px}
 .closebtn svg{width:14px !important;height:14px !important}
 .mrows{padding:6px 14px}
@@ -296,8 +296,8 @@ button.brand{background:none;border:0;padding:0;color:inherit;cursor:pointer;lin
 :root[data-mode="speed"]{--mode-acc:#2D86FF}
 :root[data-mode="hot"]{--mode-acc:#E0802F}
 :root[data-mode="hot"] #showBtn,:root[data-mode="hot"] #nextBtn,:root[data-mode="hot"] .prompt{display:none !important}
-.wash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;clip-path:circle(0 at 50% 50%)}
-.modeName{position:fixed;left:0;right:0;top:42%;z-index:61;pointer-events:none;opacity:0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(54px,12vw,120px);color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.25)}
+.wash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0}
+.modeName{position:fixed;left:0;right:0;top:19%;z-index:61;pointer-events:none;opacity:0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(34px,6vw,64px);color:var(--ink);text-shadow:0 0 28px var(--paper),0 0 10px var(--paper)}
 .icon-btn,.chip,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .icon-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--panel-line);color:var(--ink-soft);transition:transform .25s ease}
 .icon-btn:hover{transform:scale(1.06)}
@@ -354,7 +354,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .bk-tab:hover{opacity:1}
 .bk-tab[aria-selected="true"]{opacity:1;transform:translateY(0);height:38px;margin-top:-3px;box-shadow:none}
 /* the bookmarks stick out of the top of the book, at the right-hand corner, and are always there */
-.bk-tabs{left:auto;right:56px}
+.bk-tabs{left:auto;right:118px}
 .bkctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:10px;position:relative;z-index:3}
 .bkctl>:first-child{justify-self:start}.bkctl>:last-child{justify-self:end}
 .bkmid{display:flex;align-items:center;gap:12px}
@@ -932,8 +932,11 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
 .gthumb canvas{width:64px;height:48px;display:block}
 .gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
-/* one easing and a quieter label style across the interface */
-:root{--ease:cubic-bezier(.2,.8,.2,1)}
+/* one easing and one set of durations across the interface; close buttons are rounded rectangles, never ellipses */
+:root{--ease:cubic-bezier(.2,.8,.2,1);--t-fast:.2s;--t-med:.35s;--t-slow:.6s}
+.icon-btn.x,.closebtn,.card .close,.rdwin .icon-btn{border-radius:10px}
+.tile,.tbtn,.btn,.chip,.icon-btn,.mrow{transition-duration:var(--t-fast)}
+.fbcard.in{transition-duration:var(--t-med),.45s}
 .tile,.tbtn,.btn,.chip,.icon-btn,.mrow{transition-timing-function:var(--ease)}
 .card dt{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);align-self:center}
 .card .learned{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
@@ -2531,8 +2534,30 @@ function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1
 function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>triFor(id,S.mode==="speed")[1];
 
 const blooms=[];let bloomSeq=0;
+/* the heart of a country: the point deepest inside its landmass. If the geographic centre is water (an archipelago, a crescent), the heart of the nearest piece of land is used instead */
+function landCenter(id){
+  const f=byId[id];if(!f)return null;if(f._lc!==undefined)return f._lc;
+  let res=null;
+  try{
+    const polys=(f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates]).map(co=>{const g={type:"Polygon",coordinates:co};return {co,g,a:d3.geoArea(g),c:d3.geoCentroid(g)}}).sort((a,b)=>b.a-a.a);
+    if(polys.length){
+      const all=d3.geoCentroid(f);let pick=polys.find(p=>d3.geoContains(p.g,all));
+      if(!pick){const big=polys.filter(p=>p.a>=polys[0].a*.04);pick=big.reduce((m,p)=>d3.geoDistance(p.c,all)<d3.geoDistance(m.c,all)?p:m,big[0])}
+      const g=pick.g,b=d3.geoBounds(g);let x0=b[0][0],y0=b[0][1],x1=b[1][0],y1=b[1][1];if(x1<x0)x1+=360;
+      const ring=pick.co[0],st=Math.max(1,Math.floor(ring.length/110)),bd=[];for(let i=0;i<ring.length;i+=st)bd.push(ring[i]);
+      const n=pick.a<2e-4?8:pick.a<2e-3?12:16,tgt=d3.geoContains(g,all)?all:pick.c,cand=[pick.c];
+      for(let i=0;i<=n;i++)for(let j=0;j<=n;j++){let lon=x0+(x1-x0)*i/n;if(lon>180)lon-=360;cand.push([lon,y0+(y1-y0)*j/n])}
+      let bestP=null,bestS=-1;
+      cand.forEach(p=>{if(!d3.geoContains(g,p))return;let m=Infinity;for(const q of bd){const d=d3.geoDistance(p,q);if(d<m)m=d}const sc=m-.12*d3.geoDistance(p,tgt);if(sc>bestS){bestS=sc;bestP=p}});
+      res=bestP||(d3.geoContains(g,pick.c)?pick.c:null);
+    }
+  }catch(e){}
+  return f._lc=res;
+}
+/* work out every country's heart in small idle slices after start-up, so a reveal never waits for it */
+setTimeout(()=>{const ids=Object.keys(FACTS);let i=0;const step=()=>{const t=performance.now();while(i<ids.length&&performance.now()-t<10)landCenter(ids[i++]);if(i<ids.length)(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:400}):setTimeout(step,80))};step()},6000);
 function startReveal(id,ll,shown,done,fast,v,onPayoff){
-  v=v||MV;
+  v=v||MV;ll=landCenter(id)||ll;
   const key=ensureArt(id);ensureWash(key);ensureMotif(key);
   if(reduced){done();if(onPayoff)onPayoff();return}
   const f=FACTS[id],src=byId[id],uid="b"+(++bloomSeq),col=`var(--c-${f.r}-d)`,TS=FX.ts||1;
@@ -4529,13 +4554,19 @@ function sndMode(m){
 function modeWash(m){
   placeDock();
   if(reduced)return;
-  const b=$("mode"+cap(m)).getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,R2=Math.hypot(innerWidth,innerHeight)*1.05;
-  const w=$("wash");w.style.background=`radial-gradient(circle at ${x}px ${y}px,${MODE_ACC[m]},color-mix(in srgb,${MODE_ACC[m]} 70%,#fff))`;
-  w.animate([{clipPath:`circle(0px at ${x}px ${y}px)`,opacity:.0},{clipPath:`circle(${R2*.45}px at ${x}px ${y}px)`,opacity:.9,offset:.25},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:.9,offset:.55},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:0}],{duration:1150,easing:"ease-in-out"});
+  const acc=MODE_ACC[m],w=$("wash");
+  w.style.clipPath="none";w.style.background="radial-gradient(130% 75% at 50% 0%,color-mix(in srgb,"+acc+" 30%,transparent),transparent 72%)";
+  w.animate([{opacity:0},{opacity:1,offset:.32},{opacity:0}],{duration:1000,easing:"ease-in-out"});
   const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
-  n.animate([{opacity:0,letterSpacing:".35em",filter:"blur(10px)"},{opacity:1,letterSpacing:".02em",filter:"blur(0px)",offset:.38},{opacity:1,offset:.7},{opacity:0}],{duration:1250,easing:"ease-out"});
+  n.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none",offset:.3},{opacity:1,transform:"none",offset:.72},{opacity:0,transform:"translateY(-6px)"}],{duration:1500,easing:"cubic-bezier(.2,.8,.2,1)"});
 }
-function setMode(m,quiet,noIdle){
+/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
+function yourWorld(){
+  if(S.mode!=="wander"||!S.found.size)return;
+  const pts=[...S.found].filter(id=>FACTS[id]).map(id=>LL(id));if(!pts.length)return;
+  const c=pts.length>=40?REGION_VIEW.World:d3.geoCentroid({type:"MultiPoint",coordinates:pts});
+  stopDrift();flyTo(c,2400,1);
+}function setMode(m,quiet,noIdle){
   if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}else if(m==="hot"){sndTick();showHotSheet()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
@@ -4558,7 +4589,7 @@ function setMode(m,quiet,noIdle){
   if(m==="speed"){stopDrift();speedEnter()}
   else if(m==="hot"){stopDrift();hotEnter()}
   else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
-  else{scheduleDrift()}
+  else{scheduleDrift();if(from!=="wander"&&!quiet)setTimeout(yourWorld,900)}
 }$("modeFind").onclick=()=>setMode("find");
 $("modeSpeed").onclick=()=>setMode("speed");
 $("modeWander").onclick=()=>setMode("wander");

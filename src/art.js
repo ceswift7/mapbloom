@@ -77,8 +77,30 @@ function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1
 function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>triFor(id,S.mode==="speed")[1];
 
 const blooms=[];let bloomSeq=0;
+/* the heart of a country: the point deepest inside its landmass. If the geographic centre is water (an archipelago, a crescent), the heart of the nearest piece of land is used instead */
+function landCenter(id){
+  const f=byId[id];if(!f)return null;if(f._lc!==undefined)return f._lc;
+  let res=null;
+  try{
+    const polys=(f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates]).map(co=>{const g={type:"Polygon",coordinates:co};return {co,g,a:d3.geoArea(g),c:d3.geoCentroid(g)}}).sort((a,b)=>b.a-a.a);
+    if(polys.length){
+      const all=d3.geoCentroid(f);let pick=polys.find(p=>d3.geoContains(p.g,all));
+      if(!pick){const big=polys.filter(p=>p.a>=polys[0].a*.04);pick=big.reduce((m,p)=>d3.geoDistance(p.c,all)<d3.geoDistance(m.c,all)?p:m,big[0])}
+      const g=pick.g,b=d3.geoBounds(g);let x0=b[0][0],y0=b[0][1],x1=b[1][0],y1=b[1][1];if(x1<x0)x1+=360;
+      const ring=pick.co[0],st=Math.max(1,Math.floor(ring.length/110)),bd=[];for(let i=0;i<ring.length;i+=st)bd.push(ring[i]);
+      const n=pick.a<2e-4?8:pick.a<2e-3?12:16,tgt=d3.geoContains(g,all)?all:pick.c,cand=[pick.c];
+      for(let i=0;i<=n;i++)for(let j=0;j<=n;j++){let lon=x0+(x1-x0)*i/n;if(lon>180)lon-=360;cand.push([lon,y0+(y1-y0)*j/n])}
+      let bestP=null,bestS=-1;
+      cand.forEach(p=>{if(!d3.geoContains(g,p))return;let m=Infinity;for(const q of bd){const d=d3.geoDistance(p,q);if(d<m)m=d}const sc=m-.12*d3.geoDistance(p,tgt);if(sc>bestS){bestS=sc;bestP=p}});
+      res=bestP||(d3.geoContains(g,pick.c)?pick.c:null);
+    }
+  }catch(e){}
+  return f._lc=res;
+}
+/* work out every country's heart in small idle slices after start-up, so a reveal never waits for it */
+setTimeout(()=>{const ids=Object.keys(FACTS);let i=0;const step=()=>{const t=performance.now();while(i<ids.length&&performance.now()-t<10)landCenter(ids[i++]);if(i<ids.length)(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:400}):setTimeout(step,80))};step()},6000);
 function startReveal(id,ll,shown,done,fast,v,onPayoff){
-  v=v||MV;
+  v=v||MV;ll=landCenter(id)||ll;
   const key=ensureArt(id);ensureWash(key);ensureMotif(key);
   if(reduced){done();if(onPayoff)onPayoff();return}
   const f=FACTS[id],src=byId[id],uid="b"+(++bloomSeq),col=`var(--c-${f.r}-d)`,TS=FX.ts||1;

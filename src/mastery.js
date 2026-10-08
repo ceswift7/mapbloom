@@ -678,13 +678,19 @@ function sndMode(m){
 function modeWash(m){
   placeDock();
   if(reduced)return;
-  const b=$("mode"+cap(m)).getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,R2=Math.hypot(innerWidth,innerHeight)*1.05;
-  const w=$("wash");w.style.background=`radial-gradient(circle at ${x}px ${y}px,${MODE_ACC[m]},color-mix(in srgb,${MODE_ACC[m]} 70%,#fff))`;
-  w.animate([{clipPath:`circle(0px at ${x}px ${y}px)`,opacity:.0},{clipPath:`circle(${R2*.45}px at ${x}px ${y}px)`,opacity:.9,offset:.25},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:.9,offset:.55},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:0}],{duration:1150,easing:"ease-in-out"});
+  const acc=MODE_ACC[m],w=$("wash");
+  w.style.clipPath="none";w.style.background="radial-gradient(130% 75% at 50% 0%,color-mix(in srgb,"+acc+" 30%,transparent),transparent 72%)";
+  w.animate([{opacity:0},{opacity:1,offset:.32},{opacity:0}],{duration:1000,easing:"ease-in-out"});
   const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
-  n.animate([{opacity:0,letterSpacing:".35em",filter:"blur(10px)"},{opacity:1,letterSpacing:".02em",filter:"blur(0px)",offset:.38},{opacity:1,offset:.7},{opacity:0}],{duration:1250,easing:"ease-out"});
+  n.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none",offset:.3},{opacity:1,transform:"none",offset:.72},{opacity:0,transform:"translateY(-6px)"}],{duration:1500,easing:"cubic-bezier(.2,.8,.2,1)"});
 }
-function setMode(m,quiet,noIdle){
+/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
+function yourWorld(){
+  if(S.mode!=="wander"||!S.found.size)return;
+  const pts=[...S.found].filter(id=>FACTS[id]).map(id=>LL(id));if(!pts.length)return;
+  const c=pts.length>=40?REGION_VIEW.World:d3.geoCentroid({type:"MultiPoint",coordinates:pts});
+  stopDrift();flyTo(c,2400,1);
+}function setMode(m,quiet,noIdle){
   if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}else if(m==="hot"){sndTick();showHotSheet()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
@@ -707,7 +713,7 @@ function setMode(m,quiet,noIdle){
   if(m==="speed"){stopDrift();speedEnter()}
   else if(m==="hot"){stopDrift();hotEnter()}
   else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
-  else{scheduleDrift()}
+  else{scheduleDrift();if(from!=="wander"&&!quiet)setTimeout(yourWorld,900)}
 }$("modeFind").onclick=()=>setMode("find");
 $("modeSpeed").onclick=()=>setMode("speed");
 $("modeWander").onclick=()=>setMode("wander");

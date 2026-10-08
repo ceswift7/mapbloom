@@ -963,6 +963,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .atile.dim{opacity:.6}.atile.dim .an{color:var(--ink-faint)}
 .atile .alv{position:absolute;right:6px;top:4px;font-style:normal;font-size:11px;color:var(--ink-faint)}
 .atile:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+.ol-pt{fill:var(--p,#9a9);stroke:var(--ink);stroke-width:1;opacity:.95}
 .atile.got{border-color:color-mix(in srgb,var(--ink) 28%,var(--panel-line))}
 /* the compact mode card */
 .modal.compact{background:transparent}
@@ -3538,15 +3539,19 @@ function paintInto(cv,id,w,h,pad){
   if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
   const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
   try{
-    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[pad[0],pad[1]],[w-pad[0],h-pad[1]]],feat),path=d3.geoPath(proj,c);
+    const feat=(FACTS[id].a<9000&&topo10&&topo10.byid[id])||silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[pad[0],pad[1]],[w-pad[0],h-pad[1]]],feat),path=d3.geoPath(proj,c);
     const f=FACTS[id],cs=getComputedStyle(document.documentElement),dark=cs.getPropertyValue("--c-"+f.r+"-d").trim()||"#555",mid=cs.getPropertyValue("--c-"+f.r).trim()||"#999",found=S.found.has(id)||S.shown.has(id);
     let fill=null;if(found&&FX.tiles){try{const key=ensureArt(id),tile=artCv[key];if(tile)fill=c.createPattern(tile,"repeat")}catch(e){}}
     c.beginPath();path(feat);
     if(found){c.globalAlpha=.95;c.fillStyle=fill||mid;c.fill();c.globalAlpha=1;c.lineWidth=1.1;c.strokeStyle=dark;c.stroke()}
     else{c.globalAlpha=.14;c.fillStyle=cs.getPropertyValue("--ink").trim()||"#333";c.fill();c.globalAlpha=1;c.lineWidth=1.2;c.setLineDash([4,3]);c.strokeStyle=cs.getPropertyValue("--ink-soft").trim()||"#555";c.stroke();c.setLineDash([])}
+    if(f.a<9000){   // islands too small to see at this scale get a marker, so the island itself is always visible
+      const polys=feat.geometry.type==="MultiPolygon"?feat.geometry.coordinates:[feat.geometry.coordinates],inkc=cs.getPropertyValue("--ink").trim()||"#333";
+      polys.forEach(co=>{const b=path.bounds({type:"Polygon",coordinates:co});if(!isFinite(b[0][0]))return;if(b[1][0]-b[0][0]<7&&b[1][1]-b[0][1]<7){c.beginPath();c.arc((b[0][0]+b[1][0])/2,(b[0][1]+b[1][1])/2,3.3,0,6.2832);c.globalAlpha=1;c.fillStyle=found?mid:inkc;c.fill();c.lineWidth=1.1;c.strokeStyle=found?dark:inkc;c.stroke()}});
+    }
   }catch(e){}
 }
-function cardPaint(id){const cv=$("cPaint");if(cv)paintInto(cv,id,440,92,[90,8])}
+function cardPaint(id){const cv=$("cPaint");if(cv)paintInto(cv,id,440,92,[90,8]);if(!topo10&&FACTS[id]&&FACTS[id].a<9000)load10().then(t=>{if(t&&cardId===id){const c2=$("cPaint");if(c2)paintInto(c2,id,440,92,[90,8])}})}
 function paintThumb(id,onclick){const cv=document.createElement("canvas");paintInto(cv,id,64,48,[4,4]);return el("button",{type:"button",class:"gthumb",title:FACTS[id].n,"aria-label":FACTS[id].n,onclick},cv)}function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
@@ -3767,6 +3772,10 @@ function outlineFig(id){
     svgO.append("path").attr("class","ol-g").attr("d",p(d3.geoGraticule().step([5,5])()));
     svgO.append("g").selectAll("path").data(near).join("path").attr("class","ol-n").attr("d",p);
     const own=svgO.append("path").attr("class","ol-c"+(drawn?" still":"")).attr("pathLength",1).attr("d",p(feat)).style("fill",`url(#af-${key})`);
+    {   // islands too small to see at this scale are marked, so the island itself is always visible
+      const polys=feat.geometry.type==="MultiPolygon"?feat.geometry.coordinates:[feat.geometry.coordinates],mk=svgO.append("g").attr("class","ol-pts");
+      polys.forEach(co=>{const b=p.bounds({type:"Polygon",coordinates:co});if(!isFinite(b[0][0]))return;if(b[1][0]-b[0][0]<7&&b[1][1]-b[0][1]<7)mk.append("circle").attr("class","ol-pt").attr("cx",(b[0][0]+b[1][0])/2).attr("cy",(b[0][1]+b[1][1])/2).attr("r",3.6)});
+    }
     drawn++;
     cap.textContent="Outline of "+f.n;
   };

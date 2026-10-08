@@ -659,6 +659,12 @@ $("skipBtn").onclick=()=>{
   else if(R.phase==="done"||R.phase==="idle")speedEnter();
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
+const MODE_DESC={wander:"Discover the world at your own pace.",find:"Can you name the country?",speed:"How many can you find before time runs out?",hot:"Find the hidden country by following the temperature."};
+function syncModeDesc(m){
+  const d=$("modeDesc");if(d)d.textContent=MODE_DESC[m]||"";
+  const x=$("exitBtn");if(x)x.hidden=m==="wander";
+  [["Wander","wander"],["Find","find"],["Speed","speed"],["Hot","hot"]].forEach(([k,mm])=>{const b=$("mode"+k);if(b){b.title=MODE_NAME[mm]+": "+MODE_DESC[mm];b.setAttribute("aria-label",MODE_NAME[mm]+". "+MODE_DESC[mm])}});
+}
 const cap=m=>m==="find"?"Find":m==="speed"?"Speed":m==="hot"?"Hot":"Wander";
 function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.width=b.offsetWidth+"px";p.style.transform=`translateX(${b.offsetLeft}px)`}
 function sndMode(m){
@@ -674,7 +680,7 @@ function modeWash(m){
   const b=$("mode"+cap(m)).getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,R2=Math.hypot(innerWidth,innerHeight)*1.05;
   const w=$("wash");w.style.background=`radial-gradient(circle at ${x}px ${y}px,${MODE_ACC[m]},color-mix(in srgb,${MODE_ACC[m]} 70%,#fff))`;
   w.animate([{clipPath:`circle(0px at ${x}px ${y}px)`,opacity:.0},{clipPath:`circle(${R2*.45}px at ${x}px ${y}px)`,opacity:.9,offset:.25},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:.9,offset:.55},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:0}],{duration:1150,easing:"ease-in-out"});
-  const n=$("modeName");n.textContent=MODE_NAME[m];
+  const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
   n.animate([{opacity:0,letterSpacing:".35em",filter:"blur(10px)"},{opacity:1,letterSpacing:".02em",filter:"blur(0px)",offset:.38},{opacity:1,offset:.7},{opacity:0}],{duration:1250,easing:"ease-out"});
 }
 function setMode(m,quiet,noIdle){
@@ -688,7 +694,7 @@ function setMode(m,quiet,noIdle){
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
-  document.documentElement.dataset.mode=m;cvColors();if(nbApplied!==nbNow())applyNb();
+  document.documentElement.dataset.mode=m;syncModeDesc(m);cvColors();if(nbApplied!==nbNow())applyNb();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();

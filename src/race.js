@@ -30,7 +30,7 @@ function showStartSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const ids=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap),b=bestOf(rkey(S.region));
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
-  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
+  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{class:"modesub"},MODE_DESC.speed),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
   const vchips=tiles(RACE_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.rv===k,onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}})),5);
   const chips=regionTiles(S.region,r=>{pickRegion(r);showStartSheet()},r=>{const bb=bestOf(rkey(r));return isFinite(bb)?"Best "+fmtT(bb,0):regionCount(r)+(r==="United States"?" states":" countries")});const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
   sh.append(el("div",{class:"qcard"},

@@ -46,7 +46,7 @@ function toast(ic,title,text,ms=3800,onClick){
    MODAL + MENU (play, records, stamps, sound)
    ====================================================================== */
 const modal=$("modal");modal.inert=true;
-function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:closeModal},"✕")}
+function closeBtn(){return el("button",{class:"icon-btn x closebtn","aria-label":"Close this window",title:"Close this window",onclick:closeModal},el("span",{html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'}),el("span",{},"Close"))}
 function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
 window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
 let modalOpener=null;
@@ -73,7 +73,35 @@ const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
 function guardRace(){if(raceBusy()){toast("⏱️","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
 
-$("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
+$("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderMenu()};
+$("homeBtn").onclick=()=>{sndTick();goHome()};
+$("exitBtn").onclick=()=>{sndTick();goHome()};
+function goHome(){
+  if(guardRace())return;
+  if(S.mode!=="wander"){if(!leaveDailyOk())return;setMode("wander")}
+  closeModal();stopDrift();const v=REGION_VIEW.World;flyTo(v,1100,1);
+}
+function renderMenu(){
+  const sh=$("sheet");sh.innerHTML="";
+  const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
+  sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
+    el("div",{class:"qcard mrows"},
+      row("home","Home","Back to Explore with the whole globe in view.",goHome),
+      row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
+      row("gear","Settings","Sound, theme, units, vibration and your save.",renderSettings),
+      row("info","About","Where the facts, flags and maps come from.",renderAbout)));
+  openModal();
+}
+function renderAbout(){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"About Mapbloom"),el("p",{},"A quiet way to learn the world: find a place, read about it, and watch it bloom on the map."),
+    el("div",{class:"qcard"},el("h3",{},"Credits"),
+      el("p",{},"Country texts are adapted from Wikipedia (CC BY-SA 4.0). Facts such as population come from Wikidata (CC0)."),
+      el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
+      el("p",{},"Everything you do is saved on this device only.")),
+    el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));
+  openModal();
+}function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 let themeSwapping=false;
 function syncThemeBtn(force){if(themeSwapping&&!force)return;const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
@@ -138,7 +166,11 @@ const ICONS={
   slow:'<path d="M7 4h10M7 20h10M8 4c0 5 8 5 8 8s-8 3-8 8"/>',
   sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
   feather:'<path d="M20 4c-8 0-13 4-13 11v3"/><path d="M20 4c0 8-4 12-11 12M7 18l-3 3"/>',
-  autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>'
+  autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>',
+  home:'<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
+  book:'<path d="M2 4h6a4 4 0 014 4v13a3 3 0 00-3-3H2zM22 4h-6a4 4 0 00-4 4v13a3 3 0 013-3h7z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>'
 };
 const svgIcon=k=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[k]||"")+'</svg>';
 const crIcon=k=>el("span",{class:"ci",html:svgIcon(k)});

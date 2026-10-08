@@ -165,12 +165,12 @@ body.introing{--gr:0px}   /* no thinned-grain hole over the globe while the open
 .intro-word .ink{background:none;-webkit-mask-image:none;mask-image:none;color:transparent}
 .intro-word .il{--mr:-100px;--dx:50%;--dy:55%;background:linear-gradient(115deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent;
   -webkit-mask-image:radial-gradient(circle at var(--dx) var(--dy),#000 var(--mr),transparent calc(var(--mr) + 40px));mask-image:radial-gradient(circle at var(--dx) var(--dy),#000 var(--mr),transparent calc(var(--mr) + 40px))}
-.intro-sub{font:15px var(--sans);color:var(--ink-soft);margin:8px 0 0;opacity:0;transition:opacity 1.2s ease}
+.intro-sub{font:17px var(--sans);letter-spacing:.04em;color:var(--ink-soft);margin:10px 0 0;opacity:0;transition:opacity 1.2s ease}
 .intro-sub.on{opacity:1}
 .intro-begin{margin-top:36px;font-size:15px;padding:10px 28px;animation:none !important;opacity:0;transition:opacity .9s ease}
 .intro-begin.on{opacity:1}
 .intro-begin.gone{opacity:0;pointer-events:none}
-.intro-sub,.intro-begin{display:none !important}
+.intro-begin{display:none !important}
 .intro-hint{margin:26px 0 0;font:15px var(--sans);letter-spacing:.02em;color:var(--ink-faint);opacity:0;transition:opacity .9s ease .3s}
 .intro-hint.on{opacity:1}
 .intro{cursor:pointer}
@@ -268,7 +268,20 @@ body.gl #globe:not(:focus-visible) .sphere-edge{display:none}   /* the GPU globe
 /* header */
 header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:12px 20px 0;position:relative;z-index:3}
 .brand{font-family:var(--serif);font-style:italic;font-size:24px;letter-spacing:-.01em;margin:0;font-weight:400;position:relative;white-space:nowrap}
-.brand small{font-style:normal;font-family:var(--sans);font-size:12px;color:var(--ink-faint);margin-left:8px;letter-spacing:0}
+button.brand{background:none;border:0;padding:0;color:inherit;cursor:pointer;line-height:1.1}
+.hleft{display:flex;align-items:center;gap:12px;min-width:0}
+.exitbtn{display:inline-flex;align-items:center;gap:4px}.exitbtn[hidden]{display:none}
+.dockwrap{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.modedesc{margin:0;font:12.5px var(--sans);color:var(--ink-faint);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(48vw,420px);letter-spacing:.01em}
+.modeName small{display:block;margin-top:12px;font:500 clamp(14px,2.2vw,22px) var(--sans);font-style:normal;letter-spacing:.01em;opacity:.9}
+.closebtn{width:auto !important;padding:0 14px 0 11px;gap:6px;display:inline-flex !important;align-items:center;border-radius:999px;height:34px;font-size:13px}
+.closebtn svg{width:14px !important;height:14px !important}
+.mrows{padding:6px 14px}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 0;border:0;border-top:1px dashed var(--panel-line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.mrow:first-child{border-top:0}
+.mrow .mt{flex:1;min-width:0}.mrow .mt b{display:block;font-weight:500}.mrow .mt small{display:block;color:var(--ink-faint);font-size:12.5px;line-height:1.35}
+.mrow .mgo{color:var(--ink-faint);font-size:22px;line-height:1}
+.mrow:hover .mgo{color:var(--ink)}
 .brand::after{content:"";position:absolute;left:0;bottom:-3px;height:5px;width:100%;max-width:92px;border-radius:50%;
   background:linear-gradient(90deg,var(--c-Europe),var(--c-Americas),var(--c-Africa),var(--c-Asia));opacity:.5;filter:blur(1.4px);transform-origin:left;animation:stroke 1.8s .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes stroke{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:.5}}
@@ -400,7 +413,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .btn[hidden]{display:none}
 .speed-prompt{display:none}
 .wander .find-prompt,.speed .find-prompt{display:none}
-.app.wander .brand small,.app.wander .prompt{display:none}
+.app.wander .prompt{display:none}
 .app:not(.wander) .chips{display:none}
 .speed .speed-prompt{display:block}
 
@@ -793,7 +806,7 @@ details.fold[open]>summary::after{content:"\2013"}
 @media (max-width:720px){
   header{padding:10px 12px 0;gap:8px}
   .brand{font-size:20px}
-  .brand small,.brand::after{display:none}
+  .brand::after{display:none}
   .dock button span{display:none}
   .dock button[aria-pressed="true"] span{display:inline}
   .dock button{padding:0 9px;gap:5px}
@@ -832,7 +845,7 @@ body{touch-action:manipulation}
   #silSvg{max-height:30vh}
   .soundchip{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
 }
-@media (max-width:900px){.brand small{display:none}}   /* the tagline would run under the centred mode dock */
+@media (max-width:900px){.modedesc{max-width:40vw}}
 @media (pointer:coarse) and (max-width:1100px){
   .icon-btn{width:40px;height:40px}
   .chip{min-height:32px}
@@ -841,7 +854,8 @@ body{touch-action:manipulation}
 }
 @media (max-width:480px){
   header{grid-template-columns:auto 1fr}
-  .brand{display:none}
+  .hleft,.modedesc{display:none}
+  .closebtn{padding:0 !important;width:34px !important;justify-content:center}.closebtn span{display:none}
   .icon-btn{width:36px;height:36px}
 }
 @media (max-height:480px){   /* phones held sideways (short windows) */
@@ -879,7 +893,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 <div class="intro" id="intro" role="dialog" aria-label="Welcome to Mapbloom">
   <div class="intro-stage">
     <h1 class="intro-word" aria-label="Mapbloom"><span class="guide" aria-hidden="true">Mapbloom</span><span class="ink" id="introInk" aria-hidden="true">Mapbloom</span></h1>
-    <p class="intro-sub" id="introSub">a quiet way to learn the world</p>
+    <p class="intro-sub" id="introSub">paint the world, one place at a time</p>
     <button class="btn primary intro-begin" id="introBegin" hidden>Begin</button>
     <p class="intro-hint" id="introHint">click to start your journey</p>
   </div>
@@ -888,7 +902,8 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 </div>
 <div class="app" id="app">
   <header>
-    <h1 class="brand">Mapbloom <small>paint the world, one place at a time</small></h1>
+    <div class="hleft"><button class="brand" id="homeBtn" type="button" title="Mapbloom home: back to Explore" aria-label="Mapbloom, home">Mapbloom</button><button class="chip exitbtn" id="exitBtn" type="button" hidden title="Leave this game and go back to Explore"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Explore</button></div>
+    <div class="dockwrap">
     <div class="dock" id="dock" role="group" aria-label="Mode">
         <i class="dock-pill" id="dockPill"></i>
         <button id="modeWander" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Explore</span></button>
@@ -896,15 +911,17 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <button id="modeSpeed" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3h5M18.5 6l1.2-1.2"/></svg><span>Race</span></button>
         <button id="modeHot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.5V5a2 2 0 014 0v9.5a4 4 0 11-4 0z"/><path d="M12 9v7"/></svg><span>Hot &amp; cold</span></button>
     </div>
+    <p class="modedesc" id="modeDesc" aria-live="polite">Discover the world at your own pace.</p>
+    </div>
     <div class="tools">
-      <button class="icon-btn" id="stampBtn" aria-label="Atlas" title="Atlas">
+      <button class="icon-btn" id="stampBtn" aria-label="Journal" title="Journal: atlas, stamps, expeditions and mastery">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
       </button>
-      <button class="icon-btn" id="themeBtn" aria-label="Switch to dark mode" title="Light / dark">
+      <button class="icon-btn" id="themeBtn" aria-label="Switch to dark mode" title="Switch between light and dark">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><g class="sun" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>
       </button>
-      <button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <button class="icon-btn" id="settingsBtn" aria-label="Menu" title="Menu: home, journal, settings, about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
     </div>
   </header>
@@ -2766,7 +2783,7 @@ function showQuizSheet(){
   chainStop();
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
-  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},"Choose what to find and where, then begin."));
+  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
   const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
   const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
@@ -2946,7 +2963,7 @@ function showStartSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const ids=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap),b=bestOf(rkey(S.region));
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
-  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
+  sh.append(closeBtn(),el("h2",{},"Race"),el("p",{class:"modesub"},MODE_DESC.speed),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
   const vchips=tiles(RACE_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.rv===k,onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}})),5);
   const chips=regionTiles(S.region,r=>{pickRegion(r);showStartSheet()},r=>{const bb=bestOf(rkey(r));return isFinite(bb)?"Best "+fmtT(bb,0):regionCount(r)+(r==="United States"?" states":" countries")});const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
   sh.append(el("div",{class:"qcard"},
@@ -3467,7 +3484,7 @@ function toast(ic,title,text,ms=3800,onClick){
    MODAL + MENU (play, records, stamps, sound)
    ====================================================================== */
 const modal=$("modal");modal.inert=true;
-function closeBtn(){return el("button",{class:"icon-btn x","aria-label":"Close",onclick:closeModal},"✕")}
+function closeBtn(){return el("button",{class:"icon-btn x closebtn","aria-label":"Close this window",title:"Close this window",onclick:closeModal},el("span",{html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'}),el("span",{},"Close"))}
 function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
 window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
 let modalOpener=null;
@@ -3494,7 +3511,35 @@ const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
 function guardRace(){if(raceBusy()){toast("⏱️","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
 
-$("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderSettings()};function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
+$("settingsBtn").onclick=()=>{if(guardRace())return;sndTick();renderMenu()};
+$("homeBtn").onclick=()=>{sndTick();goHome()};
+$("exitBtn").onclick=()=>{sndTick();goHome()};
+function goHome(){
+  if(guardRace())return;
+  if(S.mode!=="wander"){if(!leaveDailyOk())return;setMode("wander")}
+  closeModal();stopDrift();const v=REGION_VIEW.World;flyTo(v,1100,1);
+}
+function renderMenu(){
+  const sh=$("sheet");sh.innerHTML="";
+  const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
+  sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
+    el("div",{class:"qcard mrows"},
+      row("home","Home","Back to Explore with the whole globe in view.",goHome),
+      row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
+      row("gear","Settings","Sound, theme, units, vibration and your save.",renderSettings),
+      row("info","About","Where the facts, flags and maps come from.",renderAbout)));
+  openModal();
+}
+function renderAbout(){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"About Mapbloom"),el("p",{},"A quiet way to learn the world: find a place, read about it, and watch it bloom on the map."),
+    el("div",{class:"qcard"},el("h3",{},"Credits"),
+      el("p",{},"Country texts are adapted from Wikipedia (CC BY-SA 4.0). Facts such as population come from Wikidata (CC0)."),
+      el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
+      el("p",{},"Everything you do is saved on this device only.")),
+    el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));
+  openModal();
+}function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 let themeSwapping=false;
 function syncThemeBtn(force){if(themeSwapping&&!force)return;const b=$("themeBtn");if(!b)return;const d=isDark();b.setAttribute("aria-label",d?"Switch to light mode":"Switch to dark mode");b.querySelector(".sun").style.display=d?"":"none";b.querySelector(".moon").style.display=d?"none":""}
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
@@ -3559,7 +3604,11 @@ const ICONS={
   slow:'<path d="M7 4h10M7 20h10M8 4c0 5 8 5 8 8s-8 3-8 8"/>',
   sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
   feather:'<path d="M20 4c-8 0-13 4-13 11v3"/><path d="M20 4c0 8-4 12-11 12M7 18l-3 3"/>',
-  autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>'
+  autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>',
+  home:'<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
+  book:'<path d="M2 4h6a4 4 0 014 4v13a3 3 0 00-3-3H2zM22 4h-6a4 4 0 00-4 4v13a3 3 0 013-3h7z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>'
 };
 const svgIcon=k=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[k]||"")+'</svg>';
 const crIcon=k=>el("span",{class:"ci",html:svgIcon(k)});
@@ -4275,6 +4324,12 @@ $("skipBtn").onclick=()=>{
   else if(R.phase==="done"||R.phase==="idle")speedEnter();
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
+const MODE_DESC={wander:"Discover the world at your own pace.",find:"Can you name the country?",speed:"How many can you find before time runs out?",hot:"Find the hidden country by following the temperature."};
+function syncModeDesc(m){
+  const d=$("modeDesc");if(d)d.textContent=MODE_DESC[m]||"";
+  const x=$("exitBtn");if(x)x.hidden=m==="wander";
+  [["Wander","wander"],["Find","find"],["Speed","speed"],["Hot","hot"]].forEach(([k,mm])=>{const b=$("mode"+k);if(b){b.title=MODE_NAME[mm]+": "+MODE_DESC[mm];b.setAttribute("aria-label",MODE_NAME[mm]+". "+MODE_DESC[mm])}});
+}
 const cap=m=>m==="find"?"Find":m==="speed"?"Speed":m==="hot"?"Hot":"Wander";
 function placeDock(){const b=$("mode"+cap(S.mode)),p=$("dockPill");if(!b||!p)return;p.style.width=b.offsetWidth+"px";p.style.transform=`translateX(${b.offsetLeft}px)`}
 function sndMode(m){
@@ -4290,7 +4345,7 @@ function modeWash(m){
   const b=$("mode"+cap(m)).getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2,R2=Math.hypot(innerWidth,innerHeight)*1.05;
   const w=$("wash");w.style.background=`radial-gradient(circle at ${x}px ${y}px,${MODE_ACC[m]},color-mix(in srgb,${MODE_ACC[m]} 70%,#fff))`;
   w.animate([{clipPath:`circle(0px at ${x}px ${y}px)`,opacity:.0},{clipPath:`circle(${R2*.45}px at ${x}px ${y}px)`,opacity:.9,offset:.25},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:.9,offset:.55},{clipPath:`circle(${R2}px at ${x}px ${y}px)`,opacity:0}],{duration:1150,easing:"ease-in-out"});
-  const n=$("modeName");n.textContent=MODE_NAME[m];
+  const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
   n.animate([{opacity:0,letterSpacing:".35em",filter:"blur(10px)"},{opacity:1,letterSpacing:".02em",filter:"blur(0px)",offset:.38},{opacity:1,offset:.7},{opacity:0}],{duration:1250,easing:"ease-out"});
 }
 function setMode(m,quiet,noIdle){
@@ -4304,7 +4359,7 @@ function setMode(m,quiet,noIdle){
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
-  document.documentElement.dataset.mode=m;cvColors();if(nbApplied!==nbNow())applyNb();
+  document.documentElement.dataset.mode=m;syncModeDesc(m);cvColors();if(nbApplied!==nbNow())applyNb();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();
@@ -4730,7 +4785,7 @@ function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requ
 function showHotSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const best=(S.counts.hotBest||{})[S.region];
-  const chips=regionTiles(S.region,r=>{pickRegion(r);showHotSheet()},r=>regionCount(r)+" countries",ALLR.filter(r=>r!=="United States"));sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
+  const chips=regionTiles(S.region,r=>{pickRegion(r);showHotSheet()},r=>regionCount(r)+" countries",ALLR.filter(r=>r!=="United States"));sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{class:"modesub"},MODE_DESC.hot),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
   const day=todayStr(),dr=(S.daily.hot||{})[day];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},crIcon("mystery"),el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));
@@ -4957,7 +5012,7 @@ window.addEventListener("storage",e=>{if(e.key!==KEY||!e.newValue||WIPED)return;
 /* ---------- go ---------- */
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
-applyFx();document.body.classList.toggle("cv",CANVAS);nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);cvColors();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();document.body.classList.toggle("cv",CANVAS);nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);cvColors();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();syncModeDesc(S.mode);document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
 if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged

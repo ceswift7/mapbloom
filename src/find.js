@@ -220,7 +220,7 @@ function showQuizSheet(){
   chainStop();
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
-  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},"Choose what to find and where, then begin."));
+  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
   const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
   const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),

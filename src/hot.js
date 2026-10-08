@@ -35,7 +35,7 @@ function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requ
 function showHotSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const best=(S.counts.hotBest||{})[S.region];
-  const chips=regionTiles(S.region,r=>{pickRegion(r);showHotSheet()},r=>regionCount(r)+" countries",ALLR.filter(r=>r!=="United States"));sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
+  const chips=regionTiles(S.region,r=>{pickRegion(r);showHotSheet()},r=>regionCount(r)+" countries",ALLR.filter(r=>r!=="United States"));sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{class:"modesub"},MODE_DESC.hot),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
   const day=todayStr(),dr=(S.daily.hot||{})[day];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},crIcon("mystery"),el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));

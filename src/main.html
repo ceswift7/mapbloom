@@ -391,7 +391,7 @@ window.addEventListener("storage",e=>{if(e.key!==KEY||!e.newValue||WIPED)return;
 /* ---------- go ---------- */
 window.addEventListener("resize",size);
 document.documentElement.dataset.mode="wander";document.getElementById("app").classList.add("wander");
-applyFx();document.body.classList.toggle("cv",CANVAS);nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);cvColors();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
+applyFx();document.body.classList.toggle("cv",CANVAS);nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);cvColors();{const v=REGION_VIEW.World;projection.rotate([-v[0],-v[1],0]);zoomK=1}size();paint();updateProgress();placeDock();syncModeDesc(S.mode);document.fonts&&document.fonts.ready&&document.fonts.ready.then(placeDock);window.addEventListener("resize",placeDock);
 if(window.ResizeObserver)new ResizeObserver(placeDock).observe($("dock"));
 if(window.visualViewport)visualViewport.addEventListener("resize",placeDock);
 window.addEventListener("scroll",()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0)},{passive:true});   // iOS must never pan the page while the globe is dragged

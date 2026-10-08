@@ -619,7 +619,7 @@ if(GLWANT&&CANVAS){
     if(glInitGL()){
       GLX.hasGL=true;
       glC.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLX.on=false;document.body.classList.remove("gl");render(true)});
-      glC.addEventListener("webglcontextrestored",()=>{glLost=false;GLX.hasGL=glInitGL();if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
+      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
       GLX.resize();
       setTimeout(glBegin,50);
     }

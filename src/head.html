@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E7D9B9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17130F" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Mapbloom: paint the world, one place at a time. A geography game.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27%236FA27E%27/%3E%3Ccircle cx=%2711%27 cy=%2712%27 r=%274%27 fill=%27%23E8C26B%27/%3E%3Ccircle cx=%2721%27 cy=%2720%27 r=%275%27 fill=%27%23E06F58%27/%3E%3C/svg%3E">
+
 <title>Mapbloom</title>
 <script>try{var t=JSON.parse(localStorage.getItem("mapbloom")||"{}").theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +24,7 @@
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);
   /* paper + sea */
   --paper:#E7D9B9; --paper-2:#D4C298;
   --sea-in:#B2C4C6; --sea-mid:#9FB4B8; --sea-out:#819AA1;
@@ -498,7 +507,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .jrbtn.m .ar{stroke:#C9A24B}.jrbtn.m .st{fill:#C9A24B;opacity:1}
 .jrbtn:hover span{color:var(--ink)}
 .sback{margin:-4px 0 10px;font-size:12.5px}
-.rdbtn{position:absolute;right:58px;top:14px;z-index:2}
+
 .modal .sheet{transition:transform .5s cubic-bezier(.2,.8,.2,1),margin .35s ease}
 @media (min-width:1000px){.modal.rd .sheet{margin-right:calc(min(420px,34vw) + 32px)}}
 .rdwin{position:fixed;z-index:46;top:64px;right:16px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--panel-line);border-radius:18px;box-shadow:0 24px 60px -20px var(--paper-shadow),0 0 0 1px rgba(0,0,0,.04)}
@@ -540,7 +549,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .mpane p{font-size:15px;line-height:1.55;margin:0 0 8px}
 .mmod-read .primary-chip{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .cbpages{perspective:1800px}
-.bkctl-old{display:none}
+
 .bkctl .grow{flex:1}.bkctl .chip{background:rgba(255,240,215,.14);border-color:rgba(255,225,180,.35);color:#f3e3c3}
 .bkctl .cbind{color:#e9d6b0;font:12.5px var(--sans);min-width:54px;text-align:center}
 .cbstage{position:absolute;inset:0;z-index:6;pointer-events:none;perspective:1800px;animation:cbFade 2.2s linear forwards}
@@ -683,7 +692,6 @@ input[type=range]{width:150px;accent-color:var(--ink)}
 .tbl th{font-weight:500;text-align:left;color:var(--ink-faint);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:4px 0}
 .tbl td{padding:6px 0;border-top:1px dashed var(--panel-line);font-variant-numeric:tabular-nums}
 .tbl td.t{font-family:var(--mono);text-align:right}.tbl th.t{text-align:right}
-.badge{display:inline-block;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:#06142C;background:var(--accent);border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:middle}
 .stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px;margin-top:10px}
 .stamp{text-align:center;font-size:12px;color:var(--ink-faint);opacity:.45;filter:grayscale(1)}
 .stamp.got{opacity:1;filter:none;color:var(--ink-soft)}
@@ -796,7 +804,7 @@ details.fold[open]>summary::after{content:"\2013"}
 .app.silmode #globe,.app.silmode #labels,.app.silmode .pill,.app.silmode .lenswrap{opacity:0 !important;pointer-events:none !important}
 #globe,#labels{transition:opacity .8s ease}
 .app.silmode .prompt{opacity:0;pointer-events:none}
-.toast{position:fixed;right:16px;top:58px;z-index:41;transform:translate(0,-190px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
+.toast{position:fixed;right:16px;top:58px;z-index:60;transform:translate(0,-190px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
   box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:min(380px,calc(100% - 28px))}
 .toast.on{transform:translate(0,0)}
 .toast .ic{font-size:22px}
@@ -869,6 +877,19 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
   .label{clip-path:none}
   .count.beat{opacity:1}
 }
+/* native controls and scrollbars follow the theme */
+:root{color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark}}
+:root[data-theme="dark"],[data-mode="speed"]{color-scheme:dark}
+/* tall panels follow the visible screen height on phones whose toolbars move */
+@supports (height:100dvh){
+  .rdwin{max-height:calc(100dvh - 92px)}
+  .sil.hot .hotlist{max-height:48dvh}
+}
+/* touch: a few small controls get a comfortable target */
+@media (pointer:coarse){
+  .seg2 button,.silsug li button,.chip{min-height:34px}
+}
 </style>
 </head>
 <body class="introing">
@@ -917,7 +938,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="silcard">
         <svg id="silSvg" viewBox="0 0 360 230" role="img" aria-label="The shape of a country"></svg>
         <p class="silq" id="silQ">Which country is this?</p>
-        <p class="silhint" id="silHint"></p>
+        <p class="silhint" id="silHint" role="status" aria-live="polite"></p>
         <form class="silform" id="silForm" autocomplete="off">
           <input id="silIn" type="search" name="mb-guess" placeholder="Type your guess" aria-label="Your guess" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go" data-lpignore="true" data-1p-ignore data-form-type="other">
           <button class="btn primary" type="submit">Guess</button>

@@ -304,8 +304,8 @@ function usNext(){
   US.target=pick;S.done=false;S.tries=0;S.target=null;
   $("qFlag").hidden=true;const tg=$("target");tg.classList.toggle("small",US.style==="capital");
   if(US.style==="name"){$("ask").textContent="";swell(tg,"");$("showBtn").hidden=true;usNameBegin(pick,false)}
-  else if(US.style==="capital"){$("ask").textContent="Find the state whose capital is";swell(tg,US.cap[pick]);$("showBtn").hidden=false}
-  else{$("ask").textContent="";swell(tg,pick);$("showBtn").hidden=false}
+  else if(US.style==="capital"){$("ask").textContent="Find the state whose capital is";swell(tg,US.cap[pick]);$("showBtn").hidden=false;syncHintBtn()}
+  else{$("ask").textContent="";swell(tg,pick);$("showBtn").hidden=false;syncHintBtn()}
   swell($("hint"),"");$("nextBtn").hidden=true;
 }
 function usQuizTry(n){

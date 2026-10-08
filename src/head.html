@@ -797,6 +797,27 @@ details.fold[open]>summary::after{content:"\2013"}
 .app.silmode.speed #sAsk,.app.silmode.speed #sTarget,.app.silmode.speed #sFlag{display:none}
 .speed-prompt .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .endbtn{display:inline-flex;align-items:center;gap:6px}
+.fbcard:not([hidden]){display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;text-align:left;margin:8px auto 0;width:max-content;max-width:min(400px,92vw);padding:10px 14px;border-radius:16px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 14px 30px -18px var(--paper-shadow);opacity:0;transform:translateY(8px) scale(.97);pointer-events:none;text-shadow:none;color:var(--ink)}
+.fbcard.in{opacity:1;transform:none;transition:opacity .35s ease,transform .45s cubic-bezier(.2,1.3,.4,1)}
+.fbflag{width:48px;max-height:34px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18)}
+.fbflag.e{font-size:30px;line-height:1;box-shadow:none}
+.fbname{display:flex;align-items:center;gap:8px;font:500 19px var(--serif);line-height:1.15}
+.fbname .chk{width:20px;height:20px;flex:none;border-radius:50%;background:var(--mode-acc);display:grid;place-items:center}
+.fbname .chk svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:26;stroke-dashoffset:26}
+.fbcard.in .chk svg{animation:fbDraw .5s .15s ease forwards}
+@keyframes fbDraw{to{stroke-dashoffset:0}}
+.fbcard.miss .chk{background:var(--hot)}
+.fbcap{display:block;font-size:14px;color:var(--ink);margin-top:2px}
+.fbwhere{display:block;font-size:12px;color:var(--ink-faint)}
+.fbline{grid-column:1/-1;border-top:1px dashed var(--panel-line);padding-top:6px;font:500 13px var(--sans);color:var(--ink-soft)}
+.fbline.up{color:var(--mode-acc)}
+@media (prefers-reduced-motion: reduce){.fbcard.in{transition:none}.fbcard.in .chk svg{animation:none;stroke-dashoffset:0}}
+.hintshape{display:block;margin:6px auto 2px;width:130px;height:83px}
+.hintshape[hidden]{display:none}
+.hintshape path{fill:color-mix(in srgb,var(--ink) 12%,transparent);stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.pips{display:inline-flex;gap:3px;margin-right:7px;vertical-align:middle}
+.pips i{width:5px;height:5px;border-radius:50%;background:var(--ink-faint);opacity:.4;display:block}
+.pips i.on{background:var(--mode-acc);opacity:1}
 .endbtn[hidden]{display:none}
 .toast{position:fixed;right:16px;top:58px;z-index:60;transform:translate(0,-190px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
   box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:min(380px,calc(100% - 28px))}
@@ -979,6 +1000,8 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <img class="qflag" id="qFlag" alt="" hidden>
         <h2 class="target" id="target">…</h2>
         <p class="hint" id="hint"></p>
+        <svg class="hintshape" id="hintShape" viewBox="0 0 360 230" aria-label="Outline of the country" hidden></svg>
+        <div class="fbcard" id="fb" role="status" hidden></div>
         <div class="actions">
           <button class="btn primary" id="nextBtn" hidden>Next place</button>
         </div>

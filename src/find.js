@@ -29,6 +29,50 @@ function pickTarget(){
   return cand[0];
 }
 const tn=()=>quizOf()==="country"?FACTS[S.target].n:"That country";
+/* ---- "Need a hint?": one more clue per press (continent, neighbours, outline, then the location itself) ---- */
+const HINT={lvl:0};
+const hintOk=()=>S.mode==="find"&&!S.qIdle&&!US.on&&!C.active&&S.target!=null&&quizOf()!=="name"&&quizOf()!=="silhouette";
+function hintReset(){HINT.lvl=0;if(S.mode==="find"&&HC.size){HC.clear();paint()}const hs=$("hintShape");if(hs)hs.hidden=true;syncHintBtn()}
+function syncHintBtn(){
+  const b=$("showBtn");if(!b)return;
+  if(!hintOk()){b.textContent="Reveal";b.title="Reveal (R)";return}
+  b.textContent="";
+  b.append(el("span",{class:"pips","aria-hidden":"true"},[1,2,3,4].map(i=>el("i",{class:i<=HINT.lvl?"on":""}))),HINT.lvl>=3?"Show me":HINT.lvl?"Another hint":"Need a hint?");
+  b.title=["Show the continent","Show its neighbours","Draw its outline","Show where it is"][Math.min(HINT.lvl,3)]+" (R)";
+}
+function hintDraw(id){
+  const feat=silShape(id),c=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).fitExtent([[10,10],[350,220]],feat),sv=d3.select("#hintShape");
+  sv.selectAll("*").remove();sv.append("path").attr("d",d3.geoPath(proj)(feat));$("hintShape").hidden=false;
+}
+function hintStep(){
+  if(!hintOk()||S.done)return false;
+  const T=S.target,f=FACTS[T];HINT.lvl++;S.tries=Math.max(S.tries,1);sndTick();   // a hint means no first-try credit for this country
+  if(HINT.lvl===1){
+    swell($("hint"),"Hint: it is in "+regName(f)+(f.s?" ("+f.s+")":"")+".");
+    stopDrift();flyTo(REGION_VIEW[f.r]||LL(T),1100,REGION_ZOOM[f.r]||1);
+  }else if(HINT.lvl===2){
+    const nb=(f.b||[]).filter(n=>nameId[n]);
+    swell($("hint"),nb.length?"Hint: it borders "+nb.slice(0,6).join(", ")+(nb.length>6?" and more":"")+".":"Hint: it has no land borders. It is surrounded by sea.");
+    nb.forEach(n=>HC.set(nameId[n],"rgba(233,196,106,.85)"));paint();requestRender();
+  }else if(HINT.lvl===3){
+    swell($("hint"),"Hint: this is its outline.");hintDraw(T);
+  }else{
+    const hs=$("hintShape");if(hs)hs.hidden=true;HC.clear();paint();success(true);return true;
+  }
+  syncHintBtn();return true;
+}
+/* ---- answer feedback: a small card with the flag, the name, the capital and where it is, then what you gained ---- */
+function fbHide(){const e=$("fb");if(e){e.hidden=true;e.classList.remove("in","miss")}}
+function showFeedback(o){
+  const e=$("fb");if(!e||!FACTS[o.id])return;const f=FACTS[o.id];
+  e.className="fbcard"+(o.ok?"":" miss");e.innerHTML="";
+  const flag=FLAGS[o.id]?el("img",{class:"fbflag",src:FLAGS[o.id],alt:""}):el("span",{class:"fbflag e"},f.f||"");
+  const where=[f.s,regName(f)].filter((x,i,a)=>x&&a.indexOf(x)===i).join(" · ");
+  const mark=o.ok?'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>':'<svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+  e.append(flag,el("div",{class:"fbmain"},el("b",{class:"fbname"},el("span",{class:"chk",html:mark}),f.n),f.cap?el("span",{class:"fbcap"},f.cap):null,el("span",{class:"fbwhere"},where)));
+  (o.lines||[]).forEach((l,i)=>e.append(el("div",{class:"fbline"+(i===0&&o.ok?" up":"")},l)));
+  e.hidden=false;void e.offsetWidth;e.classList.add("in");
+}
 function showPrompt(id){
   const f=FACTS[id],q=quizOf(),img=$("qFlag"),tg=$("target");
   img.hidden=q!=="flag";tg.classList.toggle("small",q!=="country");
@@ -41,7 +85,7 @@ function nextRound(){
   if(S.region==="United States"&&S.mode==="find"&&US.on&&!S.qIdle&&US.round){usNext();return}
   clearAuto();usStop();
   hideCard();
-  clearMissed();
+  clearMissed();fbHide();
   if(D.active&&D.idx>=D.ids.length){finishDaily();return}
   if(RD.active&&!D.active&&!S.practice&&RD.done>=RD.n){showRoundResult();return}
   if(S.practice&&!weakIds().length){S.practice=false;endSession();toast("🌿","All caught up","Your weak spots are cleared.")}
@@ -63,7 +107,7 @@ function nextRound(){
   const co=clusterOf(S.target),isl=co?` It’s in the ${co.name} islands: tap their bubble to zoom in.`:(BEACON.includes(S.target)?` It’s tiny: look for its dotted ring.`:"");
   if(quizOf()==="name")swell($("hint"),S.hints?pre+`It is in ${regName(f)}.`:pre.trim());else
   swell($("hint"),S.hints?pre+(S.region==="World"||S.practice||D.active?`Somewhere in ${regName(f)}. Take your time.`:`Take your time. Turn the globe and tap it when you spot it.`)+isl:pre.trim());
-  $("showBtn").hidden=false;$("nextBtn").hidden=true;
+  $("showBtn").hidden=false;$("nextBtn").hidden=true;hintReset();
   if(quizOf()==="name"){$("showBtn").hidden=true;nameBegin(S.target,false)}
   save();
   requestAnimationFrame(()=>{if(S.mode==="find"&&!silOn)size()});   // re-measure the prompt so the globe never sits under it
@@ -107,6 +151,7 @@ function guess(id,ll,other){
     swell($("hint"),!S.hints?`That’s ${article(g.n)}. Not quite.`:near?`That’s ${article(g.n)}. You’re right next door; ${tn()} borders it to the ${bearing(LL(id),LL(T))}.`
       :`That’s ${article(g.n)}. ${tn()} is about ${distTxt(d)} to the ${bearing(LL(id),LL(T))}.`);
     S.weak[T]=Math.min(10,(S.weak[T]||0)+2);
+    if(!S.hints){$("hint").textContent="";showFeedback({ok:false,id,lines:["Not quite. Keep looking for "+tn()+"."]})}
     sndMiss();
   }else{
     const d=km(ll,LL(T));
@@ -120,6 +165,7 @@ const total=()=>playable.length;
 const foundN=()=>playable.filter(f=>cf().has(f.id)).length;
 function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
+  if(S.mode==="find"&&HC.size){HC.clear();paint()}{const hs=$("hintShape");if(hs)hs.hidden=true}
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
   const lifeB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&S.found.has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]),wasNew=!S.found.has(T);
@@ -144,6 +190,7 @@ function success(shown,ll){
   const praise=["Found it.","There it is.","Lovely.","Exactly right.","Well spotted."];
   let msg=shown?`Here it is. It’ll come back around in a few turns.`:
     (first?praise[Math.floor(Math.random()*praise.length)]+" First try.":`${praise[Math.floor(Math.random()*praise.length)]} Painted in.`);
+  const msgBase=msg;
   let big=null;
   if(!shown&&!SESS){
     const th=[.25,.5,.75,1].find(x=>before/total()<x&&after/total()>=x);
@@ -155,7 +202,17 @@ function success(shown,ll){
     const lr=lifeB.find(([r,b,t])=>b+1===t);
     if(lr){big=lr[0];msg+=` That’s all of ${lr[0]==="Americas"?"the Americas":lr[0]} painted on your map.`;setTimeout(()=>confetti(lr[0]),1500)}
   }
-  swell($("hint"),msg);
+  const mile=msg.slice(msgBase.length).trim();
+  if(shown||S.mode!=="find"){swell($("hint"),msg)}
+  else{
+    $("hint").textContent="";
+    const lines=[];
+    lines.push(wasNew?"+1 country learned · "+S.found.size+" of "+total()+" painted":"Painted again, already on your map");
+    if(first&&S.streak>=3)lines.push(S.streak+" first tries in a row");
+    if(S.tries>=1&&!first)lines.push("Take another look at where it is, then keep going");
+    if(mile)lines.push(mile);
+    showFeedback({ok:true,id:T,lines});
+  }
   if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
   $("showBtn").hidden=true;$("nextBtn").hidden=false;
   $("nextBtn").textContent=(D.active&&D.idx>=D.ids.length)||(RD.active&&!D.active&&!S.practice&&RD.done>=RD.n)?"See results":"Next place";
@@ -179,7 +236,7 @@ function fadeRepaint(fn){
 }
 function beginSession(){if(SESS)return;SESS=new Set();fadeRepaint(()=>{paint();updateProgress()})}
 function endSession(){RD.active=false;if(!SESS)return;SESS=null;fadeRepaint(()=>{paint();updateProgress()})}
-function idleView(){
+function idleView(){fbHide();
   clearAuto();usStop();
   S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
   hideCard();clearMissed();$("dClock").classList.remove("on");$("qFlag").hidden=true;$("target").classList.remove("small");

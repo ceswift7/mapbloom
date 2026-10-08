@@ -43,7 +43,7 @@ function chainRender(){
   $("qFlag").hidden=true;$("ask").textContent="Neighbour chain \u00B7 shortest is "+C.par.length;
   const tg=$("target");tg.classList.add("small");tg.textContent=FACTS[C.start].n+" \u2192 "+FACTS[C.end].n;
   $("hint").textContent=C.path.map(id=>FACTS[id].n).join(" \u2192 ")+(C.done?"":" \u2192 \u2026");
-  $("showBtn").hidden=C.done;$("nextBtn").hidden=C.path.length<2||C.done;$("nextBtn").textContent="Undo";
+  $("showBtn").hidden=C.done;syncHintBtn();$("nextBtn").hidden=C.path.length<2||C.done;$("nextBtn").textContent="Undo";
   $("dClock").classList.remove("on");
 }
 function chainGuess(id,ll,other){

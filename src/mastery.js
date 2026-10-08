@@ -651,7 +651,7 @@ function raceRecordsBlock(cur,cv){
   return box;
 }
 /* ---------- mode switching & buttons ---------- */
-$("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done)success(true)};
+$("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done){if(hintOk()){hintStep();return}success(true)}};
 $("nextBtn").onclick=()=>{if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
@@ -688,13 +688,13 @@ function setMode(m,quiet,noIdle){
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
   if(tms){tms.cancel=true;tms=null;briefHide();if(tmsTimer){tmsTimer.stop();tmsTimer=null;animating=false;syncZoom()}}
-  const from=S.mode;clearAuto();usStop();if(from==="hot")hotStop();
+  const from=S.mode;clearAuto();usStop();if(from==="hot")hotStop();else if(HC.size){HC.clear()}
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
   closeModal();
   S.mode=m;
-  document.documentElement.dataset.mode=m;syncModeDesc(m);cvColors();if(nbApplied!==nbNow())applyNb();
+  document.documentElement.dataset.mode=m;syncModeDesc(m);fbHide();cvColors();if(nbApplied!==nbNow())applyNb();
   $("app").classList.toggle("wander",m==="wander");$("app").classList.toggle("speed",m==="speed");
   ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();

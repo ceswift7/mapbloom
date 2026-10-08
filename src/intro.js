@@ -6,7 +6,7 @@ const introEl=$("intro"),introTimers=[];
 const introLater=(fn,ms)=>{introTimers.push(setTimeout(fn,ms))};
 function initIntro(){
   const skip=/[?&]nointro/.test(location.search)||(()=>{try{return localStorage.getItem("mb-skip-intro")==="1"}catch(e){return false}})();
-  if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";return}
+  if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";setTimeout(themeTip,1800);return}
   introState="wait";
   if(S.found.size&&FX.tiles){   // build their paintings while the splash waits, a couple at a time, so the opening never has to do it all at once
     const order=["Africa","Europe","Asia","Americas","Oceania"],ids=[...S.found].filter(id=>FACTS[id]).sort((a,b)=>order.indexOf(FACTS[a].r)-order.indexOf(FACTS[b].r));let wi=0;
@@ -125,6 +125,7 @@ function introHandoff(fast){
   $("introSkip").hidden=true;introEl.classList.add("out");
   stopDrift();scheduleDrift();render(true);
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
+  setTimeout(themeTip,2200);
   if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
 }
 /* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */

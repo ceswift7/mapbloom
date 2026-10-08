@@ -163,6 +163,18 @@ function syncThemeBtn(force){if(themeSwapping&&!force)return;const b=$("themeBtn
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
 /* ---- the day/night switch: a wash of the new theme spreads out from the button, the theme changes underneath it while it covers the screen,
    and it lifts once the new globe, paper and background are all ready, so the switch never shows half-redrawn layers ---- */
+/* first open: the game starts in light mode; a small note at the top right says how to switch to Auto (or dark) */
+function themeTip(){
+  let seen=false;try{seen=localStorage.getItem("mb-theme-tip")==="1"}catch(e){}
+  if(seen||!FIRST_RUN||S.theme!=="light"||document.querySelector(".themetip"))return;
+  try{localStorage.setItem("mb-theme-tip","1")}catch(e){}
+  const b=$("themeBtn");if(!b)return;
+  const r=b.getBoundingClientRect(),tip=el("div",{class:"themetip",role:"status"},el("p",{},el("b",{},"Opening in light mode."),` To follow your device automatically, choose Auto under Menu, Settings, Theme. The button just left of Menu switches between light and dark.`),el("button",{type:"button",class:"tipx","aria-label":"Dismiss",onclick:()=>done()},"Got it"));
+  tip.style.top=(r.bottom+12)+"px";tip.style.setProperty("--ax",Math.max(16,Math.min(240,innerWidth-(r.left+r.width/2)-12))+"px");
+  const done=()=>{tip.classList.remove("on");setTimeout(()=>tip.remove(),400);removeEventListener("pointerdown",away,true)},away=e=>{if(!tip.contains(e.target))done()};
+  document.body.append(tip);requestAnimationFrame(()=>tip.classList.add("on"));
+  setTimeout(()=>addEventListener("pointerdown",away,true),600);setTimeout(done,16000);
+}
 function themeWillBeDark(k){return k==="dark"||(k==="auto"&&!!window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 let themeBusy=false;
 function themeAnimate(k,srcEl,after){

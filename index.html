@@ -334,6 +334,12 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .tms{position:absolute;left:16px;top:10px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 14px 0 11px;border-radius:999px;border:0;background:var(--mode-acc);color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 14px -8px var(--mode-acc);transition:filter .2s ease,opacity .3s ease}
 .tms svg{width:15px;height:15px;flex:none}
 .tms:hover{filter:brightness(1.07)}
+.themetip{position:fixed;right:12px;z-index:70;width:min(270px,calc(100% - 24px));box-sizing:border-box;padding:12px 14px;border-radius:14px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 18px 40px -18px rgba(0,0,0,.5);color:var(--ink);font-size:13px;line-height:1.45;opacity:0;transform:translateY(-6px);transition:opacity .35s ease,transform .35s var(--ease)}
+.themetip.on{opacity:1;transform:none}
+.themetip::before{content:"";position:absolute;top:-6px;right:var(--ax,40px);width:11px;height:11px;background:var(--sheet);border-left:1px solid var(--panel-line);border-top:1px solid var(--panel-line);transform:rotate(45deg)}
+.themetip p{margin:0 0 8px;color:var(--ink-soft)}.themetip b{color:var(--ink)}
+.themetip .tipx{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--panel-line);background:none;color:var(--ink);cursor:pointer}
+.themetip .tipx:hover{border-color:var(--ink)}
 .tourbtn{position:absolute;left:16px;top:46px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 13px 0 10px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--panel-line));background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .9s ease}
 .tourbtn svg{width:15px;height:15px;flex:none}
 .tourbtn:hover{border-color:var(--ink);background:color-mix(in srgb,var(--paper) 95%,transparent)}
@@ -1476,15 +1482,17 @@ const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw
 let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"light",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vib:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
   daily:{last:null,streak:0,results:{},hot:{},hotStreak:0,hotLast:null},expDone:{},cs:{}};
 const KEY="mapbloom",RKEY="mapbloom-records-v4";
+let FIRST_RUN=false;   // true only on the very first open: nothing saved yet
 try{
   let raw=localStorage.getItem(KEY);
   if(!raw){raw=localStorage.getItem("tidewash")||localStorage.getItem("slowatlas");if(raw)localStorage.setItem(KEY,raw)} // carry progress over from the old names
+  FIRST_RUN=!raw;
   const s=JSON.parse(raw||"{}");
   const arr=a=>Array.isArray(a)?a:[];
   arr(s.found).forEach(id=>S.found.add(id));
@@ -4132,6 +4140,18 @@ function syncThemeBtn(force){if(themeSwapping&&!force)return;const b=$("themeBtn
 function applyTheme(){const r=document.documentElement;if(S.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",S.theme);syncThemeBtn();cvColors();if(CANVAS&&W)requestRender()}
 /* ---- the day/night switch: a wash of the new theme spreads out from the button, the theme changes underneath it while it covers the screen,
    and it lifts once the new globe, paper and background are all ready, so the switch never shows half-redrawn layers ---- */
+/* first open: the game starts in light mode; a small note at the top right says how to switch to Auto (or dark) */
+function themeTip(){
+  let seen=false;try{seen=localStorage.getItem("mb-theme-tip")==="1"}catch(e){}
+  if(seen||!FIRST_RUN||S.theme!=="light"||document.querySelector(".themetip"))return;
+  try{localStorage.setItem("mb-theme-tip","1")}catch(e){}
+  const b=$("themeBtn");if(!b)return;
+  const r=b.getBoundingClientRect(),tip=el("div",{class:"themetip",role:"status"},el("p",{},el("b",{},"Opening in light mode."),` To follow your device automatically, choose Auto under Menu, Settings, Theme. The button just left of Menu switches between light and dark.`),el("button",{type:"button",class:"tipx","aria-label":"Dismiss",onclick:()=>done()},"Got it"));
+  tip.style.top=(r.bottom+12)+"px";tip.style.setProperty("--ax",Math.max(16,Math.min(240,innerWidth-(r.left+r.width/2)-12))+"px");
+  const done=()=>{tip.classList.remove("on");setTimeout(()=>tip.remove(),400);removeEventListener("pointerdown",away,true)},away=e=>{if(!tip.contains(e.target))done()};
+  document.body.append(tip);requestAnimationFrame(()=>tip.classList.add("on"));
+  setTimeout(()=>addEventListener("pointerdown",away,true),600);setTimeout(done,16000);
+}
 function themeWillBeDark(k){return k==="dark"||(k==="auto"&&!!window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}
 let themeBusy=false;
 function themeAnimate(k,srcEl,after){
@@ -5080,7 +5100,7 @@ const introEl=$("intro"),introTimers=[];
 const introLater=(fn,ms)=>{introTimers.push(setTimeout(fn,ms))};
 function initIntro(){
   const skip=/[?&]nointro/.test(location.search)||(()=>{try{return localStorage.getItem("mb-skip-intro")==="1"}catch(e){return false}})();
-  if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";return}
+  if(skip){introEl.remove();document.body.classList.remove("introing");introState="done";setTimeout(themeTip,1800);return}
   introState="wait";
   if(S.found.size&&FX.tiles){   // build their paintings while the splash waits, a couple at a time, so the opening never has to do it all at once
     const order=["Africa","Europe","Asia","Americas","Oceania"],ids=[...S.found].filter(id=>FACTS[id]).sort((a,b)=>order.indexOf(FACTS[a].r)-order.indexOf(FACTS[b].r));let wi=0;
@@ -5199,6 +5219,7 @@ function introHandoff(fast){
   $("introSkip").hidden=true;introEl.classList.add("out");
   stopDrift();scheduleDrift();render(true);
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
+  setTimeout(themeTip,2200);
   if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
 }
 /* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */

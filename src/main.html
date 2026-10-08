@@ -26,15 +26,17 @@ const GLX={on:false,hasGL:false,baking:false,landDone:false,linesDone:false,draw
 let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (svg) is the fallback   // lite graphics: on by default for touch devices (see applyFx)
 let introState="idle";
 /* ---------- state ---------- */
-const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
+const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"light",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
   sound:true,sfx:true,music:true,vib:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
   daily:{last:null,streak:0,results:{},hot:{},hotStreak:0,hotLast:null},expDone:{},cs:{}};
 const KEY="mapbloom",RKEY="mapbloom-records-v4";
+let FIRST_RUN=false;   // true only on the very first open: nothing saved yet
 try{
   let raw=localStorage.getItem(KEY);
   if(!raw){raw=localStorage.getItem("tidewash")||localStorage.getItem("slowatlas");if(raw)localStorage.setItem(KEY,raw)} // carry progress over from the old names
+  FIRST_RUN=!raw;
   const s=JSON.parse(raw||"{}");
   const arr=a=>Array.isArray(a)?a:[];
   arr(s.found).forEach(id=>S.found.add(id));

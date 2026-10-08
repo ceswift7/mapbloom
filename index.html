@@ -3404,9 +3404,30 @@ function setExplore(open,id){
   btn.firstElementChild.textContent=open?"Close the page":"Explore this country";
   if(open){renderLearn(id||cardId);S.learned.add(id||cardId);$("cLearned").hidden=false;save();setTimeout(checkAch,600)}
 }
+/* "Explore this country": the globe turns and zooms so the whole country fills the part of the screen the reading card leaves free, centred in it */
+function exploreFit(id,ms){
+  const feat=byId[id];if(!feat||W<720)return;
+  const shape=silShape(id),[L,B]=d3.geoCentroid(shape),c0=[L,B],cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
+  const top=promptBottom+6,bot=H-58,tx=visW/2,ty=(top+bot)/2,availW=visW*.84,availH=(bot-top)*.84,gx=W/2,gy=cy();
+  let R=baseScale*zoomK;const rot=projection.rotate().slice(),pr=d3.geoOrthographic().clipAngle(90).translate([gx,gy]),path=d3.geoPath(pr);
+  rot[0]=-L;rot[1]=-B;
+  for(let it=0;it<10;it++){
+    pr.scale(R).rotate([rot[0],rot[1],0]);
+    const p=pr(c0);if(!p)break;
+    rot[0]+=((tx-p[0])/(R*Math.max(.2,Math.cos(B*Math.PI/180))))*180/Math.PI;
+    rot[1]-=((ty-p[1])/R)*180/Math.PI;
+    pr.rotate([rot[0],rot[1],0]);
+    const b=path.bounds(shape),w=b[1][0]-b[0][0],h=b[1][1]-b[0][1];
+    if(isFinite(w)&&isFinite(h)&&w>1&&h>1)R=Math.max(baseScale,Math.min(baseScale*8,R*Math.pow(Math.min(availW/w,availH/h),.85)));
+  }
+  const kk=Math.max(1,Math.min(8,R/baseScale));
+  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk);
+  return {lon:-rot[0],lat:-rot[1],k:kk};
+}
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");
   sndPage();setExplore(open,cardId);
+  if(open&&S.mode==="wander")setTimeout(()=>exploreFit(cardId),80);
   setTimeout(relayout,620);
   if(open)setTimeout(()=>{$("learn").scrollIntoView({behavior:reduced?"auto":"smooth",block:"nearest"})},120);
 };

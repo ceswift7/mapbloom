@@ -228,6 +228,7 @@ function cardPaint(id){const cv=$("cPaint");if(cv)paintInto(cv,id,440,92,[90,8])
 function paintThumb(id,onclick){const cv=document.createElement("canvas");paintInto(cv,id,64,48,[4,4]);return el("button",{type:"button",class:"gthumb",title:FACTS[id].n,"aria-label":FACTS[id].n,onclick},cv)}function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
+  if(S.mode==="wander"&&W>=720)(window.requestIdleCallback||(fn=>setTimeout(fn,200)))(()=>{if(cardId===id){try{exploreFit(id,0,true)}catch(e){}}},{timeout:1500});   // work out the Explore view while the card is just being read
   const img=$("cFlagImg"),src=typeof FLAGS!=="undefined"&&FLAGS[id];
   if(src){img.src=src;img.alt=`Flag of ${f.n}`;img.hidden=false;$("cFlag").hidden=true}
   else{img.hidden=true;img.removeAttribute("src");$("cFlag").hidden=false;$("cFlag").textContent=f.f}
@@ -299,8 +300,17 @@ function fitShape(id){
   [0,1].forEach(ax=>{let lo=all[0],hi=all[0];all.forEach(q=>{if(q[ax]<lo[ax])lo=q;if(q[ax]>hi[ax])hi=q});pts.push(lo,hi)});   // always keep the extreme points
   return (f._fit={pts,c:d3.geoCentroid({type:"Feature",geometry:{type:"MultiPolygon",coordinates:keep.map(p=>p.co)}})});
 }
-function exploreFit(id,ms){
+/* the fit is worked out once per country and window size (and ahead of the click, while the browser is idle), so Explore itself only starts the flight */
+function exploreFit(id,ms,dry){
   const feat=byId[id];if(!feat||W<720)return;
+  const key=W+"|"+H+"|"+Math.round(promptBottom)+"|"+Math.round(cy());let r=feat._fitRes&&feat._fitRes.key===key?feat._fitRes:null;
+  if(!r){r=fitCompute(id);r.key=key;feat._fitRes=r}
+  if(dry)return r;
+  stopDrift();flyTo([r.lon,r.lat],ms||1500,r.k,80);
+  return r;
+}
+function fitCompute(id){
+  const feat=byId[id];
   const fit=fitShape(id),[L,B]=fit.c,cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
   const top=promptBottom+6,bot=H-58,tx0=visW/2,ty=(top+bot)/2,availW=visW*.86,availH=(bot-top)*.86,gx=W/2,gy=cy();
   let tx=tx0;const pr=d3.geoOrthographic().translate([gx,gy]),D2R=Math.PI/180,cl=(v,a)=>Math.max(-a,Math.min(a,v));
@@ -338,7 +348,6 @@ function exploreFit(id,ms){
     if(found){best=cand;R=cR;break}
   }
   if(!found){best=first.cand;R=first.cR;tx=tx0}  const rot=best.rot,kk=Math.max(1,Math.min(8,R/baseScale));
-  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,80);
   return {lon:-rot[0],lat:-rot[1],k:kk,fin:[tx-best.ex,ty-best.ey,best.w,best.h],hidden:best.hidden,target:[tx0,ty,availW,availH]};
 }
 $("learnBtn").onclick=()=>{
@@ -429,7 +438,7 @@ function outlineFig(id){
   const draw=(hi)=>{
     const feat=(hi&&hi.byid[id])||byId[id],list=hi?hi.feats:features;
     const c=d3.geoCentroid(feat);if(!isFinite(c[0]))return;
-    const proj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).fitExtent([[26,22],[W0-26,H0-26]],feat),p=d3.geoPath(proj);
+    const proj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).fitExtent([[26,22],[W0-26,H0-26]],feat).precision(1.2).clipExtent([[-30,-30],[W0+30,H0+30]]),p=d3.geoPath(proj);   // coarser curve sampling and anything outside the picture is cut off before drawing: the same figure for a fraction of the work
     const rad=(byId[id]._r||.3)*1.1+.07;
     const near=list.filter(g=>g!==feat&&g.id!==id&&g.id!=="010"||g.id==="010"&&false).filter(g=>{const gc=g._c||(g._c=d3.geoCentroid(g));return isFinite(gc[0])&&d3.geoDistance(gc,c)<rad+.25});
     svgO.selectAll("*").remove();
@@ -439,8 +448,8 @@ function outlineFig(id){
     drawn++;
     cap.textContent="Outline of "+f.n;
   };
-  draw(topo10);
-  if(!topo10)load10().then(t=>{if(t&&fig.isConnected&&(cardId===id||fig.dataset.rd))draw(t)});
+  const big=f.a>=300000;   // a large country at this picture size gains nothing from the 1:10m coastline, and drawing it that detailed costs a second or more
+  setTimeout(()=>{draw(big?null:topo10);if(!big&&!topo10)load10().then(t=>{if(t&&fig.isConnected&&(cardId===id||fig.dataset.rd))draw(t)})},40);   // drawn just after the page opens, so the click itself stays quick
   return fig;
 }
 function renderLearn(id,rootArg,nav){

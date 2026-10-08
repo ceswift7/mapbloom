@@ -523,6 +523,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 @media (max-width:719px){.cbfront{animation:none;opacity:0}.cbleft{display:none}.cbstage{animation-duration:.6s}}
 .bkpage .cbwrap{display:flex;flex-direction:column;height:100%;margin-top:0}
 .bkpage.l:has(.cbwrap){overflow:hidden}
+.cbstats{font:12px var(--sans);color:var(--ink-soft);margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cbfacts{display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;margin:0 0 4px;font-size:12.5px;font-family:var(--serif)}
 .cbfacts span{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--panel-line);padding-bottom:2px;min-width:0}
 .cbfacts b{font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
@@ -1195,6 +1196,32 @@ Object.assign(QZ,{
 "336":{g:{hi:"Vatican Hill",wond:"St Peter's Basilica",cli:"Mediterranean"},c:{pers:"Michelangelo",rel:"Christianity",hol:"Feast of Saints Peter and Paul",art:"Renaissance art"},f:{dish:"Pasta",drk:"Wine",stp:"Bread",des:"Gelato",ing:"Olive oil"},h:{emp:"Papal States",evt:[{t:"the Lateran Treaty created Vatican City as an independent state",y:1929}],gov:"Absolute monarchy"},n:{lng:"Latin",mng:"Named after Mons Vaticanus, the Vatican Hill",off:"Vatican City State"}}
 });
 
+/* One famous landmark per country (id = ISO numeric code, as everywhere else). Merged into the written quiz bank as the land fact "lm".
+   Chosen to be unambiguous and to avoid giving the country's name away. */
+const LM={
+"004":"Minaret of Jam","008":"Berat Castle","012":"Timgad","020":"Casa de la Vall","024":"Kalandula Falls","028":"Nelson's Dockyard","031":"Maiden Tower","032":"Perito Moreno Glacier","036":"Uluru","040":"Schönbrunn Palace",
+"044":"Dean's Blue Hole","048":"Qal'at al-Bahrain","050":"Ahsan Manzil","051":"Geghard Monastery","052":"Harrison's Cave","056":"Atomium","064":"Paro Taktsang","068":"Salar de Uyuni","070":"Stari Most","072":"Okavango Delta",
+"076":"Christ the Redeemer","084":"Great Blue Hole","090":"Marovo Lagoon","096":"Omar Ali Saifuddien Mosque","100":"Rila Monastery","104":"Shwedagon Pagoda","108":"Gishora Drum Sanctuary","112":"Mir Castle","116":"Angkor Wat","120":"Mount Cameroon",
+"124":"CN Tower","132":"Pico do Fogo","140":"Dzanga Bai","144":"Sigiriya","148":"Ennedi Plateau","152":"Moai of Easter Island","156":"Forbidden City","170":"Las Lajas Sanctuary","174":"Mount Karthala","178":"Basilique Sainte-Anne",
+"180":"Nyiragongo","188":"Arenal Volcano","191":"Diocletian's Palace","192":"El Capitolio","196":"Petra tou Romiou","203":"Charles Bridge","204":"Royal Palaces of Abomey","208":"The Little Mermaid","212":"Boiling Lake","214":"Alcázar de Colón",
+"218":"Cotopaxi","222":"Joya de Cerén","226":"Pico Basilé","231":"Rock-Hewn Churches of Lalibela","232":"Fiat Tagliero Building","233":"Toompea Castle","242":"Garden of the Sleeping Giant","246":"Suomenlinna","250":"Eiffel Tower","262":"Lake Assal",
+"266":"Lopé National Park","268":"Gergeti Trinity Church","270":"Kunta Kinteh Island","275":"Church of the Nativity","276":"Brandenburg Gate","288":"Cape Coast Castle","296":"Phoenix Islands Protected Area","300":"Parthenon","308":"Underwater Sculpture Park","320":"Tikal",
+"324":"Mount Nimba","328":"Kaieteur Falls","332":"Citadelle Laferrière","336":"St Peter's Basilica","340":"Copán","348":"Fisherman's Bastion","352":"Gullfoss","356":"Taj Mahal","360":"Borobudur","364":"Persepolis",
+"368":"Ziggurat of Ur","372":"Cliffs of Moher","376":"Masada","380":"Colosseum","384":"Basilica of Our Lady of Peace","388":"Dunn's River Falls","392":"Mount Fuji","398":"Baikonur Cosmodrome","400":"Petra","404":"Maasai Mara",
+"408":"Juche Tower","410":"Gyeongbokgung Palace","414":"Liberation Tower","417":"Issyk-Kul","418":"Pha That Luang","422":"Baalbek","426":"Maletsunyane Falls","428":"Rundāle Palace","430":"Providence Island","434":"Leptis Magna",
+"438":"Vaduz Castle","440":"Hill of Crosses","442":"Bock Casemates","450":"Avenue of the Baobabs","454":"Mount Mulanje","458":"Petronas Towers","462":"Hukuru Miskiy","466":"Great Mosque of Djenné","470":"Mdina","478":"Eye of the Sahara",
+"480":"Le Morne Brabant","484":"Chichén Itzá","492":"Monte Carlo Casino","496":"Erdene Zuu Monastery","498":"Cricova wine cellars","499":"Bay of Kotor","504":"Hassan II Mosque","508":"Gorongosa National Park","512":"Sultan Qaboos Grand Mosque","516":"Sossusvlei",
+"520":"Command Ridge","524":"Boudhanath","528":"Kinderdijk","548":"Mount Yasur","554":"Milford Sound","558":"Masaya Volcano","562":"Agadez Grand Mosque","566":"Zuma Rock","578":"Preikestolen","583":"Nan Madol",
+"584":"Bikini Atoll","585":"Rock Islands","586":"Badshahi Mosque","591":"Miraflores Locks","598":"Kokoda Track","600":"Jesuit Ruins of Trinidad","604":"Machu Picchu","608":"Chocolate Hills","616":"Wawel Castle","620":"Belém Tower",
+"624":"Bijagós Archipelago","626":"Cristo Rei of Dili","634":"Museum of Islamic Art","642":"Bran Castle","643":"Saint Basil's Cathedral","646":"Kigali Genocide Memorial","659":"Brimstone Hill Fortress","662":"The Pitons","670":"La Soufrière","674":"Guaita Tower",
+"678":"Pico Cão Grande","682":"Mada'in Salih","686":"African Renaissance Monument","688":"Kalemegdan Fortress","690":"Vallée de Mai","694":"Bunce Island","702":"Marina Bay Sands","703":"Spiš Castle","704":"Hạ Long Bay","705":"Lake Bled",
+"706":"Laas Geel","710":"Table Mountain","716":"Matobo Hills","724":"Sagrada Família","728":"The Sudd","729":"Pyramids of Meroë","740":"Fort Zeelandia","748":"Mantenga Falls","752":"Vasa Museum","756":"Jungfraujoch",
+"760":"Krak des Chevaliers","762":"Iskanderkul","764":"Wat Arun","768":"Koutammakou","776":"Haʻamonga ʻa Maui","780":"Pitch Lake","784":"Burj Khalifa","788":"Amphitheatre of El Jem","792":"Hagia Sophia","795":"Darvaza gas crater",
+"798":"Funafuti Conservation Area","800":"Bwindi Impenetrable Forest","804":"Kyiv Pechersk Lavra","807":"Matka Canyon","818":"Pyramids of Giza","826":"Big Ben","834":"Mount Kilimanjaro","840":"Statue of Liberty","854":"Ruins of Loropéni","858":"Palacio Salvo",
+"860":"Registan","862":"Angel Falls","882":"To Sua Ocean Trench","887":"Shibam","894":"Kalambo Falls"
+};
+Object.keys(LM).forEach(id=>{const q=QZ[id]||(QZ[id]={});(q.g||(q.g={})).lm=LM[id]});
+
 </script>
 <script>
 (function(){
@@ -1225,10 +1252,10 @@ let CANVAS=ENG!=="svg";   // the fast canvas globe is the default; "classic" (sv
 let introState="idle";
 /* ---------- state ---------- */
 const S={mode:"wander",fx:"auto",autoNext:"normal",engine2:"gl",theme:"auto",qIdle:false,view:null,hints:false,nb:false,nbx:false,undisc:false,rlen:20,seen:{},rv:"country",region:"World",target:null,tries:0,done:false,
-  sound:true,sfx:true,music:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
+  sound:true,sfx:true,music:true,vib:true,vol:.9,quiz:"country",practice:false,unit:((navigator.language||"").toLowerCase()==="en-us"?"mi":"km"),
   found:new Set(),shown:new Set(),returnQ:[],turn:0,recent:[],
   learned:new Set(),jr:{},weak:{},ach:{},counts:{flag:0,capital:0},streak:0,bestStreak:0,
-  daily:{last:null,streak:0,results:{}},expDone:{}};
+  daily:{last:null,streak:0,results:{},hot:{},hotStreak:0,hotLast:null},expDone:{},cs:{}};
 const KEY="mapbloom",RKEY="mapbloom-records-v4";
 try{
   let raw=localStorage.getItem(KEY);
@@ -1245,11 +1272,13 @@ try{
   if(s.counts) S.counts=Object.assign(S.counts,s.counts);
   if(s.daily) S.daily=Object.assign(S.daily,s.daily);
   if(s.expDone) S.expDone=s.expDone;
+  if(s.cs&&typeof s.cs==="object"&&!Array.isArray(s.cs)) S.cs=s.cs;
   if(typeof s.bestStreak==="number") S.bestStreak=s.bestStreak;
   if(typeof s.turn==="number"&&isFinite(s.turn)) S.turn=Math.max(0,Math.floor(s.turn));
   if(typeof s.sound==="boolean") S.sound=s.sound;
   if(typeof s.sfx==="boolean") S.sfx=s.sfx;
   if(typeof s.music==="boolean") S.music=s.music;
+  if(typeof s.vib==="boolean") S.vib=s.vib;
   if(typeof s.vol==="number") S.vol=clamp(s.vol,0,1);
   if(["country","flag","capital","silhouette","name"].includes(s.quiz)) S.quiz=s.quiz;
   if(typeof s.nb==="boolean") S.nb=s.nb;
@@ -1267,8 +1296,10 @@ try{
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
 let WIPED=false;
+const csOf=id=>S.cs[id]||(S.cs[id]={a:0,f:0});
+if(!S.daily.hot||typeof S.daily.hot!=="object"||Array.isArray(S.daily.hot))S.daily.hot={};   // per-country record: times asked, first-try finds, last seen, best race time
 const nbNow=()=>S.mode==="hot"?false:S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
-function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,cs:S.cs,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vib:S.vib,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
 const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
@@ -1374,7 +1405,7 @@ function jrWatch(el0,id,key){   // a section counts as read once most of it has 
 }
 const nameId={};
 [...S.found].forEach(id=>{if(!FACTS[id])S.found.delete(id)});[...S.shown].forEach(id=>{if(!FACTS[id])S.shown.delete(id)});[...S.learned].forEach(id=>{if(!FACTS[id])S.learned.delete(id)});
-Object.keys(S.weak).forEach(id=>{if(!FACTS[id]&&!/^us:/.test(id))delete S.weak[id]});S.returnQ=S.returnQ.filter(q=>q&&(FACTS[q.id]||/^us:/.test(String(q.id))));S.turn=Math.max(S.turn,...Object.values(S.seen).filter(Number.isFinite),...S.returnQ.map(q=>+q.at||0));playable.forEach(f=>nameId[FACTS[f.id].n]=f.id);
+Object.keys(S.weak).forEach(id=>{if(!FACTS[id]&&!/^us:/.test(id))delete S.weak[id]});S.returnQ=S.returnQ.filter(q=>q&&(FACTS[q.id]||/^us:/.test(String(q.id))));S.turn=Math.max(S.turn,...Object.values(S.seen).filter(Number.isFinite),...S.returnQ.map(q=>+q.at||0));playable.forEach(f=>nameId[FACTS[f.id].n]=f.id);Object.keys(S.cs).forEach(id=>{if(!FACTS[id]||!S.cs[id]||typeof S.cs[id]!=="object")delete S.cs[id]});
 [...S.learned].forEach(id=>{if(FACTS[id]&&!S.jr[id])S.jr[id]={c:0,f:0,s:jrSecs(id)}});
 Object.values(S.jr).forEach(j=>{if(j&&typeof j==="object")delete j.q});   // pages already read count as read
 
@@ -2092,8 +2123,9 @@ const PENT=[0,2,4,7,9,12,14,16,19];
 const note=(r,i)=>(ROOT[r]||ROOT.Europe)*Math.pow(2,PENT[i]/12);   // areas such as the Pacific Islands borrow a continent's scale
 
 let sndStreakPrev=0,sndKeyT=0;
+function buzz(p){if(reduced||!S.vib||!S.sfx||!navigator.vibrate)return;try{navigator.vibrate(p)}catch(e){}}   // short haptic pulses on phones that have a motor
 function sndHit(region,first){
-  const c=AC();if(!c)return;const t=c.currentTime+.02,a=Math.floor(Math.random()*4);
+  buzz(first?[14,40,14]:12);const c=AC();if(!c)return;const t=c.currentTime+.02,a=Math.floor(Math.random()*4);
   const st=S.streak||0,up=Math.pow(2,Math.min(5,Math.floor(st/2))*2/12);   // a run of first-try finds climbs the scale, two notes at a time
   sndStreakPrev=st;
   const idx=first?[a,a+1,a+3,a+4]:[a,a+2,a+3];
@@ -2101,11 +2133,11 @@ function sndHit(region,first){
   if(first)bell(note(region,8)*up,t+.44,.035,2.8);
 }
 function sndHeat(w){   // Hot & cold: the warmer the guess, the higher and brighter the note
-  const c=AC();if(!c)return;const t=c.currentTime+.01,f=196*Math.pow(2,w*1.9);
+  buzz(8+Math.round(w*28));const c=AC();if(!c)return;const t=c.currentTime+.01,f=196*Math.pow(2,w*1.9);
   pluck(f,t,.05+.06*w,1.2);
   if(w>.55){bell(f*2,t+.05,.02+.03*w,1.6);if(w>.8)bell(f*3,t+.1,.03,1.8)}
 }
-function sndBorder(){const c=AC();if(!c)return;const t=c.currentTime+.01;bell(784,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
+function sndBorder(){buzz([18,40,18,40,18]);const c=AC();if(!c)return;const t=c.currentTime+.01;bell(784,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
 function sndKey(){const c=AC();if(!c)return;const n=performance.now();if(n-sndKeyT<45)return;sndKeyT=n;blip(c.currentTime,2300+Math.random()*400,1800,.03,.012,.05)}
 function sndAccept(){const c=AC();if(!c)return;pluck(659.25,c.currentTime,.05,.7,.3)}
 function sndThump(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,130,55,.16,.07,.1);noise(t,.07,{type:"lowpass",f0:600,q:.7,vol:.03,wet:.1})}
@@ -2144,18 +2176,18 @@ function sndBloom(fast){
   noise(t+.1,1.8*k,{type:"lowpass",f0:600,f1:200,q:.4,vol:.05,attack:.5*k,wet:.4});
   if(!fast)for(let i=0;i<4;i++)blip(t+.5+Math.random()*1.3,1500+Math.random()*1800,900,.09,.012,.6);
 }
-function sndMiss(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1});if(sndStreakPrev>=3)blip(t+.12,340,170,.34,.04,.3);sndStreakPrev=0}   // a broken streak slides down
+function sndMiss(){buzz([30,50,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1});if(sndStreakPrev>=3)blip(t+.12,340,170,.34,.04,.3);sndStreakPrev=0}   // a broken streak slides down
 function sndOcean(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,520,250,.2,.05,.45);noise(t,.3,{f0:500,f1:250,q:.8,vol:.012,wet:.5})}
 function sndShow(){const c=AC();if(!c)return;const t=c.currentTime;[784,659.25,523.25].forEach((f,i)=>bell(f,t+i*.16,.04,2.2))}
 function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,sec),{f0:260,f1:1100,q:.9,vol:.022,attack:sec*.45,wet:.5})}
 function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
 function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
 function sndFlourish(region){
-  const c=AC();if(!c)return;const t=c.currentTime+.05;
+  buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
   [0,1,2,3,4,6].forEach((n,i)=>pluck(note(region,n),t+i*.09,.06,1.8,.6));
   bell(note(region,8),t+.6,.04,3.2);
 }
-function sndBadge(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
+function sndBadge(){buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
 function sndPencil(sec){const c=AC();if(!c)return;const t=c.currentTime;noise(t,Math.max(.5,sec),{f0:2600,f1:4300,q:1.5,vol:.016,attack:.18,wet:.15})}
 function sndPage(){const c=AC();if(!c)return;crackle(c.currentTime,.4,.035);noise(c.currentTime,.5,{f0:900,f1:2600,q:.8,vol:.012,attack:.2,wet:.2});bell(587.33,c.currentTime+.05,.02,1.6)}
 function brushKick(mag){if(!brushG)return;brushTarget=Math.max(brushTarget,Math.min(.02,mag*.0014))}
@@ -2470,7 +2502,25 @@ function glint(ll,v){
   });
 }
 
-/* ======================================================================
+/* a short burst of confetti when a whole region is painted */
+function confetti(region){
+  if(reduced)return;
+  const cv=document.createElement("canvas"),dpr=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.cssText="position:fixed;inset:0;width:100%;height:100%;z-index:45;pointer-events:none";
+  document.body.append(cv);const c=cv.getContext("2d");c.scale(dpr,dpr);
+  const base=region?getComputedStyle(document.documentElement).getPropertyValue("--c-"+region).trim():"",
+    light=base&&d3.color(base)?d3.color(base).brighter(.7).formatHex():"#E06F58",
+    cols=[base||"#6FA27E","#F2D27A","#ffffff",light,"#E06F58"];
+  const ps=d3.range(110).map(()=>{const an=-Math.PI/2+(Math.random()-.5)*1.5,v=7+Math.random()*9;
+    return {x:w/2+(Math.random()-.5)*w*.3,y:h*.72,vx:Math.cos(an)*v,vy:Math.sin(an)*v,r:3+Math.random()*4,rot:Math.random()*6,vr:(Math.random()-.5)*.4,col:cols[Math.floor(Math.random()*cols.length)]}});
+  const t0=performance.now();
+  (function tick(){
+    const k=(performance.now()-t0)/2400;if(k>=1){cv.remove();return}
+    c.clearRect(0,0,w,h);
+    ps.forEach(p=>{p.vy+=.22;p.vx*=.992;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;c.save();c.globalAlpha=Math.max(0,1-Math.pow(k,2.2));c.translate(p.x,p.y);c.rotate(p.rot);c.fillStyle=p.col;c.fillRect(-p.r,-p.r*.5,p.r*2,p.r);c.restore()});
+    requestAnimationFrame(tick);
+  })();
+}/* ======================================================================
    FIND MODE (name / flag / capital quiz, practice, daily challenge)
    ====================================================================== */
 const quizOf=()=>D.active?"country":S.quiz;
@@ -2522,6 +2572,7 @@ function nextRound(){
   S.target=D.active?D.ids[D.idx]:pickTarget();
   if(S.target==null){S.practice=false;endSession();toast("\u{1F33F}","Nothing left to ask","There is nothing left for this setup. Pick another.");quizIdle();return}
   S.tries=0;S.done=false;warmArt(S.target);
+  if(FACTS[S.target]){const cs=csOf(S.target);cs.a=(cs.a||0)+1;cs.ls=todayStr()}
 
   S.recent.push(S.target);if(S.recent.length>6)S.recent.shift();
   const f=FACTS[S.target];
@@ -2593,6 +2644,8 @@ function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
+  const lifeB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&S.found.has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]),wasNew=!S.found.has(T);
+  if(first)csOf(T).f=(csOf(T).f||0)+1;
   if(shown){if(RD.active&&!D.active&&!S.practice){RD.ids.add(T);RD.done++;RD.miss.push(T)}if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
   else{
     if(RD.active&&!D.active&&!S.practice){SESS.add(T);S.found.add(T);S.shown.delete(T);RD.ids.add(T);RD.done++;if(first)RD.first++}
@@ -2617,8 +2670,12 @@ function success(shown,ll){
   if(!shown&&!SESS){
     const th=[.25,.5,.75,1].find(x=>before/total()<x&&after/total()>=x);
     const dr=regB.find(([r,b,t])=>b+1===t);
-    if(dr){big=dr[0];msg+=` That’s all of ${dr[0]==="Americas"?"the Americas":dr[0]} painted.`}
-    else if(th){big=f.r;msg+=th===1?" The whole world is painted.":` A ${th===.25?"quarter":th===.5?"half":"three quarters"} of the world is painted.`}
+    if(dr){big=dr[0];msg+=` That’s all of ${dr[0]==="Americas"?"the Americas":dr[0]} painted.`;setTimeout(()=>confetti(dr[0]),1500)}
+    else if(th){big=f.r;if(th===1)setTimeout(()=>confetti(null),1500);msg+=th===1?" The whole world is painted.":` A ${th===.25?"quarter":th===.5?"half":"three quarters"} of the world is painted.`}
+  }
+  else if(!shown&&wasNew&&S.found.has(T)){   // on a clean round map: your lifetime map still completes a region
+    const lr=lifeB.find(([r,b,t])=>b+1===t);
+    if(lr){big=lr[0];msg+=` That’s all of ${lr[0]==="Americas"?"the Americas":lr[0]} painted on your map.`;setTimeout(()=>confetti(lr[0]),1500)}
   }
   swell($("hint"),msg);
   if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
@@ -2677,6 +2734,7 @@ function showRoundResult(){
   if(RD.miss.length)sh.append(el("h3",{},"Worth another look"),el("div",{class:"nchips"},RD.miss.map(id=>el("button",{onclick:()=>{closeModal();endSession();setMode("wander");openCountry(id)}},FACTS[id].n))));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{endSession();setMode("wander")}},"Back to Explore"),el("button",{class:"btn",onclick:()=>{sndTick();quizIdle()}},"Change settings"),el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:()=>{sndTick();beginFree()}},"Another round")));
   sndFlourish(S.region==="World"?"Europe":S.region);
+  if(!RD.miss.length&&RD.n>=regionPool().length)setTimeout(()=>confetti(REGIONS.includes(S.region)?S.region:null),500);   // a whole area with nothing revealed
   openModal();
 }
 function leaveDailyOk(){return !D.active||confirm("Leave today’s ten? Your progress in it will be lost.")}
@@ -2945,6 +3003,7 @@ function raceHit(T,ll){
   const f=FACTS[T];
   {
     R.times[T]=performance.now()-R.tTarget;R.found.add(T);R.queue.shift();R.streak++;R.cur=null;
+    if(FACTS[T]){const cs=csOf(T);if(cs.bt==null||R.times[T]<cs.bt)cs.bt=Math.round(R.times[T]);cs.ls=todayStr()}
     if(S.weak[T]&&R.times[T]<4000)S.weak[T]=Math.max(0,S.weak[T]-1);
     if(R.variant==="flag")jrMark(T,"f");else if(R.variant==="capital")jrMark(T,"c");
     sndSpeedHit();musUpdate();updateProgress();
@@ -3094,6 +3153,7 @@ function funFacts(id){
   if(f.ld)out.push(`It has no coastline: every border is a land border.`);
   else if(!f.b.length)out.push(`It shares no land border with anyone. It is surrounded by sea.`);
   else if(f.b.length>=6)out.push(`It has ${f.b.length} land neighbours, more than most countries.`);
+  const lmv=((QZ[id]||{}).g||{}).lm;if(lmv)out.splice(1,0,`A famous landmark there: ${[].concat(lmv)[0]}.`);
   return out.slice(0,4);
 }
 function paras(t){return String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean)}
@@ -3526,6 +3586,7 @@ const Q_WORD={
   sea:["Which sea or ocean borders {n}?","{n} has a coast on which of these?"],
   rng:["Which of these is a mountain range, desert or highland region in {n}?","Which of these natural regions lies in {n}?"],
   wond:["Which of these natural wonders or landmarks is found in {n}?","Visitors to {n} might see which of these?"],
+  lm:["Which of these famous landmarks is found in {n}?","Which of these would you go to see in {n}?"],
   cli:["Which climate is most typical of {n}?"],
   pers:["Which of these people is from {n}?","Which of these famous people is linked to {n}?"],
   rel:["What is the main religion in {n}?"],
@@ -3577,7 +3638,7 @@ const QT_YEAR=[
     return qMk(`In which year did this happen: ${e.t}?`,fmtY(e.y),w.map(fmtY),`${fmtY(e.y)}.`,()=>true,r)})
 ];
 const qAuthored=k=>{
-  const types={g:["hi","riv","sea","rng","wond","cli"],c:["pers","rel","grp","hol","spt","art"],f:["dish","drk","stp","des","snk","ing"],h:["frm","emp","ldr"],n:["lng","mng","old","off","who"]}[k];
+  const types={g:["hi","riv","sea","rng","wond","lm","cli"],c:["pers","rel","grp","hol","spt","art"],f:["dish","drk","stp","des","snk","ing"],h:["frm","emp","ldr"],n:["lng","mng","old","off","who"]}[k];
   const out=[];types.forEach(t=>{out.push(qAuth(k,t));if(Q_WORD[t].length>1)out.push(qAuth(k,t))});
   if(k==="h")out.push(...QT_YEAR);
   return out;
@@ -3597,7 +3658,7 @@ const QT={g:[...QT_LAND,...qAuthored("g")],c:[...QT_PEOPLE,...qAuthored("c")],f:
 const EX_T={g:["hi","riv","sea","wond"],c:["rel","spt","pers"],f:["dish","drk","stp","des","snk"],h:["frm","ldr","emp"],n:["lng","mng","off","old","who"]};
 const EX_X={g:["cli"],c:["rel"],f:["ing"],h:["frm"],n:[]};
 const EX_Q={
-  hi:"Name the highest point in {n}.",riv:"Name a major river that flows through {n}.",sea:"Name a sea or ocean that borders {n}.",rng:"Name a mountain range, desert or highland region in {n}.",wond:"Name a natural wonder or famous landmark in {n}.",cli:"Name the climate most typical of {n}.",
+  hi:"Name the highest point in {n}.",riv:"Name a major river that flows through {n}.",sea:"Name a sea or ocean that borders {n}.",rng:"Name a mountain range, desert or highland region in {n}.",wond:"Name a natural wonder or famous landmark in {n}.",lm:"Name a famous landmark in {n}.",cli:"Name the climate most typical of {n}.",
   pers:"Name a famous person from {n}.",grp:"Name a people or ethnic group that lives in {n}.",hol:"Name a holiday or festival celebrated in {n}.",art:"Name a traditional art, music or cultural form of {n}.",spt:"What is the most popular sport in {n}?",rel:"What is the main religion in {n}?",
   dish:"Name a national or signature dish of {n}.",drk:"Name a drink typical of {n}.",stp:"Name a traditional staple food of {n}.",des:"Name a dessert or sweet from {n}.",snk:"Name a snack or street food from {n}.",ing:"Name an ingredient closely linked to the cooking of {n}.",
   ldr:"Name a leader linked to the history of {n}.",emp:"Name an ancient civilisation, empire or kingdom linked to {n}.",frm:"From whom did {n} gain independence?",
@@ -3635,6 +3696,7 @@ function qExam(id,key){
     riv:()=>open("riv",`What is the best-known river in ${n}?`,"riv"),
     area:()=>f.a&&add("area",`About how many square kilometres is ${n}? (a number; within 25%)`,[f.a],{num:f.a,tol:.25,show:fmt(f.a)+" km²"}),
     wond:()=>open("wond",`What is a famous natural wonder or landmark in ${n}?`,"wond"),
+    lm:()=>{const v=[...(list("lm")||[]),...(list("wond")||[])];if(v.length)add("lm",`Name a famous landmark in ${n}.`,v,{open:true})},
     sea:()=>open("sea",`Name a sea or ocean that touches ${n}.`,"sea"),
     cur:()=>f.cur&&add("cur",`What currency does ${n} use?`,[f.cur]),
     rel:()=>{const v=list("rel");if(v)add("rel",`What is the main religion in ${n}?`,v)},
@@ -3661,7 +3723,7 @@ function qExam(id,key){
     old:()=>open("old",`Name a former name of ${n}.`,"old"),
     who:()=>{const v=list("who");if(v)add("who",`After whom, or what, is ${n} named?`,v)}
   };
-  const order={g:["hi","cap","nbr","riv","area","sea","wond"],c:["cur","rel","spt","lang","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
+  const order={g:["hi","cap","nbr","riv","lm","area","sea","wond"],c:["cur","rel","spt","lang","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
   for(const t of order){if(out.length>=5)break;C[t]()}
   for(const t of ["cap","cur","lang","nbr","area"]){if(out.length>=5)break;C[t]()}
   return out.slice(0,5);
@@ -3739,9 +3801,16 @@ function openCountryBook(id,from,opts){
     if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("✏️","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
     mqStart(id,k);
   };
+  const statsLine=()=>{
+    const c=S.cs[id];if(!c||!(c.a||c.bt!=null))return "";const bits=[];
+    if(c.a)bits.push("Asked "+c.a+" time"+(c.a===1?"":"s"),"first try "+Math.round(100*(c.f||0)/c.a)+"%");
+    if(c.ls){const d=new Date(c.ls+"T12:00:00");if(!isNaN(d))bits.push("last seen "+d.toLocaleDateString(undefined,{month:"short",day:"numeric"}))}
+    if(c.bt!=null)bits.push("best race "+(c.bt/1000).toFixed(1)+"s");
+    return el("div",{class:"cbstats",title:bits.join(" · ")},bits.join(" · "));
+  };
   const countryNodes=()=>{
     const j=jrObj(id),lv=jrLevel(id),w=el("div",{class:"learn cbwrap"});w.style.setProperty("--p",`var(--c-${f.r})`);
-    w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl());
+    w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl(),statsLine());
     const tree=mTree(id,j,jrQSecs(id));tree.addEventListener("click",onTree);tree.classList.add("cbtree");w.append(tree);return [w]};
   const readNodes=pg=>{const w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
     const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),pg.t));[pg.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s);return [w]};
@@ -3783,7 +3852,7 @@ function showExamQ(){
   const inp=el("input",{type:"text",placeholder:q.year?"A year, e.g. 1776":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
   let locked=false;
-  const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"").replace(/kmÂ²|km2|sq\.?\s*km|\bkm\b|sq\.?\s*mi(les?)?|\bmiles?\b/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|\d\s*m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
+  const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"").replace(/km²|km2|sq\.?\s*km|\bkm\b|sq\.?\s*mi(les?)?|\bmiles?\b/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|\d\s*m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
   const judge=txt=>q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===+q.accept[0]:q.num?(()=>{const v=exNum(txt);return v!=null&&Math.abs(v-q.num)<=q.num*q.tol})():exMatch(txt,q.accept);
   const settle=(txt,skip)=>{
     if(locked)return;locked=true;inp.disabled=true;form.querySelector("button").disabled=true;
@@ -4023,7 +4092,8 @@ function renderSettings(){
   sh.append(card("Sound",opt("Sound","Master switch for all sound.",toggle(S.sound,v=>setSound(v),"Sound")),
     opt("Master volume","",vol),
     opt("Sound effects","Chimes, drops, paper rustles.",toggle(S.sfx,v=>{S.sfx=v;save();if(v)sndTick()},"Sound effects")),
-    opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music"))));
+    opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music")),
+    navigator.vibrate?opt("Vibration","Short buzzes for hits, misses and Hot & cold.",toggle(S.vib,v=>{S.vib=v;save();if(v)buzz(24)},"Vibration")):null));
   sh.append(fold("Advanced",el("div",{style:"padding-bottom:10px"},opt("Globe engine","Fast uses the GPU. Compatible uses a 2D canvas. Classic is the original look. Changing it reloads the page.",engineSeg()))));
   sh.append(el("div",{class:"qcard"},el("h3",{},"Your save"),
     el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Export save"),el("small",{},"Download your progress as a backup file.")),el("button",{class:"btn",onclick:exportSave},"Export")),
@@ -4524,16 +4594,21 @@ function showHotSheet(){
   });
   sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
+  const day=todayStr(),dr=(S.daily.hot||{})[day];
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));
   sh.append(el("p",{class:"bestline"},`Best in ${hotWhere()}: `+(best?`${best} guess${best===1?"":"es"}`:"none yet")));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
   const hb=S.counts.hotBest||{},rows=ALLR.filter(r=>r!=="United States").map(r=>el("div",{class:"recrow",style:"display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--panel-line)"},el("span",{},r==="World"?"Earth":r==="Americas"?"The Americas":r),el("b",{},hb[r]?hb[r]+" guess"+(hb[r]===1?"":"es"):"\u2014")));
   sh.append(fold("Your records",el("div",{},el("p",{style:"margin:0 0 6px;color:var(--ink-soft);font-size:13px"},`Found ${S.counts.hot||0} hidden countr${(S.counts.hot||0)===1?"y":"ies"} in all. Fewest guesses per area:`),rows)));
   openModal(true);setTimeout(()=>{const b=$("startHot");if(b)b.focus({preventScroll:true})},60);
 }
-function hotStart(){
+const hotDailyTarget=day=>{const ids=playable.map(f=>f.id).filter(id=>byId[id]).sort(),rnd=seeded("hot-"+day);return ids[Math.floor(rnd()*ids.length)]};   // the same country for everyone on a given date
+function hotStart(daily){
   closeModal();
+  daily=daily===true;
+  if(daily&&S.region!=="World"){S.region="World";syncChips();updateProgress()}
   const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
-  $("sil").classList.remove("hotdone");HOT.target=rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  $("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
   silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
@@ -4570,14 +4645,32 @@ function hotFinish(gaveUp){
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
   $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
-  $("silHint").textContent=gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
-  if(!gaveUp){
-    S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save();
-    sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900);
-  }
+  $("silHint").textContent=HOT.daily?(gaveUp?"Come back tomorrow for a new daily.":"Daily done. Play again for a practice game."):gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
+  if(HOT.daily)hotDailyRecord(!gaveUp,n);
+  else if(!gaveUp){S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save()}
+  if(!gaveUp){sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900)}
+  if(HOT.daily)setTimeout(()=>{if(HOT.daily&&HOT.done&&S.mode==="hot"&&!modal.classList.contains("on"))showHotDailyResult(todayStr())},1500);
   hotRender();updateProgress();
 }
-const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
+/* ---- the daily: one hidden country per date, one result, a copyable row of squares ---- */
+function hotMarks(list){
+  return list.map(g=>g.id===HOT.target?"✅":g.nb?"\u{1F7EA}":g.d<600?"\u{1F7E5}":g.d<2000?"\u{1F7E7}":g.d<5000?"\u{1F7E8}":g.d<9000?"\u{1F7E9}":"\u{1F7E6}").join("");
+}
+function hotDailyRecord(win,n){
+  const day=todayStr(),h=S.daily.hot||(S.daily.hot={});if(h[day])return;
+  h[day]={n,win,marks:hotMarks(HOT.list)};
+  if(win){S.daily.hotStreak=S.daily.hotLast===yesterdayStr()?(S.daily.hotStreak||0)+1:S.daily.hotLast===day?(S.daily.hotStreak||1):1;S.daily.hotLast=day}
+  save();
+}
+function hotShare(day){const r=S.daily.hot[day];return `Mapbloom hot & cold ${day}\n${r.marks}\n${r.win?r.n+" guess"+(r.n===1?"":"es"):"gave up after "+r.n} · ${S.daily.hotStreak||0} day streak`}
+function showHotDailyResult(day){
+  const r=S.daily.hot[day];if(!r)return;const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"Daily mystery"),el("p",{},day+" · "+(r.win?"found in "+r.n+" guess"+(r.n===1?"":"es"):"you gave up after "+r.n)),
+    el("div",{class:"share"},hotShare(day)),
+    el("p",{style:"margin-top:10px"},`Streak: ${S.daily.hotStreak||0} day${(S.daily.hotStreak||0)===1?"":"s"}. A new mystery arrives tomorrow.`),
+    el("div",{class:"row"},el("button",{class:"btn primary",onclick:ev=>{copyText(hotShare(day),ev.currentTarget)}},"Copy result"),el("button",{class:"btn",onclick:closeModal},"Close")));
+  openModal();
+}const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
 const US={on:false,data:null,names:[],cap:{},abbr:{},round:null,target:null,painted:new Set(),hl:null,svg:null,loading:null,style:"country"};
 US_RAW.split(";").forEach(x=>{const p=x.split(":");US.names.push(p[0]);US.abbr[p[0]]=p[1];US.cap[p[0]]=p[2]});
 function usLoad(){

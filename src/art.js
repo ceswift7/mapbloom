@@ -182,3 +182,22 @@ function glint(ll,v){
   });
 }
 
+/* a short burst of confetti when a whole region is painted */
+function confetti(region){
+  if(reduced)return;
+  const cv=document.createElement("canvas"),dpr=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.cssText="position:fixed;inset:0;width:100%;height:100%;z-index:45;pointer-events:none";
+  document.body.append(cv);const c=cv.getContext("2d");c.scale(dpr,dpr);
+  const base=region?getComputedStyle(document.documentElement).getPropertyValue("--c-"+region).trim():"",
+    light=base&&d3.color(base)?d3.color(base).brighter(.7).formatHex():"#E06F58",
+    cols=[base||"#6FA27E","#F2D27A","#ffffff",light,"#E06F58"];
+  const ps=d3.range(110).map(()=>{const an=-Math.PI/2+(Math.random()-.5)*1.5,v=7+Math.random()*9;
+    return {x:w/2+(Math.random()-.5)*w*.3,y:h*.72,vx:Math.cos(an)*v,vy:Math.sin(an)*v,r:3+Math.random()*4,rot:Math.random()*6,vr:(Math.random()-.5)*.4,col:cols[Math.floor(Math.random()*cols.length)]}});
+  const t0=performance.now();
+  (function tick(){
+    const k=(performance.now()-t0)/2400;if(k>=1){cv.remove();return}
+    c.clearRect(0,0,w,h);
+    ps.forEach(p=>{p.vy+=.22;p.vx*=.992;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;c.save();c.globalAlpha=Math.max(0,1-Math.pow(k,2.2));c.translate(p.x,p.y);c.rotate(p.rot);c.fillStyle=p.col;c.fillRect(-p.r,-p.r*.5,p.r*2,p.r);c.restore()});
+    requestAnimationFrame(tick);
+  })();
+}

@@ -74,8 +74,9 @@ const PENT=[0,2,4,7,9,12,14,16,19];
 const note=(r,i)=>(ROOT[r]||ROOT.Europe)*Math.pow(2,PENT[i]/12);   // areas such as the Pacific Islands borrow a continent's scale
 
 let sndStreakPrev=0,sndKeyT=0;
+function buzz(p){if(reduced||!S.vib||!S.sfx||!navigator.vibrate)return;try{navigator.vibrate(p)}catch(e){}}   // short haptic pulses on phones that have a motor
 function sndHit(region,first){
-  const c=AC();if(!c)return;const t=c.currentTime+.02,a=Math.floor(Math.random()*4);
+  buzz(first?[14,40,14]:12);const c=AC();if(!c)return;const t=c.currentTime+.02,a=Math.floor(Math.random()*4);
   const st=S.streak||0,up=Math.pow(2,Math.min(5,Math.floor(st/2))*2/12);   // a run of first-try finds climbs the scale, two notes at a time
   sndStreakPrev=st;
   const idx=first?[a,a+1,a+3,a+4]:[a,a+2,a+3];
@@ -83,11 +84,11 @@ function sndHit(region,first){
   if(first)bell(note(region,8)*up,t+.44,.035,2.8);
 }
 function sndHeat(w){   // Hot & cold: the warmer the guess, the higher and brighter the note
-  const c=AC();if(!c)return;const t=c.currentTime+.01,f=196*Math.pow(2,w*1.9);
+  buzz(8+Math.round(w*28));const c=AC();if(!c)return;const t=c.currentTime+.01,f=196*Math.pow(2,w*1.9);
   pluck(f,t,.05+.06*w,1.2);
   if(w>.55){bell(f*2,t+.05,.02+.03*w,1.6);if(w>.8)bell(f*3,t+.1,.03,1.8)}
 }
-function sndBorder(){const c=AC();if(!c)return;const t=c.currentTime+.01;bell(784,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
+function sndBorder(){buzz([18,40,18,40,18]);const c=AC();if(!c)return;const t=c.currentTime+.01;bell(784,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
 function sndKey(){const c=AC();if(!c)return;const n=performance.now();if(n-sndKeyT<45)return;sndKeyT=n;blip(c.currentTime,2300+Math.random()*400,1800,.03,.012,.05)}
 function sndAccept(){const c=AC();if(!c)return;pluck(659.25,c.currentTime,.05,.7,.3)}
 function sndThump(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,130,55,.16,.07,.1);noise(t,.07,{type:"lowpass",f0:600,q:.7,vol:.03,wet:.1})}
@@ -126,18 +127,18 @@ function sndBloom(fast){
   noise(t+.1,1.8*k,{type:"lowpass",f0:600,f1:200,q:.4,vol:.05,attack:.5*k,wet:.4});
   if(!fast)for(let i=0;i<4;i++)blip(t+.5+Math.random()*1.3,1500+Math.random()*1800,900,.09,.012,.6);
 }
-function sndMiss(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1});if(sndStreakPrev>=3)blip(t+.12,340,170,.34,.04,.3);sndStreakPrev=0}   // a broken streak slides down
+function sndMiss(){buzz([30,50,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1});if(sndStreakPrev>=3)blip(t+.12,340,170,.34,.04,.3);sndStreakPrev=0}   // a broken streak slides down
 function sndOcean(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,520,250,.2,.05,.45);noise(t,.3,{f0:500,f1:250,q:.8,vol:.012,wet:.5})}
 function sndShow(){const c=AC();if(!c)return;const t=c.currentTime;[784,659.25,523.25].forEach((f,i)=>bell(f,t+i*.16,.04,2.2))}
 function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,sec),{f0:260,f1:1100,q:.9,vol:.022,attack:sec*.45,wet:.5})}
 function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
 function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
 function sndFlourish(region){
-  const c=AC();if(!c)return;const t=c.currentTime+.05;
+  buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
   [0,1,2,3,4,6].forEach((n,i)=>pluck(note(region,n),t+i*.09,.06,1.8,.6));
   bell(note(region,8),t+.6,.04,3.2);
 }
-function sndBadge(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
+function sndBadge(){buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
 function sndPencil(sec){const c=AC();if(!c)return;const t=c.currentTime;noise(t,Math.max(.5,sec),{f0:2600,f1:4300,q:1.5,vol:.016,attack:.18,wet:.15})}
 function sndPage(){const c=AC();if(!c)return;crackle(c.currentTime,.4,.035);noise(c.currentTime,.5,{f0:900,f1:2600,q:.8,vol:.012,attack:.2,wet:.2});bell(587.33,c.currentTime+.05,.02,1.6)}
 function brushKick(mag){if(!brushG)return;brushTarget=Math.max(brushTarget,Math.min(.02,mag*.0014))}

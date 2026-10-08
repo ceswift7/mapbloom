@@ -108,6 +108,7 @@ function raceHit(T,ll){
   const f=FACTS[T];
   {
     R.times[T]=performance.now()-R.tTarget;R.found.add(T);R.queue.shift();R.streak++;R.cur=null;
+    if(FACTS[T]){const cs=csOf(T);if(cs.bt==null||R.times[T]<cs.bt)cs.bt=Math.round(R.times[T]);cs.ls=todayStr()}
     if(S.weak[T]&&R.times[T]<4000)S.weak[T]=Math.max(0,S.weak[T]-1);
     if(R.variant==="flag")jrMark(T,"f");else if(R.variant==="capital")jrMark(T,"c");
     sndSpeedHit();musUpdate();updateProgress();
@@ -257,6 +258,7 @@ function funFacts(id){
   if(f.ld)out.push(`It has no coastline: every border is a land border.`);
   else if(!f.b.length)out.push(`It shares no land border with anyone. It is surrounded by sea.`);
   else if(f.b.length>=6)out.push(`It has ${f.b.length} land neighbours, more than most countries.`);
+  const lmv=((QZ[id]||{}).g||{}).lm;if(lmv)out.splice(1,0,`A famous landmark there: ${[].concat(lmv)[0]}.`);
   return out.slice(0,4);
 }
 function paras(t){return String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean)}

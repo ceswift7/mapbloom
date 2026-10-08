@@ -41,16 +41,21 @@ function showHotSheet(){
   });
   sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
+  const day=todayStr(),dr=(S.daily.hot||{})[day];
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));
   sh.append(el("p",{class:"bestline"},`Best in ${hotWhere()}: `+(best?`${best} guess${best===1?"":"es"}`:"none yet")));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
   const hb=S.counts.hotBest||{},rows=ALLR.filter(r=>r!=="United States").map(r=>el("div",{class:"recrow",style:"display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--panel-line)"},el("span",{},r==="World"?"Earth":r==="Americas"?"The Americas":r),el("b",{},hb[r]?hb[r]+" guess"+(hb[r]===1?"":"es"):"\u2014")));
   sh.append(fold("Your records",el("div",{},el("p",{style:"margin:0 0 6px;color:var(--ink-soft);font-size:13px"},`Found ${S.counts.hot||0} hidden countr${(S.counts.hot||0)===1?"y":"ies"} in all. Fewest guesses per area:`),rows)));
   openModal(true);setTimeout(()=>{const b=$("startHot");if(b)b.focus({preventScroll:true})},60);
 }
-function hotStart(){
+const hotDailyTarget=day=>{const ids=playable.map(f=>f.id).filter(id=>byId[id]).sort(),rnd=seeded("hot-"+day);return ids[Math.floor(rnd()*ids.length)]};   // the same country for everyone on a given date
+function hotStart(daily){
   closeModal();
+  daily=daily===true;
+  if(daily&&S.region!=="World"){S.region="World";syncChips();updateProgress()}
   const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
-  $("sil").classList.remove("hotdone");HOT.target=rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  $("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
   silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
@@ -87,10 +92,29 @@ function hotFinish(gaveUp){
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
   $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
-  $("silHint").textContent=gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
-  if(!gaveUp){
-    S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save();
-    sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900);
-  }
+  $("silHint").textContent=HOT.daily?(gaveUp?"Come back tomorrow for a new daily.":"Daily done. Play again for a practice game."):gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
+  if(HOT.daily)hotDailyRecord(!gaveUp,n);
+  else if(!gaveUp){S.counts.hot=(S.counts.hot||0)+1;const b=S.counts.hotBest=S.counts.hotBest||{};if(!b[S.region]||n<b[S.region])b[S.region]=n;save()}
+  if(!gaveUp){sndFlourish(S.region==="World"?"Europe":S.region);setTimeout(checkAch,900)}
+  if(HOT.daily)setTimeout(()=>{if(HOT.daily&&HOT.done&&S.mode==="hot"&&!modal.classList.contains("on"))showHotDailyResult(todayStr())},1500);
   hotRender();updateProgress();
+}
+/* ---- the daily: one hidden country per date, one result, a copyable row of squares ---- */
+function hotMarks(list){
+  return list.map(g=>g.id===HOT.target?"✅":g.nb?"\u{1F7EA}":g.d<600?"\u{1F7E5}":g.d<2000?"\u{1F7E7}":g.d<5000?"\u{1F7E8}":g.d<9000?"\u{1F7E9}":"\u{1F7E6}").join("");
+}
+function hotDailyRecord(win,n){
+  const day=todayStr(),h=S.daily.hot||(S.daily.hot={});if(h[day])return;
+  h[day]={n,win,marks:hotMarks(HOT.list)};
+  if(win){S.daily.hotStreak=S.daily.hotLast===yesterdayStr()?(S.daily.hotStreak||0)+1:S.daily.hotLast===day?(S.daily.hotStreak||1):1;S.daily.hotLast=day}
+  save();
+}
+function hotShare(day){const r=S.daily.hot[day];return `Mapbloom hot & cold ${day}\n${r.marks}\n${r.win?r.n+" guess"+(r.n===1?"":"es"):"gave up after "+r.n} · ${S.daily.hotStreak||0} day streak`}
+function showHotDailyResult(day){
+  const r=S.daily.hot[day];if(!r)return;const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"Daily mystery"),el("p",{},day+" · "+(r.win?"found in "+r.n+" guess"+(r.n===1?"":"es"):"you gave up after "+r.n)),
+    el("div",{class:"share"},hotShare(day)),
+    el("p",{style:"margin-top:10px"},`Streak: ${S.daily.hotStreak||0} day${(S.daily.hotStreak||0)===1?"":"s"}. A new mystery arrives tomorrow.`),
+    el("div",{class:"row"},el("button",{class:"btn primary",onclick:ev=>{copyText(hotShare(day),ev.currentTarget)}},"Copy result"),el("button",{class:"btn",onclick:closeModal},"Close")));
+  openModal();
 }

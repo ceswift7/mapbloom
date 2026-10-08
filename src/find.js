@@ -50,6 +50,7 @@ function nextRound(){
   S.target=D.active?D.ids[D.idx]:pickTarget();
   if(S.target==null){S.practice=false;endSession();toast("\u{1F33F}","Nothing left to ask","There is nothing left for this setup. Pick another.");quizIdle();return}
   S.tries=0;S.done=false;warmArt(S.target);
+  if(FACTS[S.target]){const cs=csOf(S.target);cs.a=(cs.a||0)+1;cs.ls=todayStr()}
 
   S.recent.push(S.target);if(S.recent.length>6)S.recent.shift();
   const f=FACTS[S.target];
@@ -121,6 +122,8 @@ function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
+  const lifeB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&S.found.has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]),wasNew=!S.found.has(T);
+  if(first)csOf(T).f=(csOf(T).f||0)+1;
   if(shown){if(RD.active&&!D.active&&!S.practice){RD.ids.add(T);RD.done++;RD.miss.push(T)}if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
   else{
     if(RD.active&&!D.active&&!S.practice){SESS.add(T);S.found.add(T);S.shown.delete(T);RD.ids.add(T);RD.done++;if(first)RD.first++}
@@ -145,8 +148,12 @@ function success(shown,ll){
   if(!shown&&!SESS){
     const th=[.25,.5,.75,1].find(x=>before/total()<x&&after/total()>=x);
     const dr=regB.find(([r,b,t])=>b+1===t);
-    if(dr){big=dr[0];msg+=` That’s all of ${dr[0]==="Americas"?"the Americas":dr[0]} painted.`}
-    else if(th){big=f.r;msg+=th===1?" The whole world is painted.":` A ${th===.25?"quarter":th===.5?"half":"three quarters"} of the world is painted.`}
+    if(dr){big=dr[0];msg+=` That’s all of ${dr[0]==="Americas"?"the Americas":dr[0]} painted.`;setTimeout(()=>confetti(dr[0]),1500)}
+    else if(th){big=f.r;if(th===1)setTimeout(()=>confetti(null),1500);msg+=th===1?" The whole world is painted.":` A ${th===.25?"quarter":th===.5?"half":"three quarters"} of the world is painted.`}
+  }
+  else if(!shown&&wasNew&&S.found.has(T)){   // on a clean round map: your lifetime map still completes a region
+    const lr=lifeB.find(([r,b,t])=>b+1===t);
+    if(lr){big=lr[0];msg+=` That’s all of ${lr[0]==="Americas"?"the Americas":lr[0]} painted on your map.`;setTimeout(()=>confetti(lr[0]),1500)}
   }
   swell($("hint"),msg);
   if(quizOf()!=="country"){$("ask").textContent="That’s";swell($("target"),f.n);$("target").classList.remove("small")}
@@ -205,6 +212,7 @@ function showRoundResult(){
   if(RD.miss.length)sh.append(el("h3",{},"Worth another look"),el("div",{class:"nchips"},RD.miss.map(id=>el("button",{onclick:()=>{closeModal();endSession();setMode("wander");openCountry(id)}},FACTS[id].n))));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{endSession();setMode("wander")}},"Back to Explore"),el("button",{class:"btn",onclick:()=>{sndTick();quizIdle()}},"Change settings"),el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:()=>{sndTick();beginFree()}},"Another round")));
   sndFlourish(S.region==="World"?"Europe":S.region);
+  if(!RD.miss.length&&RD.n>=regionPool().length)setTimeout(()=>confetti(REGIONS.includes(S.region)?S.region:null),500);   // a whole area with nothing revealed
   openModal();
 }
 function leaveDailyOk(){return !D.active||confirm("Leave today’s ten? Your progress in it will be lost.")}

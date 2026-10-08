@@ -95,6 +95,7 @@ const Q_WORD={
   sea:["Which sea or ocean borders {n}?","{n} has a coast on which of these?"],
   rng:["Which of these is a mountain range, desert or highland region in {n}?","Which of these natural regions lies in {n}?"],
   wond:["Which of these natural wonders or landmarks is found in {n}?","Visitors to {n} might see which of these?"],
+  lm:["Which of these famous landmarks is found in {n}?","Which of these would you go to see in {n}?"],
   cli:["Which climate is most typical of {n}?"],
   pers:["Which of these people is from {n}?","Which of these famous people is linked to {n}?"],
   rel:["What is the main religion in {n}?"],
@@ -146,7 +147,7 @@ const QT_YEAR=[
     return qMk(`In which year did this happen: ${e.t}?`,fmtY(e.y),w.map(fmtY),`${fmtY(e.y)}.`,()=>true,r)})
 ];
 const qAuthored=k=>{
-  const types={g:["hi","riv","sea","rng","wond","cli"],c:["pers","rel","grp","hol","spt","art"],f:["dish","drk","stp","des","snk","ing"],h:["frm","emp","ldr"],n:["lng","mng","old","off","who"]}[k];
+  const types={g:["hi","riv","sea","rng","wond","lm","cli"],c:["pers","rel","grp","hol","spt","art"],f:["dish","drk","stp","des","snk","ing"],h:["frm","emp","ldr"],n:["lng","mng","old","off","who"]}[k];
   const out=[];types.forEach(t=>{out.push(qAuth(k,t));if(Q_WORD[t].length>1)out.push(qAuth(k,t))});
   if(k==="h")out.push(...QT_YEAR);
   return out;
@@ -166,7 +167,7 @@ const QT={g:[...QT_LAND,...qAuthored("g")],c:[...QT_PEOPLE,...qAuthored("c")],f:
 const EX_T={g:["hi","riv","sea","wond"],c:["rel","spt","pers"],f:["dish","drk","stp","des","snk"],h:["frm","ldr","emp"],n:["lng","mng","off","old","who"]};
 const EX_X={g:["cli"],c:["rel"],f:["ing"],h:["frm"],n:[]};
 const EX_Q={
-  hi:"Name the highest point in {n}.",riv:"Name a major river that flows through {n}.",sea:"Name a sea or ocean that borders {n}.",rng:"Name a mountain range, desert or highland region in {n}.",wond:"Name a natural wonder or famous landmark in {n}.",cli:"Name the climate most typical of {n}.",
+  hi:"Name the highest point in {n}.",riv:"Name a major river that flows through {n}.",sea:"Name a sea or ocean that borders {n}.",rng:"Name a mountain range, desert or highland region in {n}.",wond:"Name a natural wonder or famous landmark in {n}.",lm:"Name a famous landmark in {n}.",cli:"Name the climate most typical of {n}.",
   pers:"Name a famous person from {n}.",grp:"Name a people or ethnic group that lives in {n}.",hol:"Name a holiday or festival celebrated in {n}.",art:"Name a traditional art, music or cultural form of {n}.",spt:"What is the most popular sport in {n}?",rel:"What is the main religion in {n}?",
   dish:"Name a national or signature dish of {n}.",drk:"Name a drink typical of {n}.",stp:"Name a traditional staple food of {n}.",des:"Name a dessert or sweet from {n}.",snk:"Name a snack or street food from {n}.",ing:"Name an ingredient closely linked to the cooking of {n}.",
   ldr:"Name a leader linked to the history of {n}.",emp:"Name an ancient civilisation, empire or kingdom linked to {n}.",frm:"From whom did {n} gain independence?",
@@ -204,6 +205,7 @@ function qExam(id,key){
     riv:()=>open("riv",`What is the best-known river in ${n}?`,"riv"),
     area:()=>f.a&&add("area",`About how many square kilometres is ${n}? (a number; within 25%)`,[f.a],{num:f.a,tol:.25,show:fmt(f.a)+" km²"}),
     wond:()=>open("wond",`What is a famous natural wonder or landmark in ${n}?`,"wond"),
+    lm:()=>{const v=[...(list("lm")||[]),...(list("wond")||[])];if(v.length)add("lm",`Name a famous landmark in ${n}.`,v,{open:true})},
     sea:()=>open("sea",`Name a sea or ocean that touches ${n}.`,"sea"),
     cur:()=>f.cur&&add("cur",`What currency does ${n} use?`,[f.cur]),
     rel:()=>{const v=list("rel");if(v)add("rel",`What is the main religion in ${n}?`,v)},
@@ -230,7 +232,7 @@ function qExam(id,key){
     old:()=>open("old",`Name a former name of ${n}.`,"old"),
     who:()=>{const v=list("who");if(v)add("who",`After whom, or what, is ${n} named?`,v)}
   };
-  const order={g:["hi","cap","nbr","riv","area","sea","wond"],c:["cur","rel","spt","lang","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
+  const order={g:["hi","cap","nbr","riv","lm","area","sea","wond"],c:["cur","rel","spt","lang","pers","pop"],f:["dish","stp","drk","des","snk","ing"],h:["ind","ev1","ev2","frm","ldr","emp"],n:["lng","mng","off","who","old"]}[key]||[];
   for(const t of order){if(out.length>=5)break;C[t]()}
   for(const t of ["cap","cur","lang","nbr","area"]){if(out.length>=5)break;C[t]()}
   return out.slice(0,5);
@@ -308,9 +310,16 @@ function openCountryBook(id,from,opts){
     if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("✏️","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
     mqStart(id,k);
   };
+  const statsLine=()=>{
+    const c=S.cs[id];if(!c||!(c.a||c.bt!=null))return "";const bits=[];
+    if(c.a)bits.push("Asked "+c.a+" time"+(c.a===1?"":"s"),"first try "+Math.round(100*(c.f||0)/c.a)+"%");
+    if(c.ls){const d=new Date(c.ls+"T12:00:00");if(!isNaN(d))bits.push("last seen "+d.toLocaleDateString(undefined,{month:"short",day:"numeric"}))}
+    if(c.bt!=null)bits.push("best race "+(c.bt/1000).toFixed(1)+"s");
+    return el("div",{class:"cbstats",title:bits.join(" · ")},bits.join(" · "));
+  };
   const countryNodes=()=>{
     const j=jrObj(id),lv=jrLevel(id),w=el("div",{class:"learn cbwrap"});w.style.setProperty("--p",`var(--c-${f.r})`);
-    w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl());
+    w.append(el("div",{class:"cbhead"},FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"",el("div",{class:"cbid"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))),quickDl(),statsLine());
     const tree=mTree(id,j,jrQSecs(id));tree.addEventListener("click",onTree);tree.classList.add("cbtree");w.append(tree);return [w]};
   const readNodes=pg=>{const w=el("div",{class:"learn"});w.style.setProperty("--p",`var(--c-${f.r})`);
     const s=el("section",{style:"border-top:0;margin-top:0;padding-top:0"},el("h3",{},el("span",{class:"dot"}),pg.t));[pg.fn()].flat(Infinity).forEach(n=>{if(n)s.append(n)});w.append(s);return [w]};
@@ -352,7 +361,7 @@ function showExamQ(){
   const inp=el("input",{type:"text",placeholder:q.year?"A year, e.g. 1776":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
   let locked=false;
-  const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"").replace(/kmÂ²|km2|sq\.?\s*km|\bkm\b|sq\.?\s*mi(les?)?|\bmiles?\b/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|\d\s*m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
+  const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"").replace(/km²|km2|sq\.?\s*km|\bkm\b|sq\.?\s*mi(les?)?|\bmiles?\b/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|\d\s*m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};
   const judge=txt=>q.ids?q.ids.some(o=>silCheck(o,txt)):q.year?exYear(txt)===+q.accept[0]:q.num?(()=>{const v=exNum(txt);return v!=null&&Math.abs(v-q.num)<=q.num*q.tol})():exMatch(txt,q.accept);
   const settle=(txt,skip)=>{
     if(locked)return;locked=true;inp.disabled=true;form.querySelector("button").disabled=true;
@@ -592,7 +601,8 @@ function renderSettings(){
   sh.append(card("Sound",opt("Sound","Master switch for all sound.",toggle(S.sound,v=>setSound(v),"Sound")),
     opt("Master volume","",vol),
     opt("Sound effects","Chimes, drops, paper rustles.",toggle(S.sfx,v=>{S.sfx=v;save();if(v)sndTick()},"Sound effects")),
-    opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music"))));
+    opt("Music","The beat in Race mode.",toggle(S.music,v=>{S.music=v;save();if(v){if(AC("mus")&&S.mode==="speed"&&R.phase==="run")startMusic()}else{stopMusic()}},"Music")),
+    navigator.vibrate?opt("Vibration","Short buzzes for hits, misses and Hot & cold.",toggle(S.vib,v=>{S.vib=v;save();if(v)buzz(24)},"Vibration")):null));
   sh.append(fold("Advanced",el("div",{style:"padding-bottom:10px"},opt("Globe engine","Fast uses the GPU. Compatible uses a 2D canvas. Classic is the original look. Changing it reloads the page.",engineSeg()))));
   sh.append(el("div",{class:"qcard"},el("h3",{},"Your save"),
     el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Export save"),el("small",{},"Download your progress as a backup file.")),el("button",{class:"btn",onclick:exportSave},"Export")),

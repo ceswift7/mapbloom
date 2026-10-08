@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    SILHOUETTE QUIZ: the globe is hidden, a shape is shown, the answer is typed
    ====================================================================== */
 const SIL_ALIAS=[["United States","United States of America","USA","US","America"],["United Kingdom","UK","Britain","Great Britain","England"],["Ivory Coast","Cote d’Ivoire","Cote dIvoire"],["Czechia","Czech Republic"],["Myanmar","Burma"],["Eswatini","Swaziland"],["Cabo Verde","Cape Verde"],["Vatican City","Vatican","Holy See"],["DR Congo","Democratic Republic of the Congo","Congo Kinshasa","DRC"],["Republic of the Congo","Congo Brazzaville","Republic of Congo","Congo"],["Timor-Leste","East Timor"],["North Macedonia","Macedonia"],["T\u00FCrkiye","Turkey","Turkiye"],["Palestine","State of Palestine"],["Russia","Russian Federation"],["South Korea","Republic of Korea"],["North Korea","DPRK"],["Laos","Lao PDR"],["Vietnam","Viet Nam"],["Micronesia","Federated States of Micronesia"],["Bahamas","The Bahamas"],["Gambia","The Gambia"],["Brunei","Brunei Darussalam"],["Syria","Syrian Arab Republic"],["Iran","Persia"],["Tanzania","United Republic of Tanzania"],["Moldova","Republic of Moldova"],["Bolivia","Plurinational State of Bolivia"],["Venezuela","Bolivarian Republic of Venezuela"],["S\u00E3o Tom\u00E9 and Pr\u00EDncipe","Sao Tome and Principe","Sao Tome"],["Saint Kitts and Nevis","St Kitts and Nevis","St Kitts"],["Saint Lucia","St Lucia"],["Saint Vincent and the Grenadines","St Vincent and the Grenadines","St Vincent"],["United Arab Emirates","UAE","Emirates"],["Netherlands","Holland"],["Guinea-Bissau","Guinea Bissau"],["Trinidad and Tobago","Trinidad"],["Bosnia and Herzegovina","Bosnia"],["Antigua and Barbuda","Antigua"],["Papua New Guinea","PNG"],["Central African Republic","CAR"],["Marshall Islands","Marshalls"],["Solomon Islands","Solomons"]];
@@ -126,6 +126,7 @@ $("silIn").addEventListener("keydown",e=>{
   $("silSug").innerHTML="";
 });
 $("silIn").addEventListener("input",()=>{sndKey();
+  if(US.on)return;   // the US map suggests states only (main.html); this list is the countries
   const t=silNorm($("silIn").value),ul=$("silSug");ul.innerHTML="";
   if(t.length<2)return;
   const m=Object.keys(FACTS).filter(id=>silNorm(FACTS[id].n).includes(t)).sort((a,b)=>silNorm(FACTS[a].n).startsWith(t)===silNorm(FACTS[b].n).startsWith(t)?0:silNorm(FACTS[a].n).startsWith(t)?-1:1).slice(0,5);

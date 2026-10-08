@@ -383,7 +383,7 @@ function usNameGuess(){
 $("silIn").addEventListener("input",()=>{
   if(!US.on)return;const t=usNorm($("silIn").value),ul=$("silSug");ul.innerHTML="";
   if(t.length<2)return;
-  US.names.filter(n=>usNorm(n).includes(t)).slice(0,5).forEach(n=>ul.append(el("li",{},el("button",{type:"button",onclick:()=>{$("silIn").value=n;ul.innerHTML="";$("silIn").focus()}},n))));
+  US.names.filter(n=>usNorm(n).includes(t)).sort((x,y)=>(usNorm(y).startsWith(t)?1:0)-(usNorm(x).startsWith(t)?1:0)).slice(0,5).forEach(n=>ul.append(el("li",{},el("button",{type:"button",onclick:()=>{$("silIn").value=n;ul.innerHTML="";$("silIn").focus()}},n))));
 },true);
 /* ---- Race: all 50 states against the clock ---- */
 function usRaceNext(){

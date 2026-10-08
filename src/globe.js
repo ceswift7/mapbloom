@@ -95,9 +95,9 @@ svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",sc
 
 /* ---------- rotate-to ---------- */
 let animating=false;
-function flyTo(lonlat,ms=1400,k){
+function flyTo(lonlat,ms=1400,k,maxLat=60){
   const [lon,lat]=lonlat;
-  const r0=projection.rotate(), r1=[-lon,-Math.max(-60,Math.min(60,lat)),0];
+  const r0=projection.rotate(), r1=[-lon,-Math.max(-maxLat,Math.min(maxLat,lat)),0];
   while(r1[0]-r0[0]>180)r1[0]-=360;while(r1[0]-r0[0]<-180)r1[0]+=360;
   const k0=zoomK,k1=k||zoomK;ms*=FX.ts||1;
   if(reduced){projection.rotate(r1);zoomK=k1;syncZoom();render();return Promise.resolve()}

@@ -2198,9 +2198,9 @@ svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",sc
 
 /* ---------- rotate-to ---------- */
 let animating=false;
-function flyTo(lonlat,ms=1400,k){
+function flyTo(lonlat,ms=1400,k,maxLat=60){
   const [lon,lat]=lonlat;
-  const r0=projection.rotate(), r1=[-lon,-Math.max(-60,Math.min(60,lat)),0];
+  const r0=projection.rotate(), r1=[-lon,-Math.max(-maxLat,Math.min(maxLat,lat)),0];
   while(r1[0]-r0[0]>180)r1[0]-=360;while(r1[0]-r0[0]<-180)r1[0]+=360;
   const k0=zoomK,k1=k||zoomK;ms*=FX.ts||1;
   if(reduced){projection.rotate(r1);zoomK=k1;syncZoom();render();return Promise.resolve()}
@@ -3516,18 +3516,25 @@ function exploreFit(id,ms){
   const top=promptBottom+6,bot=H-58,tx=visW/2,ty=(top+bot)/2,availW=visW*.84,availH=(bot-top)*.84,gx=W/2,gy=cy();
   let R=baseScale*zoomK;const rot=projection.rotate().slice(),pr=d3.geoOrthographic().clipAngle(90).translate([gx,gy]),path=d3.geoPath(pr);
   rot[0]=-L;rot[1]=-B;
-  for(let it=0;it<10;it++){
+  const D2R=Math.PI/180,clampLat=v=>Math.max(-78,Math.min(78,v));
+  let fin=null;
+  for(let it=0;it<40;it++){
     pr.scale(R).rotate([rot[0],rot[1],0]);
-    const p=pr(c0);if(!p)break;
-    rot[0]+=((tx-p[0])/(R*Math.max(.2,Math.cos(B*Math.PI/180))))*180/Math.PI;
-    rot[1]-=((ty-p[1])/R)*180/Math.PI;
-    pr.rotate([rot[0],rot[1],0]);
+    // centre the middle of the country's outline as drawn (not its centroid, which sits off-centre for sprawling countries like Russia, Canada and the US)
     const b=path.bounds(shape),w=b[1][0]-b[0][0],h=b[1][1]-b[0][1];
-    if(isFinite(w)&&isFinite(h)&&w>1&&h>1)R=Math.max(baseScale,Math.min(baseScale*8,R*Math.pow(Math.min(availW/w,availH/h),.85)));
+    let bx=(b[0][0]+b[1][0])/2,by=(b[0][1]+b[1][1])/2;
+    if(!isFinite(bx)||!isFinite(by)||!(w>1)||!(h>1)){const p=pr(c0);if(!p)break;bx=p[0];by=p[1]}
+    const q=pr.invert([bx,by]),qlat=q?q[1]:B;
+    rot[0]+=Math.max(-25,Math.min(25,.8*((tx-bx)/(R*Math.max(.35,Math.cos(qlat*D2R))))/D2R));   // damped and capped: near the poles a pixel is many degrees of longitude
+    rot[1]=clampLat(rot[1]-Math.max(-20,Math.min(20,.8*((ty-by)/R)/D2R)));
+    rot[0]=Math.max(-L-55,Math.min(-L+55,rot[0]));rot[1]=Math.max(-B-35,Math.min(-B+35,rot[1]));   // never wander far from the country itself: one wider than the visible half-globe (Russia) cannot be centred exactly, so it stays centred on its middle
+    pr.rotate([rot[0],rot[1],0]);
+    const b2=path.bounds(shape),w2=b2[1][0]-b2[0][0],h2=b2[1][1]-b2[0][1];
+    if(isFinite(w2)&&isFinite(h2)&&w2>1&&h2>1){R=Math.max(baseScale,Math.min(baseScale*8,R*Math.pow(Math.min(availW/w2,availH/h2),.85)));fin=[(b2[0][0]+b2[1][0])/2,(b2[0][1]+b2[1][1])/2,w2,h2]}
   }
   const kk=Math.max(1,Math.min(8,R/baseScale));
-  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk);
-  return {lon:-rot[0],lat:-rot[1],k:kk};
+  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,85);
+  return {lon:-rot[0],lat:-rot[1],k:kk,fin,target:[tx,ty,availW,availH]};
 }
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");

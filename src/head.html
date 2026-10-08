@@ -837,7 +837,7 @@ details.fold[open]>summary::after{content:"\2013"}
 /* ---- phones (Safari/iOS): additive rules only; desktop rules above are untouched ---- */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{touch-action:manipulation}
-@supports (height:100dvh){.sheet{max-height:min(88dvh,740px)}}
+@supports (height:100dvh){.sheet{max-height:min(88dvh,740px,calc(100dvh - var(--kb,0px) - 16px))}}
 @media (max-width:720px){
   .sil{place-items:start center;padding-top:24px}
   #silSvg{max-height:30vh}

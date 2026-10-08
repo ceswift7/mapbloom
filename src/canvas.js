@@ -271,7 +271,7 @@ function haloDraw(c,s){
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  haloDraw(c,s);capDraw(c,s);
+  haloDraw(c,s);eezDraw(c);capDraw(c,s);
   if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null&&!BLOOMOUT.size)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
@@ -364,7 +364,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);capDraw(c,s);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);eezDraw(c);capDraw(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){
@@ -375,7 +375,7 @@ function hitCountry(ll){
     if(d3.geoDistance(ll,c)>f._r+.01)continue;
     if(d3.geoContains(f,ll))best=f;
   }
-  return best;
+  return best||eezHit(ll);   // open water inside a Pacific country's maritime zone counts as that country
 }
 
 let W=0,H=0,baseScale=1,zoomK=1,stageTop=0,stageLeft=0,lodLvl=0;

@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 (function(){
 const REGIONS=["Africa","Americas","Asia","Europe","Oceania"];
 const AREAS=["Pacific Islands","Antilles","United States"],ALLR=["World",...REGIONS,...AREAS];   // areas: island groups and the 50 states
@@ -221,6 +221,7 @@ const paths=gCountries.selectAll("path").data(features).join("path")
 const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
 
 /*@include canvas.js*/
+/*@include eez.js*/
 /*@include globe.js*/
 /*@include sound.js*/
 /*@include art.js*/

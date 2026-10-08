@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    ACHIEVEMENTS + TOASTS
    ====================================================================== */
 const regDone=r=>playable.filter(f=>inReg(f.id,r)).every(f=>S.found.has(f.id));
@@ -97,6 +97,7 @@ function renderAbout(){
   sh.append(closeBtn(),el("h2",{},"About Mapbloom"),el("p",{},"A quiet way to learn the world: find a place, read about it, and watch it bloom on the map."),
     el("div",{class:"qcard"},el("h3",{},"Credits"),
       el("p",{},"Country texts are adapted from Wikipedia (CC BY-SA 4.0). Facts such as population come from Wikidata (CC0)."),
+      el("p",{},"Maritime zones of the Pacific island countries: Flanders Marine Institute (2024), Union of the ESRI Country shapefile and the Exclusive Economic Zones (v4), CC BY 4.0, doi.org/10.14284/698, simplified."),
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));

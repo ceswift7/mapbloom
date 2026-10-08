@@ -338,7 +338,7 @@ function fitCompute(id){
   // a country too wide to be centred in the free area (Russia) is aimed a little nearer the middle of the screen until it fits whole
   for(const frac of [0,.5,.8,1]){
     tx=tx0+(gx-tx0)*frac;let bestScore=1e18,warm=[-L,-B],cand=null,cR=baseScale;
-    for(let z=baseScale*8;z>=baseScale*.999;z/=1.09){
+    for(let z=baseScale*32;z>=baseScale*.999;z/=1.09){
       const r=at(z,warm);if(r.hidden<fit.pts.length)warm=r.rot;
       if(ok(r)){cand=r;cR=z;found=true;break}
       const sc=Math.max(0,r.w-availW)+Math.max(0,r.h-availH)+Math.abs(r.ex)+Math.abs(r.ey)+r.hidden*40;
@@ -347,7 +347,7 @@ function fitCompute(id){
     if(!first)first={cand,cR};
     if(found){best=cand;R=cR;break}
   }
-  if(!found){best=first.cand;R=first.cR;tx=tx0}  const rot=best.rot,kk=Math.max(1,Math.min(8,R/baseScale));
+  if(!found){best=first.cand;R=first.cR;tx=tx0}  const rot=best.rot,kk=Math.max(1,Math.min(32,R/baseScale));
   return {lon:-rot[0],lat:-rot[1],k:kk,fin:[tx-best.ex,ty-best.ey,best.w,best.h],hidden:best.hidden,target:[tx0,ty,availW,availH]};
 }
 $("learnBtn").onclick=()=>{

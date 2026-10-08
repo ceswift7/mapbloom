@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
    each island is big enough to tap. Tiny countries outside a group get a beacon.
    ====================================================================== */
@@ -52,7 +52,7 @@ let lastT=d3.zoomIdentity, idleTimer=null, drifting=!reduced;
 let movT=null,moving=false,rq=false;
 function requestRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;render()})}
 function markMoving(){if(!moving){moving=true;svg.classed("moving",true);}clearTimeout(movT);movT=setTimeout(()=>{moving=false;svg.classed("moving",false);render();saveViewSoon()},170)}
-const zoom=d3.zoom().scaleExtent([.8,8]).clickDistance(5)
+const zoom=d3.zoom().scaleExtent([.8,32]).clickDistance(5)
   .on("start",()=>{stopDrift()})
   .on("zoom",e=>{
     const t=e.transform;

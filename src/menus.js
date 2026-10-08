@@ -50,7 +50,7 @@ function closeBtn(){return el("button",{class:"icon-btn x closebtn","aria-label"
 function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
 window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
 let modalOpener=null;
-function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").onclick=null;$("sheet").classList.toggle("book",book==="book");$("sheet").classList.toggle("compact",book==="compact");modal.classList.toggle("compact",book==="compact");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").onclick=null;$("sheet").classList.toggle("book",book==="book");$("sheet").classList.toggle("compact",book==="compact");$("sheet").classList.toggle("tour",book==="tour");modal.classList.toggle("compact",book==="compact");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
 /* ---- the reading window: the country's pages beside the mastery path, closed whenever a quiz or exam starts so answers stay from memory ---- */
 let rdWin=null;
 function closeReader(){modal.classList.remove("rd");if(rdWin){rdWin.remove();rdWin=null;jrReset()}}
@@ -86,12 +86,67 @@ function renderMenu(){
   const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
   sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
     el("div",{class:"qcard mrows"},
+      row("sparkle","How to play","A quick tour of the game and everything in it.",renderTour),
       row("home","Home","Back to Explore with the whole globe in view.",goHome),
       row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
       row("gear","Settings","Sound, theme, units, vibration and your save.",renderSettings),
       row("info","About","Where the facts, flags and maps come from.",renderAbout)));
   openModal();
 }
+/* ---------- the tour: a short, layered guide. Level 1 = the big ideas, level 2 = the four ways to play (tap to open), level 3 = what each one does ---------- */
+const TOUR_KEY="mb-tour-seen";
+const tourSeen=()=>{try{return localStorage.getItem(TOUR_KEY)==="1"}catch(e){return true}};
+function tourMark(){try{localStorage.setItem(TOUR_KEY,"1")}catch(e){}document.body.classList.remove("newbie")}
+function renderTour(){
+  const sh=$("sheet");sh.innerHTML="";tourMark();
+  const sec=(n,title,sub,...kids)=>el("section",{class:"tsec"},el("div",{class:"thead"},el("span",{class:"tnum"},String(n)),el("div",{},el("h3",{},title),sub?el("p",{class:"tsub"},sub):null)),...kids);
+  const bullets=list=>el("ul",{class:"tul"},...list.map(t=>el("li",{},t)));
+  const item=(color,ic,title,sub,list,open)=>{
+    const d=el("details",{class:"titem",name:"tourplay",style:"--c:"+color},
+      el("summary",{},el("span",{class:"tic",html:svgIcon(ic)}),el("span",{class:"tt"},el("b",{},title),el("small",{},sub)),el("span",{class:"tch",html:svgIcon("chevd")})),
+      bullets(list));
+    if(open)d.open=true;return d;
+  };
+  const mini=(ic,t)=>el("span",{class:"tchip"},el("span",{class:"csi",html:svgIcon(ic)}),t);
+  sh.append(closeBtn(),el("h2",{},"Welcome to Mapbloom"),el("p",{class:"modesub"},"A quiet way to learn the world. Find places on a globe, read about them, and watch each one bloom in colour on your map."),
+    sec(1,"Get around","The globe is the whole game.",bullets([
+      "Drag to turn the globe. Scroll, pinch or press + and − to zoom.",
+      "Tap any country for its card: flag, capital and quick facts.",
+      "The chips along the bottom fly you to a region. “Take me somewhere” picks a place for you.",
+      "Across the top: the four ways to play. At the top right: your Journal, light or dark mode, and the Menu."])),
+    sec(2,"Four ways to play","Tap one to see what it does.",
+      item("#6FA27E","compass","Explore","No pressure. Tap, read, wander.",[
+        "Open any country, then “Explore this country” for its full page: the land, people, food, history and the story of its name.",
+        "The capital is marked on the map, and the globe zooms to fit the whole country.",
+        "Countries you have found are painted in, in their region’s colour."],true),
+      item("#E06F58","locate","Quiz","Find it, name it.",[
+        "Choose what to find: Locate, Flag, Capital, Name it (typos are forgiven) or Silhouette.",
+        "Pick a region, from the whole Earth down to the Pacific Islands, the Antilles or the US states, and a round of 10, 20 or the whole region.",
+        "Stuck? “Show me” gives a ladder of hints before it reveals the answer.",
+        "Also in the full menu: Today’s ten (the same for everyone), Neighbour chains, and practice for your weak spots."]),
+      item("#2D86FF","timer","Race","Beat the clock.",[
+        "Find as many as you can. Every wrong tap costs 2 seconds, and there are no hints.",
+        "Race by Locate, Flag, Capital, Name it or Silhouette.",
+        "End a race early and your result is scored fairly, even if you skipped some.",
+        "Your best times are kept for each region."]),
+      item("#E0802F","hot","Hot & cold","Follow the temperature.",[
+        "A country is hidden. Guess one and the closer you are, the hotter it glows.",
+        "A guess that borders the answer is flagged for you.",
+        "Type a name or tap the globe. Best-guess records are kept per region."])),
+    sec(3,"Learn as you go","Every country has a path to mastery.",bullets([
+      "Each country page tracks Located, Capital and Flag, then quizzes on each reading page, then an exam.",
+      "Studied and mastered countries earn marks in your Journal."])),
+    sec(4,"Your Journal","The book icon, top right.",el("div",{class:"tchips"},mini("rall","Atlas: every country, by region"),mini("star","Stamps: achievements"),mini("chain","Expeditions: themed sets"),mini("practice","Mastery: your progress"))),
+    sec(5,"Good to know","",bullets([
+      "Small island nations in the Pacific and the Antilles have a dashed sea zone. Tap anywhere inside it.",
+      "Menu → Settings: sound, theme, miles or kilometres, vibration, graphics quality, and saving or restoring your progress.",
+      "Everything is saved on this device only. You can reopen this tour any time from the Menu."])),
+    el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",type:"button",id:"tourGo",style:"width:auto;min-width:160px",onclick:()=>{sndTick();closeModal()}},"Got it, let’s explore")));
+  openModal("tour");
+  setTimeout(()=>{const b=$("tourGo");if(b)b.focus({preventScroll:true})},80);
+}
+if(!tourSeen())document.body.classList.add("newbie");
+$("tourBtn").onclick=()=>{if(guardRace())return;sndTick();renderTour()};
 function renderAbout(){
   const sh=$("sheet");sh.innerHTML="";
   sh.append(closeBtn(),el("h2",{},"About Mapbloom"),el("p",{},"A quiet way to learn the world: find a place, read about it, and watch it bloom on the map."),
@@ -170,6 +225,9 @@ const ICONS={
   autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>',
   home:'<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
   book:'<path d="M2 4h6a4 4 0 014 4v13a3 3 0 00-3-3H2zM22 4h-6a4 4 0 00-4 4v13a3 3 0 013-3h7z"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  timer:'<circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V9.5M9.5 3h5"/>',
+  star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   chevd:'<path d="M6 9l6 6 6-6"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',

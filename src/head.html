@@ -203,7 +203,7 @@ body.introing{--gr:0px}   /* no thinned-grain hole over the globe while the open
 .intro-skip{position:absolute;right:20px;bottom:18px;font:13px var(--sans);color:var(--ink-faint);background:none;border:0;cursor:pointer;z-index:2}
 .intro-skip[hidden]{display:none}
 /* while the opening plays the game waits underneath */
-body.introing .app header,body.introing .app footer,body.introing .app .prompt,body.introing .app .tms{opacity:0;pointer-events:none}
+body.introing .app header,body.introing .app footer,body.introing .app .prompt,body.introing .app .tms,body.introing .app .tourbtn{opacity:0;pointer-events:none}
 body.introing:not(.introglobe) #globe{animation:none;opacity:0}
 body.introing #globe{pointer-events:none}
 body.introing #globe .beacon,body.introing #globe .beaconhit{opacity:0 !important}
@@ -334,6 +334,37 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .tms{position:absolute;left:16px;top:10px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 14px 0 11px;border-radius:999px;border:0;background:var(--mode-acc);color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 14px -8px var(--mode-acc);transition:filter .2s ease,opacity .3s ease}
 .tms svg{width:15px;height:15px;flex:none}
 .tms:hover{filter:brightness(1.07)}
+.tourbtn{position:absolute;left:16px;top:46px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 13px 0 10px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--panel-line));background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .9s ease}
+.tourbtn svg{width:15px;height:15px;flex:none}
+.tourbtn:hover{border-color:var(--ink);background:color-mix(in srgb,var(--paper) 95%,transparent)}
+body.newbie .app.wander .tourbtn{display:inline-flex}
+.app.tmsrun .tourbtn{opacity:.45;pointer-events:none}
+/* the tour sheet: three levels of weight, big ideas, the four modes, then the details */
+.sheet.tour{width:min(600px,calc(100% - 24px));overflow-x:hidden}
+.sheet.tour h2{padding-right:96px}
+.tsec{margin:20px 0 0}
+.thead{display:flex;gap:12px;align-items:flex-start;margin:0 0 8px}
+.tnum{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:600 13px var(--sans);margin-top:2px}
+.thead h3{margin:0;font-family:var(--serif);font-style:normal;font-weight:500;font-size:20px;line-height:1.2}
+.thead .tsub{margin:1px 0 0;font-size:13px;color:var(--ink-faint)}
+.tul{margin:0 0 0 38px;padding:0;list-style:none}
+.tul li{position:relative;padding:3px 0 3px 16px;font-size:14px;line-height:1.45;color:var(--ink-soft)}
+.tul li::before{content:"";position:absolute;left:0;top:.85em;width:5px;height:5px;border-radius:50%;background:var(--ink-faint)}
+.titem{margin:8px 0 0 38px;border:1px solid var(--panel-line);border-left:4px solid var(--c);border-radius:12px;background:color-mix(in srgb,var(--ink) 4%,transparent);overflow:hidden}
+.titem summary{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;list-style:none}
+.titem summary::-webkit-details-marker{display:none}
+.titem .tic{flex:none;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c);display:grid;place-items:center}
+.titem .tic svg,.tchip svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.titem .tt{flex:1;min-width:0}
+.titem .tt b{display:block;font-size:15px;font-weight:600}
+.titem .tt small{display:block;font-size:12.5px;color:var(--ink-soft)}
+.titem .tch svg{width:18px;height:18px;fill:none;stroke:var(--ink-faint);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s var(--ease)}
+.titem[open] .tch svg{transform:rotate(180deg)}
+.titem .tul{margin:0 12px 10px 58px}
+.tchips{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 0 38px}
+.tchip{display:flex;align-items:center;gap:8px;font-size:12.5px;line-height:1.3;color:var(--ink-soft);border:1px solid var(--panel-line);border-radius:10px;padding:8px 10px}
+.tchip .csi{flex:none;color:var(--ink)}
+@media (max-width:520px){.tul,.titem,.tchips{margin-left:0}.titem .tul{margin-left:12px}.tchips{grid-template-columns:1fr}.sheet.tour h2{padding-right:80px}}
 .app.wander .tms{display:inline-flex}
 .app.tmsrun .tms{opacity:.45;pointer-events:none}
 .brief{position:absolute;left:50%;bottom:16px;z-index:6;width:min(380px,calc(100% - 24px));padding:14px 20px 16px;border-radius:16px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 18px 40px -22px var(--paper-shadow);opacity:0;transform:translate(-50%,18px);pointer-events:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
@@ -1061,6 +1092,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       </div>
     </div>
 
+    <button class="tourbtn" id="tourBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.2M12 16.8v.2"/></svg><span>New here? Take the tour</span></button>
     <button class="tms" id="tmsBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Take me somewhere</span></button>
     <aside class="brief" id="brief" aria-live="polite">
       <button class="tbtn bclose" id="briefClose" type="button" title="Cancel this trip">Not now</button>

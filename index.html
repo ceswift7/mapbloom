@@ -324,7 +324,11 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .app.tmsrun .tms{opacity:.45;pointer-events:none}
 .brief{position:absolute;left:50%;bottom:16px;z-index:6;width:min(380px,calc(100% - 24px));padding:14px 20px 16px;border-radius:16px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 18px 40px -22px var(--paper-shadow);opacity:0;transform:translate(-50%,18px);pointer-events:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
 .brief.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.brief .bclose{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;color:var(--ink-faint)}
+.brief .tbtn.bclose{position:absolute;right:12px;top:10px;width:auto;height:auto;border-radius:8px;padding:4px 8px;font-size:12.5px;color:var(--ink-faint)}
+.beyebrow{margin:0 0 4px;font:600 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+.bhead{display:flex;align-items:center;gap:12px}
+.bflag{width:42px;max-height:30px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18),0 6px 12px -6px var(--paper-shadow);transform:rotate(-2.5deg)}
+.bflag[hidden]{display:none}
 .brief h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;margin:0 30px 8px 0;line-height:1.15}
 .bfacts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
 .bfacts dt{color:var(--ink-faint)}
@@ -418,7 +422,8 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .speed .speed-prompt{display:block}
 
 /* speed HUD */
-.sp-top{display:flex;align-items:baseline;justify-content:space-between;gap:20px;width:min(270px,80vw);margin:0 auto 0}
+.sp-top{display:flex;align-items:baseline;justify-content:center;margin:0 auto 0}
+.sp-count{display:none}
 .sp-lab{font:600 11px var(--mono);letter-spacing:.22em;color:var(--accent);text-shadow:var(--tsh)}
 .sp-clock{display:flex;align-items:baseline;justify-content:center;gap:10px;margin-bottom:2px}
 .sp-time{font-family:var(--mono);font-weight:700;font-size:clamp(28px,5vw,40px);letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb,var(--accent) 55%,transparent)}
@@ -453,6 +458,8 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .card.on{transform:none;opacity:1;pointer-events:auto}
 .card.big{width:min(460px,calc(100% - 24px))}
 .cardhead{flex:none}
+.chero{margin:-18px -20px 12px;height:92px;border-radius:15px 15px 0 0;overflow:hidden;border-bottom:1px solid var(--panel-line);background:radial-gradient(110% 150% at 28% 12%,color-mix(in srgb,var(--cp,var(--c-Europe)) 24%,transparent),transparent 72%),color-mix(in srgb,var(--ink) 4%,transparent)}
+.chero canvas{display:block;width:100%;height:100%;object-fit:contain}
 .cardbody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 18px 0;scrollbar-width:thin;scrollbar-color:var(--panel-line) transparent}
 .card .top{display:flex;align-items:center;gap:14px;padding-right:28px}
 .card .flag{font-size:26px;line-height:1}
@@ -855,6 +862,8 @@ details.fold[open]>summary::after{content:"\2013"}
   .card .where{margin-bottom:8px}
   .card .note{margin-top:8px;font-size:14px}
   .card .flagimg{width:48px}
+  .chero{margin:-12px -14px 10px;height:76px}
+  .card.peek .chero{display:none}
   .card,.card.big{left:10px;right:10px;width:auto;bottom:8px;padding:12px 14px 0;max-height:min(82%,640px)}
   .card .cardmore{display:grid}
   .card:not(.peek) .cardmore svg{transform:rotate(180deg)}
@@ -983,15 +992,17 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 
     <button class="tms" id="tmsBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Take me somewhere</span></button>
     <aside class="brief" id="brief" aria-live="polite">
-      <button class="icon-btn bclose" id="briefClose" aria-label="Close" style="border:0;background:none">&#10005;</button>
-      <h3 id="briefWhere"></h3>
+      <button class="tbtn bclose" id="briefClose" type="button" title="Cancel this trip">Not now</button>
+      <p class="beyebrow" id="briefEye">Flying to</p>
+      <div class="bhead"><img class="bflag" id="briefFlag" alt="" hidden><h3 id="briefWhere"></h3></div>
       <dl class="bfacts" id="briefFacts"></dl>
-      <div class="brow"><button class="btn primary" id="briefGo" type="button" disabled>Explore</button><button class="chip" id="briefAgain" type="button">Somewhere else</button></div>
+      <div class="brow"><button class="btn primary" id="briefGo" type="button" disabled>Explore</button><button class="btn" id="briefAgain" type="button">Somewhere else</button></div>
     </aside>
     <aside class="card" id="card" aria-live="polite">
       <button class="cardmore icon-btn" id="cardMore" aria-label="Show details" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
       <button class="close icon-btn" id="cardClose" aria-label="Close" style="border:0;background:none">✕</button>
       <div class="cardhead">
+        <div class="chero" aria-hidden="true"><canvas id="cPaint"></canvas></div>
         <div class="top"><img class="flagimg" id="cFlagImg" alt="" hidden><span class="flag" id="cFlag"></span><div class="tname"><h2 id="cName"></h2><div class="tsub" id="cSub"></div></div></div>
         <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden>✓ read</span></p>
         <button class="jrbtn" id="cJr" type="button" aria-label="Mastery"></button>
@@ -3233,6 +3244,21 @@ function showResults(tot,isBest,prev,ended){
    ====================================================================== */
 let cardId=null;
 const restart=e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""};
+/* the card's picture: the country's outline, filled with its own painting once you have found it */
+function cardPaint(id){
+  const cv=$("cPaint");if(!cv)return;
+  const dpr=Math.min(2,window.devicePixelRatio||1),w=440,h=92;
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+  const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  try{
+    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[w/2-130,8],[w/2+130,h-8]],feat),path=d3.geoPath(proj,c);
+    const f=FACTS[id],cs=getComputedStyle(document.documentElement),dark=cs.getPropertyValue("--c-"+f.r+"-d").trim()||"#555",mid=cs.getPropertyValue("--c-"+f.r).trim()||"#999",found=S.found.has(id)||S.shown.has(id);
+    let fill=null;if(found&&FX.tiles){try{const key=ensureArt(id),tile=artCv[key];if(tile)fill=c.createPattern(tile,"repeat")}catch(e){}}
+    c.beginPath();path(feat);
+    if(found){c.globalAlpha=.95;c.fillStyle=fill||mid;c.fill();c.globalAlpha=1;c.lineWidth=1.1;c.strokeStyle=dark;c.stroke()}
+    else{c.globalAlpha=.14;c.fillStyle=cs.getPropertyValue("--ink").trim()||"#333";c.fill();c.globalAlpha=1;c.lineWidth=1.2;c.setLineDash([4,3]);c.strokeStyle=cs.getPropertyValue("--ink-soft").trim()||"#555";c.stroke();c.setLineDash([])}
+  }catch(e){}
+}
 function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
@@ -3240,6 +3266,7 @@ function showCard(id,keepOpen){
   if(src){img.src=src;img.alt=`Flag of ${f.n}`;img.hidden=false;$("cFlag").hidden=true}
   else{img.hidden=true;img.removeAttribute("src");$("cFlag").hidden=false;$("cFlag").textContent=f.f}
   $("cName").textContent=f.n;jrRow(id);
+  {const hero=document.querySelector("#card .chero");if(hero)hero.style.setProperty("--cp","var(--c-"+f.r+")")}cardPaint(id);
   $("cSub").textContent=[f.cap,f.s||f.r].filter(Boolean).join(" \u00B7 ");
   $("cSwatch").style.background=`var(--c-${f.r})`;
   $("cWhere").textContent=f.s||f.r;
@@ -3454,7 +3481,7 @@ async function tmsGo(){
   hideCard();
   const id=tmsPick(),f=FACTS[id],L=LEARN[id]||{},from=projection.invert([W/2,cy()])||[0,0],me={id,phase:"fly",cancel:false};
   tms=me;$("app").classList.add("tmsrun");
-  $("briefGo").disabled=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
+  $("briefGo").disabled=true;$("briefEye").textContent="Flying to";$("briefFlag").hidden=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
   const dl=$("briefFacts");dl.innerHTML="";
   const rows=[];
   if(f.cap)rows.push(["Capital",f.cap]);
@@ -3466,7 +3493,9 @@ async function tmsGo(){
   rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*650));
   await tmsFly(LL(id),ms,f.a<30000?2.4:1.6);
   if(tms!==me)return;
-  me.phase="brief";$("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
+  me.phase="brief";$("briefEye").textContent="You landed in";$("briefWhere").textContent=f.n;
+  {const bf=$("briefFlag");if(FLAGS[id]){bf.src=FLAGS[id];bf.hidden=false}}
+  $("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
 }
 $("tmsBtn").onclick=()=>{sndTick();tmsGo()};
 $("briefClose").onclick=()=>{if(tms)tms.cancel=true;tms=null;briefHide()};
@@ -3475,7 +3504,7 @@ $("briefGo").onclick=()=>{
   if(!tms||tms.phase!=="brief")return;
   const id=tms.id;tms=null;briefHide();
   if(S.found.has(id)){showCard(id);return}
-  startReveal(id,LL(id),false,()=>{S.found.add(id);S.shown.delete(id);updateProgress();save();paint();setTimeout(checkAch,600)},false);
+  startReveal(id,LL(id),false,()=>{S.found.add(id);S.shown.delete(id);updateProgress();save();paint();if(cardId===id)cardPaint(id);setTimeout(checkAch,600)},false);
   setTimeout(()=>{if(S.mode==="wander")showCard(id)},reduced?0:1300);
 };
 

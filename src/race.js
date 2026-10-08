@@ -205,6 +205,21 @@ function showResults(tot,isBest,prev,ended){
    ====================================================================== */
 let cardId=null;
 const restart=e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""};
+/* the card's picture: the country's outline, filled with its own painting once you have found it */
+function cardPaint(id){
+  const cv=$("cPaint");if(!cv)return;
+  const dpr=Math.min(2,window.devicePixelRatio||1),w=440,h=92;
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+  const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  try{
+    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[w/2-130,8],[w/2+130,h-8]],feat),path=d3.geoPath(proj,c);
+    const f=FACTS[id],cs=getComputedStyle(document.documentElement),dark=cs.getPropertyValue("--c-"+f.r+"-d").trim()||"#555",mid=cs.getPropertyValue("--c-"+f.r).trim()||"#999",found=S.found.has(id)||S.shown.has(id);
+    let fill=null;if(found&&FX.tiles){try{const key=ensureArt(id),tile=artCv[key];if(tile)fill=c.createPattern(tile,"repeat")}catch(e){}}
+    c.beginPath();path(feat);
+    if(found){c.globalAlpha=.95;c.fillStyle=fill||mid;c.fill();c.globalAlpha=1;c.lineWidth=1.1;c.strokeStyle=dark;c.stroke()}
+    else{c.globalAlpha=.14;c.fillStyle=cs.getPropertyValue("--ink").trim()||"#333";c.fill();c.globalAlpha=1;c.lineWidth=1.2;c.setLineDash([4,3]);c.strokeStyle=cs.getPropertyValue("--ink-soft").trim()||"#555";c.stroke();c.setLineDash([])}
+  }catch(e){}
+}
 function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
@@ -212,6 +227,7 @@ function showCard(id,keepOpen){
   if(src){img.src=src;img.alt=`Flag of ${f.n}`;img.hidden=false;$("cFlag").hidden=true}
   else{img.hidden=true;img.removeAttribute("src");$("cFlag").hidden=false;$("cFlag").textContent=f.f}
   $("cName").textContent=f.n;jrRow(id);
+  {const hero=document.querySelector("#card .chero");if(hero)hero.style.setProperty("--cp","var(--c-"+f.r+")")}cardPaint(id);
   $("cSub").textContent=[f.cap,f.s||f.r].filter(Boolean).join(" \u00B7 ");
   $("cSwatch").style.background=`var(--c-${f.r})`;
   $("cWhere").textContent=f.s||f.r;

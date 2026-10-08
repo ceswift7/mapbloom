@@ -29,7 +29,7 @@ async function tmsGo(){
   hideCard();
   const id=tmsPick(),f=FACTS[id],L=LEARN[id]||{},from=projection.invert([W/2,cy()])||[0,0],me={id,phase:"fly",cancel:false};
   tms=me;$("app").classList.add("tmsrun");
-  $("briefGo").disabled=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
+  $("briefGo").disabled=true;$("briefEye").textContent="Flying to";$("briefFlag").hidden=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
   const dl=$("briefFacts");dl.innerHTML="";
   const rows=[];
   if(f.cap)rows.push(["Capital",f.cap]);
@@ -41,7 +41,9 @@ async function tmsGo(){
   rows.forEach(([k,v],i)=>setTimeout(()=>{if(tms!==me)return;const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);sndTick()},reduced?0:700+i*650));
   await tmsFly(LL(id),ms,f.a<30000?2.4:1.6);
   if(tms!==me)return;
-  me.phase="brief";$("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
+  me.phase="brief";$("briefEye").textContent="You landed in";$("briefWhere").textContent=f.n;
+  {const bf=$("briefFlag");if(FLAGS[id]){bf.src=FLAGS[id];bf.hidden=false}}
+  $("briefGo").disabled=false;try{$("briefGo").focus({preventScroll:true})}catch(e){}
 }
 $("tmsBtn").onclick=()=>{sndTick();tmsGo()};
 $("briefClose").onclick=()=>{if(tms)tms.cancel=true;tms=null;briefHide()};
@@ -50,7 +52,7 @@ $("briefGo").onclick=()=>{
   if(!tms||tms.phase!=="brief")return;
   const id=tms.id;tms=null;briefHide();
   if(S.found.has(id)){showCard(id);return}
-  startReveal(id,LL(id),false,()=>{S.found.add(id);S.shown.delete(id);updateProgress();save();paint();setTimeout(checkAch,600)},false);
+  startReveal(id,LL(id),false,()=>{S.found.add(id);S.shown.delete(id);updateProgress();save();paint();if(cardId===id)cardPaint(id);setTimeout(checkAch,600)},false);
   setTimeout(()=>{if(S.mode==="wander")showCard(id)},reduced?0:1300);
 };
 

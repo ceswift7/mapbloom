@@ -418,7 +418,9 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .speed .speed-prompt{display:block}
 
 /* speed HUD */
-.sp-top{display:flex;align-items:baseline;justify-content:center;gap:16px;margin-bottom:2px}
+.sp-top{display:flex;align-items:baseline;justify-content:space-between;gap:20px;width:min(270px,80vw);margin:0 auto 0}
+.sp-lab{font:600 11px var(--mono);letter-spacing:.22em;color:var(--accent);text-shadow:var(--tsh)}
+.sp-clock{display:flex;align-items:baseline;justify-content:center;gap:10px;margin-bottom:2px}
 .sp-time{font-family:var(--mono);font-weight:700;font-size:clamp(28px,5vw,40px);letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb,var(--accent) 55%,transparent)}
 .sp-count{font-family:var(--mono);font-size:13.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .sp-pen{font-family:var(--mono);font-size:13.5px;color:var(--hot);min-width:3.4em;text-align:left;font-variant-numeric:tabular-nums}
@@ -801,6 +803,13 @@ details.fold[open]>summary::after{content:"\2013"}
 .app.silmode.speed #sAsk,.app.silmode.speed #sTarget,.app.silmode.speed #sFlag{display:none}
 .speed-prompt .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .endbtn{display:inline-flex;align-items:center;gap:6px}
+/* the three tiers of button: primary (filled), secondary (outlined), tertiary (quiet text) */
+.tbtn{font:inherit;font-size:13px;background:none;border:0;border-radius:8px;padding:6px 10px;color:var(--ink-soft);cursor:pointer;transition:color .2s ease,background .2s ease}
+.tbtn:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.tbtn[hidden]{display:none}
+.sil .actions{margin-top:6px;gap:2px}
+.sheetfoot .btn:not(.primary):not(.danger){background:none;border-color:transparent;box-shadow:none;color:var(--ink-soft)}
+.sheetfoot .btn:not(.primary):not(.danger):hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 7%,transparent);transform:none}
 .fbcard:not([hidden]){display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;text-align:left;margin:8px auto 0;width:max-content;max-width:min(400px,92vw);padding:10px 14px;border-radius:16px;background:var(--sheet);border:1px solid var(--panel-line);box-shadow:0 14px 30px -18px var(--paper-shadow);opacity:0;transform:translateY(8px) scale(.97);pointer-events:none;text-shadow:none;color:var(--ink)}
 .fbcard.in{opacity:1;transform:none;transition:opacity .35s ease,transform .45s cubic-bezier(.2,1.3,.4,1)}
 .fbflag{width:48px;max-height:34px;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(58,51,43,.18)}
@@ -968,7 +977,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         </form>
         <ul class="silsug" id="silSug"></ul>
         <ul class="hotlist" id="hotList" hidden></ul>
-        <div class="actions"><button class="chip" id="silShow" type="button" title="Reveal (Alt+R)">Reveal</button><button class="chip" id="silSkip" type="button" title="Skip (Alt+S)">Skip</button></div>
+        <div class="actions"><button class="tbtn" id="silShow" type="button" title="Reveal (Alt+R)">Reveal</button><button class="tbtn" id="silSkip" type="button" title="Skip (Alt+S)">Skip</button></div>
       </div>
     </div>
 
@@ -1011,12 +1020,13 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         </div>
       </div>
       <div class="speed-prompt">
-        <div class="sp-top"><span class="sp-count" id="sCount"></span><span class="sp-time" id="sTime">0:00.0</span><span class="sp-pen" id="sPen"></span></div>
+        <div class="sp-top"><span class="sp-lab" id="spLab">RACE</span><span class="sp-count" id="sCount"></span></div>
+        <div class="sp-clock"><span class="sp-time" id="sTime">0:00.0</span><span class="sp-pen" id="sPen"></span></div>
         <p class="ask" id="sAsk">Find</p>
         <img class="qflag" id="sFlag" alt="" hidden>
         <h2 class="target" id="sTarget"></h2>
         <p class="hint" id="sHint"></p>
-        <div class="actions"><button class="chip" id="skipBtn" title="Skip (S, or Alt+S while typing)">Skip · +10s</button><button class="chip endbtn" id="endBtn" type="button" hidden title="End the race. Each country left adds +10s, so it stays fair."><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg>End race</button></div>
+        <div class="actions"><button class="chip" id="skipBtn" title="Skip (S, or Alt+S while typing)">Skip · +10s</button><button class="tbtn endbtn" id="endBtn" type="button" hidden title="End the race. Each country left adds +10s, so it stays fair."><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg>End race</button></div>
       </div>
     </div>
 
@@ -2763,7 +2773,8 @@ function success(shown,ll){
   if(shown){if(RD.active&&!D.active&&!S.practice){RD.ids.add(T);RD.done++;RD.miss.push(T)}if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
   else{
     if(RD.active&&!D.active&&!S.practice){SESS.add(T);S.found.add(T);S.shown.delete(T);RD.ids.add(T);RD.done++;if(first)RD.first++}
-    else if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
+    else if(SESS){SESS.add(T);if(D.active||S.practice){S.found.add(T);S.shown.delete(T)}}   // today's ten and weak-spot practice show on a clean map, and what you find still joins your own world
+    else{S.found.add(T);S.shown.delete(T)}
     if(S.tries>=2&&!D.active)S.returnQ.push({id:T,at:S.turn+6});
     if(first){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);if(S.weak[T])S.weak[T]=Math.max(0,S.weak[T]-1)}
     if(S.quiz==="flag"&&!D.active){S.counts.flag++;jrMark(T,"f")}
@@ -2974,7 +2985,7 @@ function showChainResult(res,daily){
   sh.append(el("p",{},extra<=0?(res.assists?`Connected in ${res.n}, the shortest possible, with ${res.assists} hint${res.assists>1?"s":""}.`:`Perfect: ${res.n} countries is the shortest possible chain.`):`${res.n} countries, ${extra} more than the shortest chain (${res.par}).${res.wrong?` ${res.wrong} wrong tap${res.wrong>1?"s":""}.`:""}`));
   sh.append(el("h3",{},"Your chain"),el("p",{style:"font-family:var(--serif);font-size:16px;margin:0 0 8px"},nm(res.path)),
     el("h3",{},"Shortest chain"),el("p",{style:"font-family:var(--serif);font-size:16px;color:var(--ink-soft);margin:0"},nm(res.parPath)));
-  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();idleView()}},"Quiz menu")));
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();quizIdle()}},"Quiz menu")));
   openModal(true);
 }
 
@@ -3023,7 +3034,8 @@ const REGION_ZOOM={World:1,Africa:1.35,Americas:1.1,Asia:1.2,Europe:2.4,Oceania:
 REGION_VIEW["Pacific Islands"]=CL_DEF[0].c;REGION_VIEW["Antilles"]=d3.geoCentroid({type:"MultiPoint",coordinates:[...AREA_SET["Antilles"]].map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]])});REGION_VIEW["United States"]=[-97,38];
 function syncSpeedUI(){
   const b=$("skipBtn"),ph=R.phase;
-  b.className=ph==="run"?"chip":"btn"+(ph!=="count"?" primary":"");
+  b.className=ph==="run"?"tbtn":"btn"+(ph!=="count"?" primary":"");
+  {const lab=$("spLab");if(lab)lab.textContent="RACE"+(ph==="idle"||!R.region?"":" · "+(R.region==="World"?"EARTH":R.region.toUpperCase()))}
   $("restartBtn").hidden=!(ph==="run"||ph==="count"||ph==="done");
   b.textContent=ph==="run"?"Skip · +10s":ph==="done"?"Race again":ph==="count"?"Get ready…":"Start race";
   b.disabled=ph==="count";
@@ -4725,7 +4737,7 @@ function silDraw(id){
   sv.append("path").attr("d",d3.geoPath(proj)(feat));
 }
 let silHideT=null;const silKeep=()=>{clearTimeout(silHideT);silHideT=null};   // a pending fade-out must never hide the next question box
-function silResetCard(){$("silQ").textContent="Which country is this?";$("silShow").textContent="Reveal";$("silSkip").textContent="Skip";$("silSkip").hidden=false;$("silHint").classList.remove("bord");$("sil").classList.remove("hotdone")}
+function silResetCard(){$("silQ").textContent="Which country is this?";$("silShow").className="tbtn";$("silShow").textContent="Reveal";$("silSkip").textContent="Skip";$("silSkip").hidden=false;$("silHint").classList.remove("bord");$("sil").classList.remove("hotdone")}
 let rsilOn=false;   // a Silhouette race question is showing
 function silHide(){rsilOn=false;silKeep();silResetCard();HOT.on=false;$("silForm").hidden=false;$("hotList").innerHTML="";$("sil").classList.remove("hot");if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
 /* ---- SILHOUETTE RACE: the shape is shown, the answer is typed; wrong +2s, skip +10s ---- */
@@ -4893,7 +4905,7 @@ function hotStart(daily){
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
   $("silForm").hidden=false;$("silQ").textContent="Find the hidden country";$("silHint").textContent="Type any country. Warmer colours are closer.";
-  $("silIn").value="";$("silSug").innerHTML="";$("silShow").textContent="Give up";$("silSkip").hidden=true;
+  $("silIn").value="";$("silSug").innerHTML="";$("silShow").className="tbtn";$("silShow").textContent="Give up";$("silSkip").hidden=true;
   hotRender();paint();requestRender();updateProgress();
   stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);
   setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
@@ -4923,7 +4935,7 @@ function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){
   HOT.done=true;HOT.doneAt=performance.now();try{$("silIn").blur()}catch(e){}$("sil").classList.add("hotdone");const T=HOT.target,n=HOT.list.length;
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
-  $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
+  $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").className="btn primary";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
   $("silHint").textContent=HOT.daily?(gaveUp?"Come back tomorrow for a new daily.":"Daily done. Play again for a practice game."):gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
   if(HOT.daily)hotDailyRecord(!gaveUp,n);

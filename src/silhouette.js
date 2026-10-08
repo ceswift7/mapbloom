@@ -31,7 +31,7 @@ function silDraw(id){
   sv.append("path").attr("d",d3.geoPath(proj)(feat));
 }
 let silHideT=null;const silKeep=()=>{clearTimeout(silHideT);silHideT=null};   // a pending fade-out must never hide the next question box
-function silResetCard(){$("silQ").textContent="Which country is this?";$("silShow").textContent="Reveal";$("silSkip").textContent="Skip";$("silSkip").hidden=false;$("silHint").classList.remove("bord");$("sil").classList.remove("hotdone")}
+function silResetCard(){$("silQ").textContent="Which country is this?";$("silShow").className="tbtn";$("silShow").textContent="Reveal";$("silSkip").textContent="Skip";$("silSkip").hidden=false;$("silHint").classList.remove("bord");$("sil").classList.remove("hotdone")}
 let rsilOn=false;   // a Silhouette race question is showing
 function silHide(){rsilOn=false;silKeep();silResetCard();HOT.on=false;$("silForm").hidden=false;$("hotList").innerHTML="";$("sil").classList.remove("hot");if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
 /* ---- SILHOUETTE RACE: the shape is shown, the answer is typed; wrong +2s, skip +10s ---- */

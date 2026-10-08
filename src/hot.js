@@ -56,7 +56,7 @@ function hotStart(daily){
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
   $("silForm").hidden=false;$("silQ").textContent="Find the hidden country";$("silHint").textContent="Type any country. Warmer colours are closer.";
-  $("silIn").value="";$("silSug").innerHTML="";$("silShow").textContent="Give up";$("silSkip").hidden=true;
+  $("silIn").value="";$("silSug").innerHTML="";$("silShow").className="tbtn";$("silShow").textContent="Give up";$("silSkip").hidden=true;
   hotRender();paint();requestRender();updateProgress();
   stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);
   setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
@@ -86,7 +86,7 @@ function hotGiveUp(){if(HOT.on&&!HOT.done){sndTick();hotFinish(true)}}
 function hotFinish(gaveUp){
   HOT.done=true;HOT.doneAt=performance.now();try{$("silIn").blur()}catch(e){}$("sil").classList.add("hotdone");const T=HOT.target,n=HOT.list.length;
   HC.set(T,"#3fa66a");paint();requestRender();nameFly(T);
-  $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").textContent="Play again";
+  $("silForm").hidden=true;$("silSug").innerHTML="";$("silSkip").hidden=false;$("silSkip").textContent="Change area";$("silShow").className="btn primary";$("silShow").textContent="Play again";
   $("silQ").textContent=gaveUp?`It was ${FACTS[T].n}`:`${FACTS[T].n}: found in ${n} guess${n===1?"":"es"}`;
   $("silHint").textContent=HOT.daily?(gaveUp?"Come back tomorrow for a new daily.":"Daily done. Play again for a practice game."):gaveUp?"Tap Play again for another country.":(()=>{const b=(S.counts.hotBest||{})[S.region];return !b||n<b?"A new best for this area.":n===b?`You matched your best here: ${b}.`:`Best in ${hotWhere()}: ${b} guess${b===1?"":"es"}.`})();
   if(HOT.daily)hotDailyRecord(!gaveUp,n);

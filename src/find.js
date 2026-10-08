@@ -173,7 +173,8 @@ function success(shown,ll){
   if(shown){if(RD.active&&!D.active&&!S.practice){RD.ids.add(T);RD.done++;RD.miss.push(T)}if(!SESS)S.shown.add(T);if(!D.active)S.returnQ.push({id:T,at:S.turn+4});S.weak[T]=Math.min(10,(S.weak[T]||0)+3);S.streak=0}
   else{
     if(RD.active&&!D.active&&!S.practice){SESS.add(T);S.found.add(T);S.shown.delete(T);RD.ids.add(T);RD.done++;if(first)RD.first++}
-    else if(SESS)SESS.add(T);else{S.found.add(T);S.shown.delete(T)}
+    else if(SESS){SESS.add(T);if(D.active||S.practice){S.found.add(T);S.shown.delete(T)}}   // today's ten and weak-spot practice show on a clean map, and what you find still joins your own world
+    else{S.found.add(T);S.shown.delete(T)}
     if(S.tries>=2&&!D.active)S.returnQ.push({id:T,at:S.turn+6});
     if(first){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);if(S.weak[T])S.weak[T]=Math.max(0,S.weak[T]-1)}
     if(S.quiz==="flag"&&!D.active){S.counts.flag++;jrMark(T,"f")}

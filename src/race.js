@@ -6,7 +6,8 @@ const REGION_ZOOM={World:1,Africa:1.35,Americas:1.1,Asia:1.2,Europe:2.4,Oceania:
 REGION_VIEW["Pacific Islands"]=CL_DEF[0].c;REGION_VIEW["Antilles"]=d3.geoCentroid({type:"MultiPoint",coordinates:[...AREA_SET["Antilles"]].map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]])});REGION_VIEW["United States"]=[-97,38];
 function syncSpeedUI(){
   const b=$("skipBtn"),ph=R.phase;
-  b.className=ph==="run"?"chip":"btn"+(ph!=="count"?" primary":"");
+  b.className=ph==="run"?"tbtn":"btn"+(ph!=="count"?" primary":"");
+  {const lab=$("spLab");if(lab)lab.textContent="RACE"+(ph==="idle"||!R.region?"":" · "+(R.region==="World"?"EARTH":R.region.toUpperCase()))}
   $("restartBtn").hidden=!(ph==="run"||ph==="count"||ph==="done");
   b.textContent=ph==="run"?"Skip · +10s":ph==="done"?"Race again":ph==="count"?"Get ready…":"Start race";
   b.disabled=ph==="count";

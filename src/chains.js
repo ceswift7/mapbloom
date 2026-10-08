@@ -83,7 +83,7 @@ function showChainResult(res,daily){
   sh.append(el("p",{},extra<=0?(res.assists?`Connected in ${res.n}, the shortest possible, with ${res.assists} hint${res.assists>1?"s":""}.`:`Perfect: ${res.n} countries is the shortest possible chain.`):`${res.n} countries, ${extra} more than the shortest chain (${res.par}).${res.wrong?` ${res.wrong} wrong tap${res.wrong>1?"s":""}.`:""}`));
   sh.append(el("h3",{},"Your chain"),el("p",{style:"font-family:var(--serif);font-size:16px;margin:0 0 8px"},nm(res.path)),
     el("h3",{},"Shortest chain"),el("p",{style:"font-family:var(--serif);font-size:16px;color:var(--ink-soft);margin:0"},nm(res.parPath)));
-  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();idleView()}},"Quiz menu")));
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();quizIdle()}},"Quiz menu")));
   openModal(true);
 }
 

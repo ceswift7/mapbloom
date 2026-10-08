@@ -138,11 +138,11 @@ function applyFx(){
   projection.precision(soft?1.2:.4);projC.precision(soft?1.2:.5);
   document.body.classList.toggle("lite",S.fx==="lite"||(soft&&!CANVAS));   // lite = no paper grain either
 }
-function engineSeg(){const w=el("div",{class:"seg2"});[["gl","Fast (GPU)"],["canvas","Compatible"],["svg","Classic"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.engine2===k),onclick:()=>{if(S.engine2===k)return;S.engine2=k;save();location.reload()}},l)));return w}
-function autoSeg(){const w=el("div",{class:"seg2"});[["off","Off"],["fast","Quick"],["normal","Normal"],["slow","Slow"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.autoNext===k),onclick:()=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()}},l)));return w}
+function engineSeg(){return seg([["gl","Fast (GPU)","bolt"],["canvas","Compatible","grid"],["svg","Classic","pen"]],S.engine2,k=>{if(S.engine2===k)return;S.engine2=k;save();location.reload()})}
+function autoSeg(){return seg([["off","Off","off"],["fast","Quick","fast"],["normal","Normal","play"],["slow","Slow","slow"]],S.autoNext,k=>{S.autoNext=k;save();sndTick();if(k==="off")clearAuto();renderSettings()})}
 let nbApplied=null;
 function applyNb(){nbApplied=nbNow();document.body.classList.toggle("nb",nbApplied);if(GLX.hasGL&&GLX.colors)GLX.colors();paint();render(true)}
-function fxSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["full","Full"],["lite","Lite"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.fx===k),onclick:()=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()}},l)));return w}
+function fxSeg(){return seg([["auto","Auto","themeauto"],["full","Full","sparkle"],["lite","Lite","feather"]],S.fx,k=>{S.fx=k;fxForced=false;cvQ=1;cvN=0;cvAvg=16;if(CANVAS)cvResize();save();applyFx();paint();render(true);sndTick();renderSettings()})}
 if(isTouch){
   let n=0,sum=0,last=0;
   const tick=t=>{if(last&&!document.hidden){const dt=t-last;if(dt<500){sum+=dt;n++}}last=t;if(n>=45){if(sum/n>48)liteMode();return}requestAnimationFrame(tick)};

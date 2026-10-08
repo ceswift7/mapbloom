@@ -97,8 +97,8 @@ function themeAnimate(k,srcEl,after){
   });
 
   vt.finished.finally(()=>{themeBusy=false});
-}function themeSeg(){const w=el("div",{class:"seg2"});[["auto","Auto"],["light","Light"],["dark","Dark"]].forEach(([k,l])=>w.append(el("button",{"aria-pressed":String(S.theme===k),onclick:e=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)}},l)));return w}
-function unitSeg(){const w=el("div",{class:"seg2"});["mi","km"].forEach(u=>w.append(el("button",{"aria-pressed":String(S.unit===u),onclick:()=>{setUnit(u);renderSettings()}},u==="mi"?"Miles":"Kilometres")));return w}
+}function themeSeg(){return seg([["auto","Auto","themeauto"],["light","Light","sun"],["dark","Dark","moon"]],S.theme,(k,e)=>{sndTick();themeAnimate(k,e.currentTarget,renderSettings)})}
+function unitSeg(){return seg([["mi","Miles","ruler"],["km","Kilometres","ruler"]],S.unit,u=>{setUnit(u);renderSettings()})}
 
 function setUnit(u){S.unit=u;save();if($("card").classList.contains("on"))showCard(cardId,true)}
 $("themeBtn").onclick=()=>{sndTick();themeAnimate(isDark()?"light":"dark",$("themeBtn"))};
@@ -110,6 +110,72 @@ function fold(title,content,open){const d=el("details",{class:"fold"},el("summar
 function opt(title,sub,control){return el("div",{class:"opt"},el("div",{},el("b",{},title),sub?el("small",{},sub):""),control)}
 function toggle(checked,fn,label){const i=el("input",{type:"checkbox","aria-label":label});i.checked=checked;i.onchange=()=>fn(i.checked);return el("label",{class:"sw"},i,el("i"))}
 function sheetHead(title){const sh=$("sheet");sh.innerHTML="";sh.append(closeBtn(),el("h2",{},title));return sh}
+/* ---- modular option tiles: one icon (or a map), a label and a small sub-line; the same card for every choice in every menu ---- */
+const ICONS={
+  locate:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  flag:'<path d="M5 21V4"/><path d="M5 4.5h12l-2.2 4 2.2 4H5"/>',
+  capital:'<path d="M3 20h18M5 20V11M9.5 20V11M14.5 20V11M19 20V11M3 11l9-6 9 6"/>',
+  nameit:'<path d="M3 18l4-11 4 11M4.6 14h4.8"/><circle cx="17" cy="14.5" r="3"/><path d="M20 11.5V18"/>',
+  sil:'<path d="M5.5 9c1.6-3.2 5-3.8 7-1.8 1.6 1.6 3.8.6 5 2.4 1.2 1.8-.2 3.4-1.4 4.6-1.2 1.2-.6 3.2-3.2 3.8-2.4.5-3.4-1.4-5.2-2.4C5.2 14.5 4.4 11.3 5.5 9z"/>',
+  hot:'<path d="M10 14.5V5a2 2 0 014 0v9.5a4 4 0 11-4 0z"/><path d="M12 9v7"/>',
+  r10:'<rect x="8" y="8" width="8" height="8" rx="2"/>',
+  r20:'<rect x="4.5" y="4.5" width="9" height="9" rx="2"/><rect x="10.5" y="10.5" width="9" height="9" rx="2"/>',
+  rall:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3.2 3.2 3.2 12.8 0 16M12 4c-3.2 3.2-3.2 12.8 0 16"/>',
+  daily:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  chain:'<circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/><path d="M10 12h4"/>',
+  practice:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  mystery:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.2M12 16.8v.2"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+  moon:'<path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/>',
+  themeauto:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>',
+  ruler:'<path d="M3.5 15.5l12-12 5 5-12 12z"/><path d="M7 12l2 2M10 9l2 2M13 6l2 2"/>',
+  bolt:'<path d="M13 3L5.5 13.5H11L10 21l8-10.5h-5.5z"/>',
+  grid:'<rect x="4.5" y="4.5" width="15" height="15" rx="2"/><path d="M4.5 12h15M12 4.5v15"/>',
+  pen:'<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
+  off:'<circle cx="12" cy="12" r="8"/><path d="M6.5 6.5l11 11"/>',
+  fast:'<path d="M5 6l7 6-7 6zM13 6l7 6-7 6z"/>',
+  play:'<path d="M8 5l11 7-11 7z"/>',
+  slow:'<path d="M7 4h10M7 20h10M8 4c0 5 8 5 8 8s-8 3-8 8"/>',
+  sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  feather:'<path d="M20 4c-8 0-13 4-13 11v3"/><path d="M20 4c0 8-4 12-11 12M7 18l-3 3"/>',
+  autom:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/>'
+};
+const svgIcon=k=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[k]||"")+'</svg>';
+const crIcon=k=>el("span",{class:"ci",html:svgIcon(k)});
+function tile({icon,map,label,sub,pressed,onclick,title}){
+  return el("button",{type:"button",class:"tile"+(map?" map":""),"aria-pressed":String(!!pressed),title:title||label,onclick},
+    el("span",{class:"ti",html:map||svgIcon(icon)}),el("b",{},label),sub?el("small",{},sub):null);
+}
+const tiles=(items,cols,cls)=>el("div",{class:"tiles"+(cls?" "+cls:""),style:"--cols:"+cols},...items);
+function seg(items,cur,pick){return tiles(items.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:cur===k,onclick:e=>pick(k,e)})),items.length,"seg")}
+const QUIZ_STYLES=[["country","Locate","locate"],["flag","Flag","flag"],["capital","Capital","capital"],["name","Name it","nameit"],["silhouette","Silhouette","sil"]];
+const RACE_STYLES=[["country","Locate","locate"],["flag","Flag","flag"],["capital","Capital","capital"],["name","Name it","nameit"],["sil","Silhouette","sil"]];
+const regionCount=r=>r==="World"?playable.length:r==="United States"?50:playable.filter(f=>inReg(f.id,r)).length;
+const regionLabel=r=>r==="World"?"Earth":r==="Americas"?"The Americas":r;
+/* a small map of each region, built once: all land faint, the region itself in its own colour */
+const thumbCache={};
+function regionThumb(r){
+  if(thumbCache[r])return thumbCache[r];
+  const W=96,H=56,isl=r==="Pacific Islands"||r==="Antilles",geo=f=>f._lo||f;
+  const col=REGIONS.includes(r)?"var(--c-"+r+")":r==="Antilles"||r==="United States"?"var(--c-Americas)":r==="Pacific Islands"?"var(--c-Oceania)":"var(--ink)";
+  let proj,hi=[],dots=[];
+  if(r==="World"){proj=d3.geoEqualEarth().fitExtent([[2,2],[W-2,H-2]],{type:"Sphere"});hi=playable}
+  else if(r==="United States"&&byId["840"]){proj=d3.geoAlbersUsa().fitExtent([[4,4],[W-4,H-4]],byId["840"]);hi=[byId["840"]]}
+  else{
+    const ids=isl?[...AREA_SET[r]]:playable.filter(f=>inReg(f.id,r)).map(f=>f.id);
+    hi=ids.map(id=>byId[id]).filter(Boolean);
+    const fit=isl?{type:"MultiPoint",coordinates:hi.map(f=>LL(f.id))}:{type:"FeatureCollection",features:hi.filter(f=>f.id!=="643")},v=REGION_VIEW[r]||[0,0];
+    proj=d3.geoAzimuthalEqualArea().rotate([-v[0],-v[1]]).fitExtent(isl?[[12,12],[W-12,H-12]]:[[3,3],[W-3,H-3]],fit);
+    if(isl)dots=hi.map(f=>proj(LL(f.id))).filter(Boolean);
+  }
+  const path=d3.geoPath(proj).digits(1),base=playable.map(f=>path(geo(f))||"").join(""),hd=hi.map(f=>path(geo(f))||"").join("");
+  return thumbCache[r]='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="'+W+'" height="'+H+'" rx="8" fill="var(--sea-mid)" opacity=".22"/><path d="'+base+'" fill="var(--ink)" opacity=".15"/><path d="'+hd+'" fill="'+col+'" fill-opacity="'+(r==="World"?".38":".85")+'" stroke="'+col+'" stroke-width="'+(isl?1.6:.5)+'" stroke-linejoin="round"/>'+dots.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="'+col+'"/>').join("")+'</svg>';
+}
+function regionTiles(cur,pick,subFn,list){
+  return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
+}
+/* choosing a region anywhere: remember it, update the footer chips and fly the globe there */
+function pickRegion(r){S.region=r;syncChips();updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{})}
 function renderStamps(){renderBook("stamps")}
 function renderAtlas(){renderBook("atlas")}
 /* ---- the Atlas book: three bookmark tabs, two pages ---- */

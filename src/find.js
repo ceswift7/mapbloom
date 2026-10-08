@@ -221,22 +221,19 @@ function showQuizSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
   sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},"Choose what to find and where, then begin."));
-  const q=el("div",{class:"row",style:"margin:0"});
-  [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"],["silhouette","Silhouette"]].forEach(([k,l])=>q.append(el("button",{class:"chip","aria-pressed":String(S.quiz===k),onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}},l)));
-  const rc=el("div",{class:"row",style:"margin:0"});
-  ALLR.forEach(r=>rc.append(el("button",{class:"chip","aria-pressed":String(S.region===r),onclick:()=>{S.region=r;syncChips();updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{});showQuizSheet()}},r==="World"?"Earth":r)));
-  const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
+  const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
+  const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
     step(1,"What to find",how,q),
     step(2,"Where",S.region==="United States"?"The 50 states on their own map. Flag and Silhouette are not available, so Locate is used.":S.region==="World"?"Anywhere in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
-    step(3,"Round","Each round starts on a blank map. Your saved map is kept.",(()=>{const w=el("div",{class:"row",style:"margin:0"});[[10,"10 countries"],[20,"20 countries"],[0,"Whole region"]].forEach(([n,l])=>w.append(el("button",{class:"chip","aria-pressed":String(S.rlen===n),onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}},l)));return w})()),
+    step(3,"Round","Each round starts on a blank map. Your saved map is kept.",tiles([[10,"10 countries","r10"],[20,"20 countries","r20"],[0,"Whole region","rall"]].map(([n,l,ic])=>tile({icon:ic,label:l,pressed:S.rlen===n,onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}})),3)),
     step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Skip countries you have already painted.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
     el("div",{class:"qfoot"},el("button",{class:"btn primary bigstart",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Challenges"),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Today’s ten"),el("small",{},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries, the same for everyone.")),el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Neighbour chains"),el("small",{},"Link two distant countries by land borders in as few steps as you can.")),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"Daily result":"Daily"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play")),
-    el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Practice weak spots"),el("small",{},wk?`${wk} countr${wk===1?"y":"ies"} to revisit.`:"No weak spots yet. Misses collect here.")),el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
+    el("div",{class:"crow"},crIcon("daily"),el("div",{class:"t"},el("b",{},"Today’s ten"),el("small",{},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries, the same for everyone.")),el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play")),
+    el("div",{class:"crow"},crIcon("chain"),el("div",{class:"t"},el("b",{},"Neighbour chains"),el("small",{},"Link two distant countries by land borders in as few steps as you can.")),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"Daily result":"Daily"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play")),
+    el("div",{class:"crow"},crIcon("practice"),el("div",{class:"t"},el("b",{},"Practice weak spots"),el("small",{},wk?`${wk} countr${wk===1?"y":"ies"} to revisit.`:"No weak spots yet. Misses collect here.")),el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
   sh.append(fold("Your records",quizRecordsBlock()));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"linkbtn",onclick:askReset},"Erase paint"),el("span",{class:"grow"}),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore")));
   openModal(true);setTimeout(()=>{const s=$("qFree");if(s)s.focus({preventScroll:true})},60);

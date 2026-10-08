@@ -34,15 +34,11 @@ function hotEnter(){
 function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){
   const sh=$("sheet");sh.innerHTML="";
-  const chips=el("div",{class:"row",style:"margin:0"}),best=(S.counts.hotBest||{})[S.region];
-  ALLR.filter(r=>r!=="United States").forEach(r=>{
-    const n=r==="World"?playable.length:playable.filter(f=>inReg(f.id,r)).length;
-    chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);showHotSheet()}},r==="World"?"Earth":r,el("span",{class:"n"},n+"")));
-  });
-  sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
+  const best=(S.counts.hotBest||{})[S.region];
+  const chips=regionTiles(S.region,r=>{pickRegion(r);showHotSheet()},r=>regionCount(r)+" countries",ALLR.filter(r=>r!=="United States"));sh.append(closeBtn(),el("h2",{},"Hot & cold"),el("p",{},"A country is hidden. Type guesses: each one is coloured by how close it is. Find it in as few as you can."));
   sh.append(el("div",{class:"qcard"},step(1,"Where it hides","You can still guess anywhere on Earth.",chips)));
   const day=todayStr(),dr=(S.daily.hot||{})[day];
-  sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));
+  sh.append(el("div",{class:"qcard"},el("h3",{},"Daily"),el("div",{class:"crow"},crIcon("mystery"),el("div",{class:"t"},el("b",{},"Daily mystery"),el("small",{},dr?(dr.win?`Found in ${dr.n} guess${dr.n===1?"":"es"}`:"You gave up. A new one tomorrow."):"One hidden country, the same for everyone. Earth only.")),el("button",{class:"btn",onclick:()=>{sndTick();if(dr)showHotDailyResult(day);else hotStart(true)}},dr?"See result":"Play"))));
   sh.append(el("p",{class:"bestline"},`Best in ${hotWhere()}: `+(best?`${best} guess${best===1?"":"es"}`:"none yet")));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startHot",onclick:hotStart},"Start")));
   const hb=S.counts.hotBest||{},rows=ALLR.filter(r=>r!=="United States").map(r=>el("div",{class:"recrow",style:"display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--panel-line)"},el("span",{},r==="World"?"Earth":r==="Americas"?"The Americas":r),el("b",{},hb[r]?hb[r]+" guess"+(hb[r]===1?"":"es"):"\u2014")));

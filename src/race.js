@@ -31,18 +31,11 @@ function showStartSheet(){
   const ids=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap),b=bestOf(rkey(S.region));
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
   sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
-  const vchips=el("div",{class:"row",style:"margin:0"});
-  [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"],["sil","Silhouette"]].forEach(([k,l])=>vchips.append(el("button",{class:"chip","aria-pressed":String(S.rv===k),onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}},l)));
-  const chips=el("div",{class:"row",style:"margin:0"});
-  ALLR.forEach(r=>{
-    const n=r==="World"?playable.length:r==="United States"?50:playable.filter(f=>inReg(f.id,r)).length,bb=bestOf(rkey(r));
-    chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{});showStartSheet()}},
-      r==="World"?"Earth":r,el("span",{class:"n"},isFinite(bb)?fmtT(bb,0):n+"")));
-  });
-  const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
+  const vchips=tiles(RACE_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.rv===k,onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}})),5);
+  const chips=regionTiles(S.region,r=>{pickRegion(r);showStartSheet()},r=>{const bb=bestOf(rkey(r));return isFinite(bb)?"Best "+fmtT(bb,0):regionCount(r)+(r==="United States"?" states":" countries")});const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
   sh.append(el("div",{class:"qcard"},
     step(1,"What to find",how,vchips),
-    step(2,"Where","Each chip shows your best time, or the country count.",chips),
+    step(2,"Where","Each tile shows your best time, or the country count.",chips),
     step(3,"Options",null,opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick();showStartSheet()},"Borderless")))));
   sh.append(el("p",{class:"bestline"},isFinite(b)?`Your best here: ${fmtT(b)}`:"No time here yet."));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{setMode("wander")}},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startRace",onclick:startRace},"Start race")));

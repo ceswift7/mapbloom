@@ -693,8 +693,9 @@ function yourWorld(){
   // into or out of the night-race look: the whole screen cross-fades instead of snapping (the browser keeps a picture of the old screen)
   if(!quiet&&!reduced&&!themeBusy&&document.startViewTransition&&(S.mode==="speed")!==(m==="speed")){
     let ran=false;const run=()=>{if(ran)return;ran=true;setModeNow(m,quiet,noIdle)};
-    try{const vt=document.startViewTransition(async()=>{run();await new Promise(r=>setTimeout(r,90))});vt.finished.catch(()=>{});vt.ready.catch(()=>{})}catch(e){}
-    setTimeout(run,350);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
+    const de=document.documentElement;de.classList.add("vtfast");
+    try{const vt=document.startViewTransition(()=>{run()});vt.finished.then(()=>de.classList.remove("vtfast"),()=>de.classList.remove("vtfast"));vt.ready.catch(()=>{})}catch(e){de.classList.remove("vtfast")}
+    setTimeout(run,250);setTimeout(()=>de.classList.remove("vtfast"),900);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
     return;
   }
   setModeNow(m,quiet,noIdle);

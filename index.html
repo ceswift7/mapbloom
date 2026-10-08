@@ -135,7 +135,8 @@ button,.btn,.icon-btn,.chip,.nchips button,.sw,.sw input,input[type=range],.unit
 .reef .lg{fill:#7fe0d6;fill-opacity:.38;stroke:none}
 .reef .sand{stroke:#efe2bd;stroke-opacity:.75;stroke-width:2px}
 body.introing .reef{opacity:0}
-::view-transition-old(root),::view-transition-new(root){mix-blend-mode:normal;animation-duration:.5s;animation-timing-function:ease-in-out}   /* a plain cross fade between the old and new screens */
+::view-transition-old(root),::view-transition-new(root){mix-blend-mode:normal;animation-duration:.5s;animation-timing-function:ease-in-out}
+.vtfast::view-transition-old(root),.vtfast::view-transition-new(root){animation-duration:.18s;animation-timing-function:ease-out}   /* mode switches are quicker than a theme change */   /* a plain cross fade between the old and new screens */
 ::view-transition-old(root){z-index:1}::view-transition-new(root){z-index:2}
 .themewash{position:fixed;inset:0;z-index:70;pointer-events:none}
 .tw-fill{position:absolute;inset:0;overflow:hidden;clip-path:polygon(0 0,0 0,0 0)}
@@ -499,7 +500,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .jrbtn:hover span{color:var(--ink)}
 .sback{margin:-4px 0 10px;font-size:12.5px}
 
-.modal .sheet{transition:transform .5s cubic-bezier(.2,.8,.2,1),margin .35s ease}
+.modal .sheet{transition:transform .3s cubic-bezier(.2,.8,.2,1),margin .3s ease}
 @media (min-width:1000px){.modal.rd .sheet{margin-right:calc(min(420px,34vw) + 32px)}}
 .rdwin{position:fixed;z-index:46;top:64px;right:16px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--panel-line);border-radius:18px;box-shadow:0 24px 60px -20px var(--paper-shadow),0 0 0 1px rgba(0,0,0,.04)}
 .rdhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--panel-line)}
@@ -658,11 +659,11 @@ footer{position:relative;z-index:3;padding:0 20px 14px;display:flex;align-items:
 @media (max-width:1100px){.chip .n{display:none}}
 
 /* modal sheets (menu, records, results) */
-.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(30,24,14,.38);opacity:0;pointer-events:none;transition:opacity .35s ease}
+.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(30,24,14,.38);opacity:0;pointer-events:none;transition:opacity .2s ease}
 [data-mode="speed"] .modal{background:rgba(2,6,18,.6)}
 .modal.on{opacity:1;pointer-events:auto}
 .sheet{position:relative;width:min(540px,calc(100% - 24px));max-height:min(88vh,740px);overflow:auto;background:var(--sheet);border:1px solid var(--panel-line);border-radius:20px;padding:22px 24px 22px;
-  box-shadow:0 30px 70px -30px rgba(0,0,0,.55);transform:translateY(16px) scale(.98);transition:transform .5s cubic-bezier(.2,.8,.2,1);scrollbar-width:thin}
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.55);transform:translateY(16px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1);scrollbar-width:thin}
 .modal.on .sheet{transform:none}
 .sheet h2{font-family:var(--serif);font-weight:500;font-size:30px;margin:0 0 2px;letter-spacing:-.01em}
 .sheet h3{font-family:var(--serif);font-style:italic;font-weight:500;font-size:18px;margin:18px 0 6px}
@@ -739,6 +740,9 @@ details.fold>summary::after{content:"+";color:var(--ink-faint);font-size:18px;li
 details.fold[open]>summary::after{content:"\2013"}
 .sheetfoot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
 .sheetfoot .grow{flex:1}
+/* the action row stays pinned to the bottom of the card, so Begin / Start is always in reach however long the options are */
+.sheet:not(.book):not(.compact) .sheetfoot{position:sticky;bottom:-22px;z-index:2;margin:16px -24px -22px;padding:12px 24px 22px;background:linear-gradient(to bottom,transparent,var(--sheet) 14px);border-radius:0 0 20px 20px}
+@media (max-width:520px){.sheet:not(.book):not(.compact) .sheetfoot .btn.bigstart{order:-1;flex:1 0 100%;width:100% !important}.sheet:not(.book):not(.compact) .sheetfoot .grow{display:none}.sheet:not(.book):not(.compact) .sheetfoot{justify-content:space-between}}
 .linkbtn{background:none;border:0;color:var(--ink-faint);text-decoration:underline;font:inherit;font-size:13px;padding:0;cursor:pointer}
 .bestline{margin:2px 0 0;text-align:center;color:var(--ink-soft)}
 .hero{text-align:center;margin:8px 0 2px}.hero .bignum{font-size:60px;margin:2px 0 6px}.hero .sub{margin:0;color:var(--ink-faint);font-size:13.5px}
@@ -3055,14 +3059,14 @@ function showQuizSheet(){
     step(2,"Where",S.region==="United States"?"The 50 states on their own map. Flag and Silhouette are not available, so Locate is used.":S.region==="World"?"Anywhere in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
     step(3,"Round","Each round starts on a blank map. Your saved map is kept.",tiles([[10,"10 countries","r10"],[20,"20 countries","r20"],[0,"Whole region","rall"]].map(([n,l,ic])=>tile({icon:ic,label:l,pressed:S.rlen===n,onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}})),3)),
     step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Skip countries you have already painted.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
-    el("div",{class:"qfoot"},el("button",{class:"btn primary bigstart",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin"))));
+    ));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Challenges"),
     el("div",{class:"crow"},crIcon("daily"),el("div",{class:"t"},el("b",{},"Today’s ten"),el("small",{},done?`Done: ${done.marks.join("")}${done.time?" in "+fmtT(done.time):""}`:"Ten countries, the same for everyone.")),el("button",{class:"btn",onclick:startDaily},D.active?"Resume":done?"See result":"Play")),
     el("div",{class:"crow"},crIcon("chain"),el("div",{class:"t"},el("b",{},"Neighbour chains"),el("small",{},"Link two distant countries by land borders in as few steps as you can.")),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(true)}},chainDone?"Daily result":"Daily"),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())startChain(false)}},"Play")),
     el("div",{class:"crow"},crIcon("practice"),el("div",{class:"t"},el("b",{},"Practice weak spots"),el("small",{},wk?`${wk} countr${wk===1?"y":"ies"} to revisit.`:"No weak spots yet. Misses collect here.")),el("button",{class:"btn",disabled:wk?null:"disabled",onclick:()=>{if(wk&&leaveDailyOk())startPractice()}},"Practice"))));
   sh.append(fold("Your records",quizRecordsBlock()));
-  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"linkbtn",onclick:askReset},"Erase paint"),el("span",{class:"grow"}),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore")));
+  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"linkbtn",onclick:askReset},"Erase paint"),el("span",{class:"grow"}),el("button",{class:"btn",onclick:()=>{if(leaveDailyOk())setMode("wander")}},"Back to Explore"),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:130px",id:"qFree",onclick:()=>{if(!leaveDailyOk())return;sndTick();beginFree()}},"Begin")));
   openModal(true);setTimeout(()=>{const s=$("qFree");if(s)s.focus({preventScroll:true})},60);
 }function startPractice(){
   closeModal();if(S.mode!=="find")setMode("find",true,true);
@@ -4685,8 +4689,9 @@ function yourWorld(){
   // into or out of the night-race look: the whole screen cross-fades instead of snapping (the browser keeps a picture of the old screen)
   if(!quiet&&!reduced&&!themeBusy&&document.startViewTransition&&(S.mode==="speed")!==(m==="speed")){
     let ran=false;const run=()=>{if(ran)return;ran=true;setModeNow(m,quiet,noIdle)};
-    try{const vt=document.startViewTransition(async()=>{run();await new Promise(r=>setTimeout(r,90))});vt.finished.catch(()=>{});vt.ready.catch(()=>{})}catch(e){}
-    setTimeout(run,350);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
+    const de=document.documentElement;de.classList.add("vtfast");
+    try{const vt=document.startViewTransition(()=>{run()});vt.finished.then(()=>de.classList.remove("vtfast"),()=>de.classList.remove("vtfast"));vt.ready.catch(()=>{})}catch(e){de.classList.remove("vtfast")}
+    setTimeout(run,250);setTimeout(()=>de.classList.remove("vtfast"),900);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
     return;
   }
   setModeNow(m,quiet,noIdle);

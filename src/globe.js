@@ -79,13 +79,17 @@ svg.on("keydown",e=>{
 
 function stopDrift(){drifting=false;clearTimeout(idleTimer)}
 function scheduleDrift(){clearTimeout(idleTimer);if(reduced||S.mode==="speed"||S.mode==="hot")return;idleTimer=setTimeout(()=>{drifting=true},9000)}
-let lastTs=0;
+let lastTs=0,driftAcc=0;
 d3.timer(ts=>{
   const dt=ts-lastTs;lastTs=ts;
   brushTick();
   if(R.phase==="run")$("sTime").textContent=fmtT((R.pausedAt||performance.now())-R.t0+R.pen);
   if(D.active&&D.t0!=null){const dt2=D.tEnd!=null?D.tEnd:performance.now()-D.t0;$("dClock").textContent=fmtT(dt2);$("dClock").classList.toggle("gold",dt2<60000)}
-  if(drifting&&introState==="done"&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&S.mode!=="speed"&&S.mode!=="hot"&&!nmOn&&!silOn){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
+  if(drifting&&introState==="done"&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&S.mode!=="speed"&&S.mode!=="hot"&&!nmOn&&!silOn){
+    // the idle turn is only ~3 degrees a second: redrawing at about 30 fps looks identical and halves the work; a full-screen menu hides it, so it waits
+    if(modal.classList.contains("on")&&!modal.classList.contains("compact")){driftAcc=0;return}
+    driftAcc+=dt;if(driftAcc<30)return;
+    const r=projection.rotate();projection.rotate([r[0]+driftAcc*.0035,r[1],r[2]]);driftAcc=0;render();}
 });
 svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",scheduleDrift);
 

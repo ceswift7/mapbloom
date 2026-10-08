@@ -715,7 +715,7 @@ function setModeNow(m,quiet,noIdle){
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
 
   hideCard();clearMissed();
-  size();paint();updateProgress();
+  sizeIfChanged();paint();updateProgress();
   if(m==="speed"){stopDrift();speedEnter(!quiet)}
   else if(m==="hot"){stopDrift();hotEnter(!quiet)}
   else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle(!quiet);if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}

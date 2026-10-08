@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    CANVAS GLOBE: the land is drawn straight onto a canvas each frame (no per-frame DOM/SVG work).
    Pills, labels and the bloom animation stay in the svg above it.
    ====================================================================== */
@@ -87,8 +87,10 @@ function benchDraw(){
   });
 }
 /* the journal's own materials, baked once per theme: pebbled leather for the cover, toothy paper for the pages */
+const BTC={};
 function makeBookTiles(){
-  const dark=isDark(),mk=N=>{const c=document.createElement("canvas");c.width=c.height=N;return c},st=document.documentElement.style;
+  const dark=isDark(),st0=document.documentElement.style;if(BTC[dark]){st0.setProperty("--leather-img",BTC[dark][0]);st0.setProperty("--page-img",BTC[dark][1]);return}   // built once per theme, then reused when switching modes
+  const mk=N=>{const c=document.createElement("canvas");c.width=c.height=N;return c},st=document.documentElement.style;
   let seed=29;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   {const N=160,c=mk(N),x=c.getContext("2d");
     for(let i=0;i<1500;i++){const px=rnd()*N,py=rnd()*N,r=.7+rnd()*1.6;
@@ -102,6 +104,7 @@ function makeBookTiles(){
     for(let i=0;i<520;i++){x.fillStyle=`rgba(${ink},${(dark?.05:.07)+rnd()*.07})`;x.fillRect(Math.floor(rnd()*N),Math.floor(rnd()*N),1+(rnd()<.2?1:0),1)}
     x.lineWidth=.6;for(let i=0;i<30;i++){const px=rnd()*N,py=rnd()*N,a=rnd()*6.28,l=3+rnd()*7;x.strokeStyle=`rgba(${ink},${dark?.05:.07})`;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
     st.setProperty("--page-img",`url(${c.toDataURL("image/png")})`)}
+  BTC[dark]=[st.getPropertyValue("--leather-img"),st.getPropertyValue("--page-img")];
 }
 /* signs of life on the pages: a coffee ring, an ink blot, a thumb smudge, pencil marks (drawn once when the book opens) */
 function drawBookMarks(cv,tab){
@@ -149,13 +152,15 @@ function drawBookMarks(cv,tab){
       else if(m==="glow")glow(x0+pw*.78,y0+ph-22);
     });
   });
-}function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
-  const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
+}const PPC={};
+function makePaperBg(){   // the page background: a fine per-pixel grain (the globe has its own, coarser, paper grain wrapped around it)
+  const dark=isDark()||S.mode==="speed",N=Math.round(128*Math.min(2,window.devicePixelRatio||1)),pk=dark+"|"+N;if(PPC[pk]){document.documentElement.style.setProperty("--paper-img",PPC[pk]);return}
+  const c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),im=x.createImageData(N,N),d=im.data;
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   for(let i=0;i<N*N;i++){const r=rnd(),lit=r>.5,a=(lit?rnd():rnd())*(dark?.09:.14);
     d[i*4]=lit?(dark?255:255):(dark?0:70);d[i*4+1]=lit?(dark?250:248):(dark?0:55);d[i*4+2]=lit?(dark?235:225):(dark?0:35);d[i*4+3]=Math.round(a*255)}
   x.putImageData(im,0,0);
-  document.documentElement.style.setProperty("--paper-img",`url(${c.toDataURL("image/png")})`);
+  PPC[pk]=`url(${c.toDataURL("image/png")})`;document.documentElement.style.setProperty("--paper-img",PPC[pk]);
 }
 function cvResize(){
   cvDpr=Math.max(1,Math.min(1.5,window.devicePixelRatio||1)*cvQ);
@@ -384,6 +389,13 @@ function size(){
   render(true);
   if(US.on)usLayout();
 }
+/* the cheap version for mode switches: when the stage and header are exactly where they were, only a redraw is needed, not a full re-measure and canvas resize */
+let sizeKey="";
+function sizeIfChanged(){
+  const r=document.getElementById("stage").getBoundingClientRect(),k=[r.width,r.height,r.top,r.left,document.querySelector("header").getBoundingClientRect().bottom,devicePixelRatio].join();
+  if(k===sizeKey&&W===r.width&&H===r.height){requestRender();return}
+  size();sizeKey=k;
+}
 let cyVal=0,promptBottom=0;
 function layoutCy(){   // the globe sits dead centre of the stage in every mode, whatever floats over it
   return H/2;
@@ -414,7 +426,7 @@ function focusFor(id,ll){
 let lastRenderStamp=-99,renderDeferred=false;
 function render(force){
   const now=performance.now();
-  if(!force&&!document.hidden&&now-lastRenderStamp<6){if(!renderDeferred){renderDeferred=true;requestAnimationFrame(()=>{renderDeferred=false;render()})}return}
+  if(!force&&!document.hidden&&now-lastRenderStamp<10){if(!renderDeferred){renderDeferred=true;requestAnimationFrame(()=>{renderDeferred=false;render()})}return}
   lastRenderStamp=now;renderNow();
 }
 /* big multi-part countries (Canada, Indonesia, Russia...) only project the parts that can be seen */

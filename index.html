@@ -811,7 +811,11 @@ details.fold[open]>summary::after{content:"\2013"}
 .silform input:focus{border-color:var(--mode-acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--mode-acc) 25%,transparent)}
 .silform.shake{animation:shk .45s ease}
 .usmap{position:absolute;left:0;top:0;z-index:5;display:none}
-.app.usmode .usmap{display:block}
+.app.usmode .usmap{display:block;touch-action:none}
+.uszoom{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:6;display:none;flex-direction:column;gap:6px}
+.app.usmode .uszoom{display:flex}
+.uszoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);font:600 18px var(--sans);line-height:1;cursor:pointer;box-shadow:0 6px 14px -8px rgba(0,0,0,.4);transition:background .2s ease,border-color .2s ease}
+.uszoom button:hover{border-color:var(--ink)}
 .usmap path{fill:var(--land);stroke:var(--border);stroke-width:.9;vector-effect:non-scaling-stroke;cursor:var(--cur-cross);transition:fill .5s ease}
 .usmap path:hover{filter:brightness(.94)}
 .nb .usmap path{stroke:none}
@@ -4046,7 +4050,8 @@ function renderMenu(){
   const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
   sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
     el("div",{class:"qcard mrows"},
-      row("sparkle","How to play","A quick tour of the game and everything in it.",renderTour),
+      row("info","Help","The welcome tour again: how to play and what everything does.",renderTour),
+      row("play","Replay the intro","Watch the opening title sequence again.",replayIntro),
       row("home","Home","Back to Explore with the whole globe in view.",goHome),
       row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
       row("gear","Settings","Sound, theme, units, vibration and your save.",renderSettings),
@@ -4100,12 +4105,13 @@ function renderTour(){
     sec(5,"Good to know","",bullets([
       "Small island nations in the Pacific and the Antilles have a dashed sea zone. Tap anywhere inside it.",
       "Menu → Settings: sound, theme, miles or kilometres, vibration, graphics quality, and saving or restoring your progress.",
-      "Everything is saved on this device only. You can reopen this tour any time from the Menu."])),
+      "Everything is saved on this device only. You can reopen this tour any time: Menu, then Help."])),
     el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",type:"button",id:"tourGo",style:"width:auto;min-width:160px",onclick:()=>{sndTick();closeModal()}},"Got it, let’s explore")));
   openModal("tour");
   setTimeout(()=>{const b=$("tourGo");if(b)b.focus({preventScroll:true})},80);
 }
 if(!tourSeen())document.body.classList.add("newbie");
+function replayIntro(){try{localStorage.removeItem("mb-skip-intro")}catch(e){}try{save()}catch(e){}const u=new URL(location.href);u.searchParams.delete("nointro");if(u.href===location.href)location.reload();else location.href=u.href}
 $("tourBtn").onclick=()=>{if(guardRace())return;sndTick();renderTour()};
 function renderAbout(){
   const sh=$("sheet");sh.innerHTML="";
@@ -5522,22 +5528,34 @@ function usLoad(){
 }
 function usEnter(first){
   if(!US.data)return;
-  if(!US.svg){US.svg=d3.select("#stage").append("svg").attr("class","usmap").attr("aria-label","Map of the United States");US.g=US.svg.append("g")}
-  US.on=true;US.painted=new Set();US.hl=null;$("app").classList.add("usmode");
+  if(!US.svg){US.svg=d3.select("#stage").append("svg").attr("class","usmap").attr("aria-label","Map of the United States");US.g=US.svg.append("g");usZoomInit()}
+  usZoomReset();US.on=true;US.painted=new Set();US.hl=null;$("app").classList.add("usmode");
   US.g.selectAll("path").data(US.data,d=>d.properties.name).join("path").attr("data-n",d=>d.properties.name).on("click",(e,d)=>usClick(d.properties.name));
   usLayout();usPaint();
 }
+/* zoom and pan the state map: wheel, pinch or drag, or the + / - / reset buttons; the strokes stay thin as you zoom */
+function usZoomInit(){
+  US.zoom=d3.zoom().scaleExtent([1,10]).clickDistance(5).filter(e=>(!e.ctrlKey||e.type==="wheel")&&!e.button).on("zoom",e=>{US.g.attr("transform",e.transform)});
+  US.svg.call(US.zoom).on("dblclick.zoom",null);
+  const box=document.createElement("div");box.className="uszoom";box.setAttribute("role","group");box.setAttribute("aria-label","Zoom the map");
+  const mk=(t,label,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.title=label;b.setAttribute("aria-label",label);b.onclick=e=>{e.stopPropagation();sndTick();fn()};box.append(b)};
+  mk("+","Zoom in",()=>US.svg.transition().duration(250).call(US.zoom.scaleBy,1.6));
+  mk("\u2212","Zoom out",()=>US.svg.transition().duration(250).call(US.zoom.scaleBy,1/1.6));
+  mk("\u2302","Whole map",()=>US.svg.transition().duration(300).call(US.zoom.transform,d3.zoomIdentity));
+  $("stage").append(box);
+}
+function usZoomReset(){if(US.svg&&US.zoom)US.svg.call(US.zoom.transform,d3.zoomIdentity)}
 function usLayout(){
   if(!US.svg||!US.data)return;
   const phone=W<900,top=phone?150:70,bot=phone?150:W<1100?170:150;
   const proj=d3.geoAlbersUsa().fitExtent([[12,top],[W-12,Math.max(top+80,H-bot)]],{type:"FeatureCollection",features:US.data}),path=d3.geoPath(proj);
-  US.svg.attr("viewBox",`0 0 ${W} ${H}`).style("width",W+"px").style("height",H+"px");
+  US.svg.attr("viewBox",`0 0 ${W} ${H}`).style("width",W+"px").style("height",H+"px");if(US.zoom)US.zoom.extent([[0,0],[W,H]]).translateExtent([[0,0],[W,H]]);
   US.g.selectAll("path").attr("d",path);
 }
 function usColor(n){const i=US.names.indexOf(n);return d3.hsl((i*47)%360,.42,.8).formatRgb()}
 function usPaint(){if(!US.g)return;US.g.selectAll("path").style("fill",d=>US.painted.has(d.properties.name)?usColor(d.properties.name):null)}
 function usHl(){if(!US.g)return;US.g.selectAll("path").classed("hl",d=>d.properties.name===US.hl)}
-function usStop(){if(!US.on&&!US.svg)return;US.on=false;US.round=null;US.target=null;US.hl=null;$("app").classList.remove("usmode");if(US.g)usHl()}
+function usStop(){if(!US.on&&!US.svg)return;US.on=false;US.round=null;US.target=null;US.hl=null;$("app").classList.remove("usmode");if(US.g)usHl();usZoomReset()}
 function usFlash(n,cls){if(!US.g)return;const p=US.g.selectAll("path").filter(d=>d.properties.name===n);p.classed(cls,true);setTimeout(()=>p.classed(cls,false),600)}
 const usNorm=s=>silNorm(String(s));
 function usCheck(name,txt){

@@ -257,22 +257,34 @@ function usLoad(){
 }
 function usEnter(first){
   if(!US.data)return;
-  if(!US.svg){US.svg=d3.select("#stage").append("svg").attr("class","usmap").attr("aria-label","Map of the United States");US.g=US.svg.append("g")}
-  US.on=true;US.painted=new Set();US.hl=null;$("app").classList.add("usmode");
+  if(!US.svg){US.svg=d3.select("#stage").append("svg").attr("class","usmap").attr("aria-label","Map of the United States");US.g=US.svg.append("g");usZoomInit()}
+  usZoomReset();US.on=true;US.painted=new Set();US.hl=null;$("app").classList.add("usmode");
   US.g.selectAll("path").data(US.data,d=>d.properties.name).join("path").attr("data-n",d=>d.properties.name).on("click",(e,d)=>usClick(d.properties.name));
   usLayout();usPaint();
 }
+/* zoom and pan the state map: wheel, pinch or drag, or the + / - / reset buttons; the strokes stay thin as you zoom */
+function usZoomInit(){
+  US.zoom=d3.zoom().scaleExtent([1,10]).clickDistance(5).filter(e=>(!e.ctrlKey||e.type==="wheel")&&!e.button).on("zoom",e=>{US.g.attr("transform",e.transform)});
+  US.svg.call(US.zoom).on("dblclick.zoom",null);
+  const box=document.createElement("div");box.className="uszoom";box.setAttribute("role","group");box.setAttribute("aria-label","Zoom the map");
+  const mk=(t,label,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.title=label;b.setAttribute("aria-label",label);b.onclick=e=>{e.stopPropagation();sndTick();fn()};box.append(b)};
+  mk("+","Zoom in",()=>US.svg.transition().duration(250).call(US.zoom.scaleBy,1.6));
+  mk("\u2212","Zoom out",()=>US.svg.transition().duration(250).call(US.zoom.scaleBy,1/1.6));
+  mk("\u2302","Whole map",()=>US.svg.transition().duration(300).call(US.zoom.transform,d3.zoomIdentity));
+  $("stage").append(box);
+}
+function usZoomReset(){if(US.svg&&US.zoom)US.svg.call(US.zoom.transform,d3.zoomIdentity)}
 function usLayout(){
   if(!US.svg||!US.data)return;
   const phone=W<900,top=phone?150:70,bot=phone?150:W<1100?170:150;
   const proj=d3.geoAlbersUsa().fitExtent([[12,top],[W-12,Math.max(top+80,H-bot)]],{type:"FeatureCollection",features:US.data}),path=d3.geoPath(proj);
-  US.svg.attr("viewBox",`0 0 ${W} ${H}`).style("width",W+"px").style("height",H+"px");
+  US.svg.attr("viewBox",`0 0 ${W} ${H}`).style("width",W+"px").style("height",H+"px");if(US.zoom)US.zoom.extent([[0,0],[W,H]]).translateExtent([[0,0],[W,H]]);
   US.g.selectAll("path").attr("d",path);
 }
 function usColor(n){const i=US.names.indexOf(n);return d3.hsl((i*47)%360,.42,.8).formatRgb()}
 function usPaint(){if(!US.g)return;US.g.selectAll("path").style("fill",d=>US.painted.has(d.properties.name)?usColor(d.properties.name):null)}
 function usHl(){if(!US.g)return;US.g.selectAll("path").classed("hl",d=>d.properties.name===US.hl)}
-function usStop(){if(!US.on&&!US.svg)return;US.on=false;US.round=null;US.target=null;US.hl=null;$("app").classList.remove("usmode");if(US.g)usHl()}
+function usStop(){if(!US.on&&!US.svg)return;US.on=false;US.round=null;US.target=null;US.hl=null;$("app").classList.remove("usmode");if(US.g)usHl();usZoomReset()}
 function usFlash(n,cls){if(!US.g)return;const p=US.g.selectAll("path").filter(d=>d.properties.name===n);p.classed(cls,true);setTimeout(()=>p.classed(cls,false),600)}
 const usNorm=s=>silNorm(String(s));
 function usCheck(name,txt){

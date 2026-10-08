@@ -811,7 +811,11 @@ details.fold[open]>summary::after{content:"\2013"}
 .silform input:focus{border-color:var(--mode-acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--mode-acc) 25%,transparent)}
 .silform.shake{animation:shk .45s ease}
 .usmap{position:absolute;left:0;top:0;z-index:5;display:none}
-.app.usmode .usmap{display:block}
+.app.usmode .usmap{display:block;touch-action:none}
+.uszoom{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:6;display:none;flex-direction:column;gap:6px}
+.app.usmode .uszoom{display:flex}
+.uszoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);font:600 18px var(--sans);line-height:1;cursor:pointer;box-shadow:0 6px 14px -8px rgba(0,0,0,.4);transition:background .2s ease,border-color .2s ease}
+.uszoom button:hover{border-color:var(--ink)}
 .usmap path{fill:var(--land);stroke:var(--border);stroke-width:.9;vector-effect:non-scaling-stroke;cursor:var(--cur-cross);transition:fill .5s ease}
 .usmap path:hover{filter:brightness(.94)}
 .nb .usmap path{stroke:none}

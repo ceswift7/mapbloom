@@ -86,7 +86,8 @@ function renderMenu(){
   const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
   sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
     el("div",{class:"qcard mrows"},
-      row("sparkle","How to play","A quick tour of the game and everything in it.",renderTour),
+      row("info","Help","The welcome tour again: how to play and what everything does.",renderTour),
+      row("play","Replay the intro","Watch the opening title sequence again.",replayIntro),
       row("home","Home","Back to Explore with the whole globe in view.",goHome),
       row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
       row("gear","Settings","Sound, theme, units, vibration and your save.",renderSettings),
@@ -140,12 +141,13 @@ function renderTour(){
     sec(5,"Good to know","",bullets([
       "Small island nations in the Pacific and the Antilles have a dashed sea zone. Tap anywhere inside it.",
       "Menu → Settings: sound, theme, miles or kilometres, vibration, graphics quality, and saving or restoring your progress.",
-      "Everything is saved on this device only. You can reopen this tour any time from the Menu."])),
+      "Everything is saved on this device only. You can reopen this tour any time: Menu, then Help."])),
     el("div",{class:"sheetfoot"},el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",type:"button",id:"tourGo",style:"width:auto;min-width:160px",onclick:()=>{sndTick();closeModal()}},"Got it, let’s explore")));
   openModal("tour");
   setTimeout(()=>{const b=$("tourGo");if(b)b.focus({preventScroll:true})},80);
 }
 if(!tourSeen())document.body.classList.add("newbie");
+function replayIntro(){try{localStorage.removeItem("mb-skip-intro")}catch(e){}try{save()}catch(e){}const u=new URL(location.href);u.searchParams.delete("nointro");if(u.href===location.href)location.reload();else location.href=u.href}
 $("tourBtn").onclick=()=>{if(guardRace())return;sndTick();renderTour()};
 function renderAbout(){
   const sh=$("sheet");sh.innerHTML="";

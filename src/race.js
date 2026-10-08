@@ -13,7 +13,7 @@ function syncSpeedUI(){
   b.disabled=ph==="count";
   $("endBtn").hidden=ph!=="run";
   $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
-  if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
+  if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong "+unitW(1)+" costs 2 seconds."}
 }
 function speedEnter(compact){
   usStop();
@@ -38,10 +38,10 @@ function showStartSheet(){
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
   sh.append(closeBtn(),el("h2",{},"Race"),el("p",{class:"modesub"},MODE_DESC.speed),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
   const vchips=tiles(RACE_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.rv===k,onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}})),5);
-  const chips=regionTiles(S.region,r=>{pickRegion(r);showStartSheet()},r=>{const bb=bestOf(rkey(r));return isFinite(bb)?"Best "+fmtT(bb,0):regionCount(r)+(r==="United States"?" states":" countries")});const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
+  const chips=regionTiles(S.region,r=>{pickRegion(r);showStartSheet()},r=>{const bb=bestOf(rkey(r));return isFinite(bb)?"Best "+fmtT(bb,0):regionCount(r)+(r==="United States"?" states":" countries")});const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":(S.region==="United States"?{country:"Tap the named state.",capital:"Tap the state with this capital.",name:"A state glows. Type its name."}:{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."})[S.rv];
   sh.append(el("div",{class:"qcard"},
     step(1,"What to find",how,vchips),
-    step(2,"Where","Each tile shows your best time, or the country count.",chips),
+    step(2,"Where","Each tile shows your best time, or how many places it has.",chips),
     step(3,"Options",null,opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick();showStartSheet()},"Borderless")))));
   sh.append(el("p",{class:"bestline"},isFinite(b)?`Your best here: ${fmtT(b)}`:"No time here yet."));
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>{setMode("wander")}},"Back to Explore"),el("span",{class:"grow"}),el("button",{class:"btn primary bigstart",style:"width:auto;min-width:140px",id:"startRace",onclick:startRace},"Start race")));
@@ -150,7 +150,7 @@ function showEndRace(){
   const t=raceTotals(),sh=$("sheet");sh.innerHTML="";
   const stat=(k,v)=>el("div",{class:"stat"},el("b",{},v),el("small",{},k));
   sh.append(closeBtn(),el("h2",{},"End this race?"),
-    el("p",{},"You found "+R.found.size+" of "+R.total+". Each country left adds +"+(RACE_LEFT_PEN/1000)+"s, the same as skipping it, so the time stays fair. The clock is paused while you decide."),
+    el("p",{},"You found "+R.found.size+" of "+R.total+". Each "+unitW(1)+" left adds +"+(RACE_LEFT_PEN/1000)+"s, the same as skipping it, so the time stays fair. The clock is paused while you decide."),
     el("div",{class:"stats"},stat("Found",R.found.size+" / "+R.total),stat("Time so far",fmtT(t.elapsed+R.pen)),stat("Left over","+"+(t.left*RACE_LEFT_PEN/1000)+"s"),stat("Adjusted time",fmtT(t.adj))),
     el("p",{class:"bestline"},"Ended races are saved separately. They do not count as best times or stamps."),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",id:"keepRace",onclick:closeModal},"Keep racing"),el("span",{class:"grow"}),el("button",{class:"btn danger",onclick:endRace},"End race")));
@@ -190,7 +190,7 @@ function showResults(tot,isBest,prev,ended){
   const diff=isFinite(prev)?tot-prev:null;
   if(ended)return showEndedResults(tot,ended,where,what);
   sh.append(closeBtn(),el("div",{class:"hero"},
-    el("p",{class:"sub"},`${R.total} countries \xB7 ${where}${what}${R.nb?" \xB7 borderless":""}`),
+    el("p",{class:"sub"},`${R.total} ${unitW(R.total)} \xB7 ${where}${what}${R.nb?" \xB7 borderless":""}`),
     el("div",{class:"bignum"},fmtT(tot)),
     el("span",{class:"delta"+(isBest?" up":"")},isBest?(isFinite(prev)?"New best! "+fmtT(-diff).replace(/^/,"")+" faster":"New best! Your first time here"):(isFinite(prev)?`${fmtT(diff)} slower than your best (${fmtT(prev)})`:"First time here"))));
   const stat=(k,v)=>el("div",{class:"stat"},el("b",{},v),el("small",{},k));
@@ -198,7 +198,7 @@ function showResults(tot,isBest,prev,ended){
   sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("button",{class:"btn",onclick:()=>{sndTick();speedEnter()}},"Change settings"),el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:()=>{sndTick();abortRace();startRace()}},"Race again")));
   const rv=el("div",{});
   if(R.region==="World"){
-    const tb=el("table",{class:"tbl"},el("tr",{},el("th",{},"Where the time went"),el("th",{class:"t"},"Avg per country")));
+    const tb=el("table",{class:"tbl"},el("tr",{},el("th",{},"Where the time went"),el("th",{class:"t"},"Avg per "+unitW(1))));
     REGIONS.forEach(r=>{if(byR[r])tb.append(el("tr",{},el("td",{},el("span",{class:"swatch",style:`background:var(--c-${r});margin-right:8px`}),r),el("td",{class:"t"},(d3.mean(byR[r])/1000).toFixed(1)+"s")))});
     rv.append(tb);
   }

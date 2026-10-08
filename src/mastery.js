@@ -664,7 +664,10 @@ $("skipBtn").onclick=()=>{
   else if(R.phase==="done"||R.phase==="idle")speedEnter(true);
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
-const MODE_DESC={wander:"Discover the world at your own pace.",find:"Can you name the country?",speed:"How many can you find before time runs out?",hot:"Find the hidden country by following the temperature."};
+const MODE_DESC={wander:"Discover the world at your own pace.",
+  get find(){return isUS()?"Can you name the state?":"Can you name the country?"},
+  get speed(){const r=S.region;return r==="United States"?"How fast can you name all 50 states?":r==="World"?"How fast can you name all the countries?":"How fast can you name all "+regionCount(r)+" countries in "+regionLabel(r)+"?"},
+  hot:"Find the hidden country by following the temperature."};
 function syncModeDesc(m){
   const d=$("modeDesc");if(d)d.textContent=MODE_DESC[m]||"";
   const x=$("exitBtn");if(x)x.hidden=m==="wander";

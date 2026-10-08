@@ -256,7 +256,7 @@ function idleView(){fbHide();
 function quizIdle(compact){idleView();if(compact)showQuizCompact();else showQuizSheet()}
 function showQuizCompact(){
   chainStop();
-  const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" countries";
+  const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" "+unitW(S.rlen);
   modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
     moreHint:"What to find, region, round length, daily challenges, records",startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
 }
@@ -293,11 +293,11 @@ function showQuizSheet(){
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
   sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
   const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
-  const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how={country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."}[S.quiz];
+  const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how=(S.region==="United States"?{country:"Tap the named state on the map.",capital:"Tap the state with this capital.",name:"A state glows. Type its name."}:{country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."})[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
     step(1,"What to find",how,q),
     step(2,"Where",S.region==="United States"?"The 50 states on their own map. Flag and Silhouette are not available, so Locate is used.":S.region==="World"?"Anywhere in the world.":"Only countries in "+(S.region==="Americas"?"the Americas":S.region)+".",rc),
-    step(3,"Round","Each round starts on a blank map. Your saved map is kept.",tiles([[10,"10 countries","r10"],[20,"20 countries","r20"],[0,"Whole region","rall"]].map(([n,l,ic])=>tile({icon:ic,label:l,pressed:S.rlen===n,onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}})),3)),
+    step(3,"Round","Each round starts on a blank map. Your saved map is kept.",tiles([[10,"10 "+unitW(10),"r10"],[20,"20 "+unitW(20),"r20"],[0,"Whole region","rall"]].map(([n,l,ic])=>tile({icon:ic,label:l,pressed:S.rlen===n,onclick:()=>{S.rlen=n;save();sndTick();showQuizSheet()}})),3)),
     step(4,"Options",null,el("div",{},opt("Undiscovered only",S.region==="United States"?"Not available for states.":"Skip countries you have already painted.",toggle(S.undisc&&S.region!=="United States",v=>{S.undisc=v;save();sndTick();showQuizSheet()},"Undiscovered only")),opt("Borderless","Hide borders. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless")))),
     ));
   const chainDone=S.daily.chains&&S.daily.chains[todayStr()];

@@ -244,6 +244,9 @@ const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
 })();
 /*@include hot.js*/
 const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
+/* the word for what is being found: states when the map is the United States, countries everywhere else */
+const isUS=()=>S.region==="United States";
+const unitW=(n,cap)=>{const w=isUS()?(n===1?"state":"states"):(n===1?"country":"countries");return cap?w.charAt(0).toUpperCase()+w.slice(1):w};
 const US={on:false,data:null,names:[],cap:{},abbr:{},round:null,target:null,painted:new Set(),hl:null,svg:null,loading:null,style:"country"};
 US_RAW.split(";").forEach(x=>{const p=x.split(":");US.names.push(p[0]);US.abbr[p[0]]=p[1];US.cap[p[0]]=p[2]});
 function usLoad(){

@@ -284,7 +284,7 @@ function regionTiles(cur,pick,subFn,list){
   return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
 }
 /* choosing a region anywhere: remember it, update the footer chips and fly the globe there */
-function pickRegion(r){S.region=r;syncChips();updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{})}
+function pickRegion(r){S.region=r;syncChips();syncModeDesc(S.mode);updateProgress();sndTick();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{})}
 function renderStamps(){renderBook("stamps")}
 function renderAtlas(){renderBook("atlas")}
 /* ---- the Atlas book: three bookmark tabs, two pages ---- */

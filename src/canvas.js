@@ -163,7 +163,7 @@ function makePaperBg(){   // the page background: a fine per-pixel grain (the gl
   PPC[pk]=`url(${c.toDataURL("image/png")})`;document.documentElement.style.setProperty("--paper-img",PPC[pk]);
 }
 function cvResize(){
-  cvDpr=Math.max(.6,Math.min(1.5,(window.devicePixelRatio||1)*cvQ));
+  cvDpr=Math.max(1,Math.min(1.5,(window.devicePixelRatio||1)*cvQ));   // never below one pixel per CSS pixel: lines and labels stay crisp
   const w=innerWidth,h=innerHeight;
   const nw=Math.round(w*cvDpr),nh=Math.round(h*cvDpr),same=cv.width===nw&&cv.height===nh;
   if(GLX.resize)GLX.resize();
@@ -483,9 +483,9 @@ function renderNow(){
     const n=performance.now();
     if(cvLastT&&n-cvLastT<200){cvAvg=cvAvg*.92+(n-cvLastT)*.08;cvN++}
     cvLastT=n;
-    // frame-rate governor: when frames run long the globe is drawn at a lower internal resolution (the watercolour look hides it well, down to 60% of the screen) and creeps back up once there is headroom
-    if(cvN>24&&cvAvg>20.5&&cvDpr>.62){cvQ=Math.max(.45,cvQ-.15);cvN=0;cvAvg=16;cvFast=0;cvResize()}
-    else if(cvAvg<13.5&&cvQ<1){if(++cvFast>240){cvQ=Math.min(1,cvQ+.1);cvN=0;cvAvg=16;cvFast=0;cvResize()}}else cvFast=0;
+    // frame-rate governor: if frames run long while moving, draw at a slightly lower internal resolution (never below 1 pixel per CSS pixel); it climbs back to full sharpness once frames are comfortably fast
+    if(cvN>40&&cvAvg>22&&cvQ>.6&&cvDpr>1.001){cvQ=Math.max(.6,cvQ-.15);cvN=0;cvAvg=16;cvFast=0;cvResize()}
+    else if(cvQ<1&&cvAvg<18.2){if(++cvFast>90){cvQ=Math.min(1,cvQ+.15);cvN=0;cvAvg=16;cvFast=0;cvResize()}}else cvFast=0;
   }else cvLastT=0;
 }
 const jit=id=>.88+((+id*37)%9)/100;  // each wash settles a little differently

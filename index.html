@@ -813,6 +813,10 @@ details.fold[open]>summary::after{content:"\2013"}
 .silform.shake{animation:shk .45s ease}
 .usmap{position:absolute;left:0;top:0;z-index:5;display:none}
 .app.usmode .usmap{display:block;touch-action:none}
+/* zoomed in, the state map slides under the interface: the prompt, header and footer always stay on top of it (clicks fall through the empty parts) */
+.app.usmode .prompt{z-index:8}
+.app.usmode header,.app.usmode footer{z-index:8;pointer-events:none}
+.app.usmode header>*,.app.usmode footer>*{pointer-events:auto}
 .uszoom{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:6;display:none;flex-direction:column;gap:6px}
 .app.usmode .uszoom{display:flex}
 .uszoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink);font:600 18px var(--sans);line-height:1;cursor:pointer;box-shadow:0 6px 14px -8px rgba(0,0,0,.4);transition:background .2s ease,border-color .2s ease}

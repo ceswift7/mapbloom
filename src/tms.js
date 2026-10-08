@@ -77,13 +77,16 @@ sphere.on("click",function(e){
 
 /* ---------- progress & chips ---------- */
 function updateProgress(){
+  {const pr=document.querySelector(".progress");pr.classList.remove("pending");pr.classList.remove("world")}
   if(US.on){const race=S.mode==="speed";$("foundN").textContent=race?R.found.size:US.round.done;$("totalN").textContent=race?R.total:US.round.n;$("progLabel").textContent=race?"found this race":"this round";return}
   if(S.mode==="hot"){$("foundN").textContent=HOT.list.length;$("totalN").textContent=regionPool().length;$("progLabel").textContent="countries guessed";return}
   const all=playable.map(f=>f.id),F=cf(),inRound=RD.active&&S.mode==="find"&&!D.active&&!S.practice;
   const base=S.mode==="speed"?regionPool():inRound?regionPool():all;
   $("foundN").textContent=inRound?RD.done:base.filter(id=>F.has(id)).length;
   $("totalN").textContent=inRound?RD.n:base.length;
-  $("progLabel").textContent=S.mode==="speed"?"found this race":inRound?"this round":"countries painted";
+  const world=S.mode!=="speed"&&!inRound,nfound=+$("foundN").textContent;
+  $("progLabel").textContent=S.mode==="speed"?"found this race":inRound?"this round":(nfound===1?"place in your world":"places in your world");
+  {const pr=document.querySelector(".progress");pr.classList.remove("pending");pr.classList.toggle("world",world)}
   const bar=$("bar");
   REGIONS.forEach((r,i)=>{
     const n=base.filter(id=>FACTS[id].r===r&&F.has(id)).length;

@@ -456,7 +456,7 @@ function stampPageList(){
 }
 function expPageList(){
   const go=e=>{expSel=e.id;sndTick();const pi=1+EXPS.indexOf(e);bkGo(Math.floor(pi/2))};
-  const list=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed journeys. Each country you find counts toward every journey it is in.")];
+  const list=[el("h2",{},"Expeditions"),el("p",{style:"margin:2px 0 14px;color:var(--ink-soft);font-size:14px"},"Themed expeditions. Each country you find counts toward every expedition it is in.")];
   EXPS.forEach(e=>{const ids=expIds(e),n=ids.filter(id=>S.found.has(id)).length;
     list.push(el("button",{class:"expcard"+(e.id===expSel?" on":""),onclick:()=>go(e)},el("b",{},e.name),el("small",{},`${n} of ${ids.length}`+(n===ids.length?" ✓":"")),el("div",{class:"ebar"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`}))))});
   const pages=[list],labels=["Contents"];

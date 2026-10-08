@@ -618,6 +618,10 @@ footer{position:relative;z-index:3;padding:0 20px 14px;display:flex;align-items:
 .progress{flex:none;min-width:0}
 .progress p{margin:0 0 6px;font-size:12.5px;line-height:1;color:var(--ink-soft);display:flex;align-items:center;gap:0 5px}
 .progress p b{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink)}
+.progress.pending{opacity:0}
+.progress{transition:opacity .5s ease}
+.progress.world #progLabel{order:1;font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink)}
+.progress.world .po{order:2;color:var(--ink-faint);font-size:11.5px}
 .bar{height:6px;border-radius:6px;background:var(--panel);border:1px solid var(--panel-line);display:flex;overflow:hidden;width:220px}
 .bar span{height:100%;transition:width 1.4s cubic-bezier(.2,.7,.2,1);background-image:linear-gradient(90deg,rgba(255,255,255,.28),rgba(255,255,255,0) 60%,rgba(0,0,0,.08))}
 .unit{font:inherit;font-size:11.5px;line-height:1;height:20px;padding:0 8px;border-radius:99px;border:1px solid var(--panel-line);background:var(--panel);color:var(--ink-soft);margin-left:4px}
@@ -916,7 +920,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
     <h1 class="intro-word" aria-label="Mapbloom"><span class="guide" aria-hidden="true">Mapbloom</span><span class="ink" id="introInk" aria-hidden="true">Mapbloom</span></h1>
     <p class="intro-sub" id="introSub">paint the world, one place at a time</p>
     <button class="btn primary intro-begin" id="introBegin" hidden>Begin</button>
-    <p class="intro-hint" id="introHint">click to start your journey</p>
+    <p class="intro-hint" id="introHint">Begin</p>
   </div>
   <i class="intro-drop" id="introDrop"></i><i class="intro-ring" id="introRing"></i>
   <button class="intro-skip" id="introSkip" hidden>Skip</button>
@@ -1016,8 +1020,8 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       </div>
     </div>
 
-    <div class="progress">
-      <p><b id="foundN">0</b> of <span id="totalN">0</span> <span id="progLabel">countries painted</span></p>
+    <div class="progress pending">
+      <p><b id="foundN"></b><span class="po"> of </span><span id="totalN" class="po"></span> <span id="progLabel"></span></p>
       <div class="bar" id="bar"></div>
     </div>
     <div class="chips" role="group" aria-label="Turn the globe to a region" id="chips"></div>

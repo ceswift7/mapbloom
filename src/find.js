@@ -241,7 +241,7 @@ function idleView(){fbHide();
   S.qIdle=true;S.target=null;S.done=false;D.active=false;S.practice=false;endSession();
   hideCard();clearMissed();$("dClock").classList.remove("on");$("qFlag").hidden=true;$("target").classList.remove("small");
   $("ask").textContent="";swell($("target"),"Ready?");swell($("hint"),"Choose how you would like to play.");
-  $("showBtn").hidden=true;$("nextBtn").hidden=false;$("nextBtn").textContent="Choose a game";
+  $("showBtn").hidden=true;$("nextBtn").hidden=false;$("nextBtn").textContent="Choose how to play";
   if(typeof silHide==="function")silHide();
   updateProgress();
 }

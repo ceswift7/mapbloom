@@ -27,7 +27,7 @@ const ACH=[
   {id:"hot5",n:"Warm Hands",i:"\u{1F525}",d:"Find the hidden country in 5 guesses or fewer",t:()=>Object.values(S.counts.hotBest||{}).some(n=>n<=5)}
 ];
 function checkExp(silent){
-  EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this journey is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp",Math.floor((1+EXPS.indexOf(e))/2))})}});
+  EXPS.forEach(e=>{const ids=expIds(e);if(ids.length&&ids.every(id=>S.found.has(id))&&!S.expDone[e.id]){S.expDone[e.id]=Date.now();save();if(!silent)toast("\u{1F9ED}","Expedition complete: "+e.name,"Every place on this expedition is painted in.",5200,()=>{sndTick();expSel=e.id;renderBook("exp",Math.floor((1+EXPS.indexOf(e))/2))})}});
 }
 function checkAch(){
   checkExp();

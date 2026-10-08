@@ -38,9 +38,12 @@ function introPlay(){
   const guide=document.querySelector(".intro-word .guide"),guides=[];   // the faint grey word is split too, so each grey letter melts away as its colour arrives
   if(guide){guide.textContent="";"Mapbloom".split("").forEach(ch=>{const g=document.createElement("span");g.className="gl";g.textContent=ch;guide.append(g);guides.push(g)})}
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
-  const order=shuffle([0,1,2,3,4,5,6,7],Math.random),pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
+  const order=[0,1,2,3,4,5,6,7],pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
+  for(let i=0;i<7;i++)if(Math.random()<.3){[order[i],order[i+1]]=[order[i+1],order[i]];i++}   // a brush sweeping left to right, with the odd drop landing a little ahead
+  const brush=$("introBrush"),wordEl=document.querySelector(".intro-word");let reach=0;
+  if(brush){brush.classList.remove("settle");brush.style.setProperty("--p",0)}
   order.forEach((li,n)=>{
-    const L=letters[li],start=n*150;   // an even tick: one drop every 150 ms, none early or late
+    const L=letters[li],start=n*130;   // an even tick: one drop every 130 ms, none early or late
     introLater(()=>{
       if(introState!=="run")return;
       const lr=L.getBoundingClientRect(),dx=lr.left+lr.width*(.3+Math.random()*.4),dy=lr.top+lr.height*(.45+Math.random()*.2),H0=300;
@@ -56,7 +59,8 @@ function introPlay(){
       introLater(impact,FALL2);   // the impact and its sound are on a clock of their own, so a slow frame can never shift the beat
       function impact(){
         if(introState!=="run")return;
-        audioReady(()=>{sndIntroDrop(262*pent[n]);if(n===0)sndBloom(false)});
+        audioReady(()=>{sndIntroDrop(262*pent[n]);sndBrush(false);if(n===0)sndBloom(false)});
+        if(brush&&wordEl){const wr=wordEl.getBoundingClientRect();reach=Math.max(reach,Math.min(1,(lr.right-wr.left)/wr.width));brush.style.setProperty("--p",reach.toFixed(3))}   // the stroke follows the drops across the word
         ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);
         L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");if(guides[li])guides[li].style.opacity=0;
         for(let q=0;q<9;q++){   // splatter: little droplets thrown up and out that fall back under gravity
@@ -67,7 +71,7 @@ function introPlay(){
         L.style.setProperty("--dx",(dx-lr.left)+"px");L.style.setProperty("--dy",(dy-lr.top)+"px");
         const maxR=Math.hypot(lr.width,lr.height)*1.15,t1=performance.now(),DUR=900;
         const t2=d3.timer(()=>{const k=Math.min(1,(performance.now()-t1)/DUR);L.style.setProperty("--mr",(maxR*easeOut(k))+"px");if(k>=1)t2.stop()});
-        if(n===7)introLater(()=>{$("introSub").classList.add("on");letters.forEach((l,i)=>{l.style.animationDelay=(i*70)+"ms";l.classList.add("shine")})},650);
+        if(n===7)introLater(()=>{if(brush){brush.style.setProperty("--p",1);brush.classList.add("settle")}audioReady(()=>sndBrush(true));$("introSub").classList.add("on");letters.forEach((l,i)=>{l.style.animationDelay=(i*60)+"ms";l.classList.add("shine")})},420);
       }
     },start);
   });
@@ -75,8 +79,8 @@ function introPlay(){
   introSpin();
 }/* the globe rises already turning, then eases (fast, then slower and slower) onto the saved view while wind and soft notes follow its speed */
 let spinT=null,spinFinal=null,spinG=null;
-const INTRO_HOLD=3700;   // the letters finish filling, then the globe rises
-const SPIN_MS=4300;
+const INTRO_HOLD=2450;   // the last letters are still finishing as the globe starts to rise, so the title never just sits
+const SPIN_MS=3300;
 function introSpin(){
   const r1=projection.rotate().slice(),k1=zoomK,D=SPIN_MS*(FX.ts||1);
   spinFinal={r:r1,k:k1};

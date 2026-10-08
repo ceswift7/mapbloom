@@ -119,6 +119,7 @@ function audioGesture(){
   if(!actx){if(introState==="wait"||introState==="ready")return;AC();return}
   if(actx.state!=="running")actx.resume().then(audioFlush,()=>{});
 }function sndIntroDrop(f){const c=AC();if(!c)return;const t=c.currentTime;f=f||392;blip(t,1250,330,.22,.22);blip(t+.06,1900,620,.12,.08);bell(f,t+.02,.05,1.8);noise(t,.35,{type:"lowpass",f0:900,f1:300,q:.6,vol:.05,wet:.4})}
+function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done)noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.012,attack:.3,wet:.5});else noise(t,.22,{type:"bandpass",f0:700,f1:2600,q:.9,vol:.018,wet:.3})}
 function sndIntroFall(){const c=AC();if(!c)return;noise(c.currentTime,.43,{f0:2600,f1:700,q:.8,vol:.03,attack:.25,wet:.3})}
 function sndDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1100,380,.16,.07);blip(t+.07,1800,700,.1,.025)}
 function sndBloom(fast){

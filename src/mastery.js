@@ -678,13 +678,9 @@ function sndMode(m){
 function modeWash(m){
   placeDock();
   if(reduced)return;
-  const acc=MODE_ACC[m],w=$("wash");
-  w.style.clipPath="none";w.style.background="radial-gradient(130% 75% at 50% 0%,color-mix(in srgb,"+acc+" 30%,transparent),transparent 72%)";
-  w.animate([{opacity:0},{opacity:1,offset:.32},{opacity:0}],{duration:1000,easing:"ease-in-out"});
-  const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
-  n.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none",offset:.3},{opacity:1,transform:"none",offset:.72},{opacity:0,transform:"translateY(-6px)"}],{duration:1500,easing:"cubic-bezier(.2,.8,.2,1)"});
-}
-/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
+  const dk=$("dock");   // the sliding pill already shows where you are; a soft ring of the mode colour pulses out of the dock, and nothing covers the menu that opens
+  dk.animate([{boxShadow:"0 0 0 0 color-mix(in srgb,"+MODE_ACC[m]+" 50%,transparent)"},{boxShadow:"0 0 0 12px color-mix(in srgb,"+MODE_ACC[m]+" 0%,transparent)"}],{duration:560,easing:"cubic-bezier(.2,.8,.2,1)"});
+}/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
 function yourWorld(){
   if(S.mode!=="wander"||!S.found.size)return;
   const pts=[...S.found].filter(id=>FACTS[id]).map(id=>LL(id));if(!pts.length)return;
@@ -706,8 +702,7 @@ function yourWorld(){
   ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
-  for(const gid of ["gcanvas","glcanvas"]){const gc=$(gid);gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
-  { const g=$("globe");g.classList.remove("dip");void g.offsetWidth;g.classList.add("dip");setTimeout(()=>g.classList.remove("dip"),900) }
+
   hideCard();clearMissed();
   size();paint();updateProgress();
   if(m==="speed"){stopDrift();speedEnter()}

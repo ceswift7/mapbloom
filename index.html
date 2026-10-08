@@ -1249,6 +1249,30 @@ Object.assign(QZ,{
 "887":{g:{hi:"Jabal an Nabi Shu'ayb",sea:["Red Sea","Arabian Sea"],rng:"Sarawat Mountains",wond:"Socotra dragon blood trees",cli:"Desert"},c:{rel:"Islam",hol:"Unity Day (22 May)",spt:"Football",art:"Jambiya daggers"},f:{dish:["Saltah","Mandi"],drk:"Qishr",stp:"Bread",des:"Bint al-sahn",snk:"Fatta",ing:"Honey"},h:{ind:1967,frm:"United Kingdom",emp:["Kingdom of Saba","Himyarite Kingdom"],evt:[{t:"South Yemen gained independence from Britain",y:1967},{t:"North and South Yemen unified",y:1990}],gov:"Transitional government"},n:{lng:"Arabic",mng:"The south, or the land on the right",off:"Republic of Yemen"}}
 });
 
+/* Where each capital is: [latitude, longitude]. Used to mark the capital on the globe when a country page is opened. */
+const CAPLL={
+"004":[34.53,69.17],"008":[41.33,19.82],"012":[36.75,3.06],"020":[42.51,1.52],"024":[-8.84,13.23],"028":[17.12,-61.85],"031":[40.41,49.87],"032":[-34.60,-58.38],"036":[-35.28,149.13],"040":[48.21,16.37],
+"044":[25.05,-77.35],"048":[26.23,50.59],"050":[23.81,90.41],"051":[40.18,44.51],"052":[13.10,-59.61],"056":[50.85,4.35],"064":[27.47,89.64],"068":[-19.03,-65.26],"070":[43.86,18.41],"072":[-24.65,25.91],
+"076":[-15.79,-47.88],"084":[17.25,-88.77],"090":[-9.43,159.95],"096":[4.89,114.94],"100":[42.70,23.32],"104":[19.76,96.08],"108":[-3.43,29.93],"112":[53.90,27.57],"116":[11.56,104.93],"120":[3.85,11.50],
+"124":[45.42,-75.70],"132":[14.93,-23.51],"140":[4.36,18.56],"144":[6.93,79.86],"148":[12.13,15.06],"152":[-33.45,-70.67],"156":[39.90,116.41],"170":[4.71,-74.07],"174":[-11.70,43.26],"178":[-4.27,15.28],
+"180":[-4.44,15.27],"188":[9.93,-84.08],"191":[45.81,15.98],"192":[23.11,-82.37],"196":[35.19,33.38],"203":[50.08,14.44],"204":[6.50,2.63],"208":[55.68,12.57],"212":[15.30,-61.39],"214":[18.49,-69.93],
+"218":[-0.18,-78.47],"222":[13.69,-89.22],"226":[3.75,8.78],"231":[9.03,38.74],"232":[15.32,38.93],"233":[59.44,24.75],"242":[-18.14,178.44],"246":[60.17,24.94],"250":[48.86,2.35],"262":[11.59,43.15],
+"266":[0.42,9.47],"268":[41.72,44.79],"270":[13.45,-16.58],"275":[31.90,35.20],"276":[52.52,13.40],"288":[5.60,-0.19],"296":[1.45,173.03],"300":[37.98,23.73],"308":[12.06,-61.75],"320":[14.63,-90.51],
+"324":[9.64,-13.58],"328":[6.80,-58.16],"332":[18.54,-72.34],"336":[41.90,12.45],"340":[14.07,-87.19],"348":[47.50,19.04],"352":[64.15,-21.94],"356":[28.61,77.21],"360":[-6.21,106.85],"364":[35.69,51.39],
+"368":[33.31,44.36],"372":[53.35,-6.26],"376":[31.77,35.21],"380":[41.90,12.50],"384":[6.82,-5.28],"388":[18.00,-76.79],"392":[35.68,139.69],"398":[51.17,71.45],"400":[31.95,35.93],"404":[-1.29,36.82],
+"408":[39.04,125.76],"410":[37.57,126.98],"414":[29.38,47.99],"417":[42.87,74.59],"418":[17.97,102.63],"422":[33.89,35.50],"426":[-29.31,27.48],"428":[56.95,24.11],"430":[6.30,-10.80],"434":[32.89,13.19],
+"438":[47.14,9.52],"440":[54.69,25.28],"442":[49.61,6.13],"450":[-18.88,47.51],"454":[-13.96,33.77],"458":[3.14,101.69],"462":[4.18,73.51],"466":[12.64,-8.00],"470":[35.90,14.51],"478":[18.09,-15.98],
+"480":[-20.16,57.50],"484":[19.43,-99.13],"492":[43.74,7.42],"496":[47.89,106.91],"498":[47.01,28.86],"499":[42.44,19.26],"504":[34.02,-6.84],"508":[-25.97,32.57],"512":[23.59,58.41],"516":[-22.56,17.07],
+"520":[-0.55,166.92],"524":[27.72,85.32],"528":[52.37,4.90],"548":[-17.73,168.32],"554":[-41.29,174.78],"558":[12.14,-86.25],"562":[13.51,2.11],"566":[9.08,7.40],"578":[59.91,10.75],"583":[6.92,158.16],
+"584":[7.09,171.38],"585":[7.50,134.62],"586":[33.68,73.05],"591":[8.98,-79.52],"598":[-9.44,147.18],"600":[-25.26,-57.58],"604":[-12.05,-77.04],"608":[14.60,120.98],"616":[52.23,21.01],"620":[38.72,-9.14],
+"624":[11.86,-15.60],"626":[-8.56,125.57],"634":[25.29,51.53],"642":[44.43,26.10],"643":[55.76,37.62],"646":[-1.94,30.06],"659":[17.30,-62.72],"662":[14.01,-60.99],"670":[13.16,-61.23],"674":[43.94,12.45],
+"678":[0.34,6.73],"682":[24.71,46.68],"686":[14.72,-17.47],"688":[44.79,20.45],"690":[-4.62,55.45],"694":[8.48,-13.23],"702":[1.35,103.82],"703":[48.15,17.11],"704":[21.03,105.85],"705":[46.06,14.51],
+"706":[2.05,45.32],"710":[-25.75,28.19],"716":[-17.83,31.05],"724":[40.42,-3.70],"728":[4.85,31.58],"729":[15.50,32.56],"740":[5.85,-55.20],"748":[-26.43,31.20],"752":[59.33,18.07],"756":[46.95,7.45],
+"760":[33.51,36.28],"762":[38.56,68.77],"764":[13.76,100.50],"768":[6.13,1.22],"776":[-21.14,-175.20],"780":[10.66,-61.51],"784":[24.45,54.38],"788":[36.81,10.18],"792":[39.93,32.86],"795":[37.96,58.33],
+"798":[-8.52,179.20],"800":[0.35,32.58],"804":[50.45,30.52],"807":[41.99,21.43],"818":[30.04,31.24],"826":[51.51,-0.13],"834":[-6.16,35.75],"840":[38.91,-77.04],"854":[12.37,-1.52],"858":[-34.90,-56.19],
+"860":[41.30,69.24],"862":[10.48,-66.90],"882":[-13.83,-171.76],"887":[15.37,44.19],"894":[-15.39,28.32]
+};
+
 /* Written quiz facts: Europe. Keys: g land (hi riv sea rng wond cli), c people (pers rel grp hol spt art), f food (dish drk stp des snk ing), h history (ind frm emp ldr evt[{t,y}] gov), n name (lng mng old off who). Arrays = several valid answers. */
 Object.assign(QZ,{
 "008":{g:{hi:"Mount Korab",riv:["Drin","Vjosa"],sea:"Adriatic Sea",rng:"Accursed Mountains",wond:"Butrint",cli:"Mediterranean"},c:{pers:["Mother Teresa","Skanderbeg"],rel:"Islam",hol:"Independence Day (28 November)",spt:"Football",art:"Iso-polyphonic singing"},f:{dish:["Tave kosi","Fergese"],drk:"Raki",stp:"Bread",des:"Baklava",snk:"Byrek",ing:"Olive oil"},h:{ind:1912,frm:"Ottoman Empire",emp:"Illyrians",ldr:["Skanderbeg","Enver Hoxha"],evt:[{t:"Albania declared independence",y:1912}],gov:"Parliamentary republic"},n:{lng:"Latin",mng:"Named after the Illyrian tribe of the Albani",off:"Republic of Albania",old:"People's Socialist Republic of Albania"}},
@@ -1755,6 +1779,28 @@ function cvPattern(id,shown){
   p.__N=sp.N;cvPats[k2]=p;return p;
 }
 /* a country''s outline draws itself just before its wash blooms in */
+/* the capital of the country whose page is open: a small gold star with its name beside it */
+const CAPM={id:null,ll:null,t0:0};
+function capMarkSet(id){
+  const c=id&&typeof CAPLL!=="undefined"?CAPLL[id]:null;
+  if(!c){if(CAPM.id){CAPM.id=null;requestRender()}return}
+  CAPM.id=id;CAPM.ll=[c[1],c[0]];CAPM.t0=performance.now();
+  const tick=()=>{requestRender();if(CAPM.id&&performance.now()-CAPM.t0<800)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+}
+function capDraw(c,s){
+  if(!CAPM.id)return;
+  const r=projection.rotate(),cen=[-r[0],-r[1]];if(d3.geoDistance(CAPM.ll,cen)>1.45)return;
+  const p=projection(CAPM.ll);if(!p)return;
+  const k=Math.min(1,(performance.now()-CAPM.t0)/550),e=1-Math.pow(1-k,3),name=FACTS[CAPM.id].cap;
+  c.save();c.globalAlpha=e;c.translate(p[0],p[1]);
+  c.beginPath();c.arc(0,0,9+10*(1-e),0,6.2832);c.lineWidth=1.6;c.strokeStyle="rgba(58,47,38,.55)";c.stroke();
+  c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rad=i%2?3.1:6.6;c.lineTo(Math.cos(a)*rad,Math.sin(a)*rad)}c.closePath();
+  c.fillStyle="#F2C14E";c.fill();c.lineWidth=1.1;c.strokeStyle="rgba(58,47,38,.9)";c.stroke();
+  const left=p[0]>W-170,tx=left?-15:15;c.textAlign=left?"right":"left";c.textBaseline="middle";c.lineJoin="round";
+  c.font="italic 600 15px Newsreader,Georgia,serif";c.lineWidth=4;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText(name,tx,-5);c.fillStyle="#3a2f26";c.fillText(name,tx,-5);
+  c.font="600 9.5px Figtree,system-ui,sans-serif";c.lineWidth=3;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText("CAPITAL",tx,8);c.fillStyle="rgba(58,47,38,.75)";c.fillText("CAPITAL",tx,8);
+  c.restore();
+}
 const BLOOMOUT=new Map();
 function bloomOutline(id,ms){
   BLOOMOUT.set(id,{t0:performance.now(),ms});
@@ -1787,7 +1833,7 @@ function haloDraw(c,s){
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  haloDraw(c,s);
+  haloDraw(c,s);capDraw(c,s);
   if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null&&!BLOOMOUT.size)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
@@ -1880,7 +1926,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);capDraw(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){
@@ -3383,7 +3429,7 @@ const mobCard=()=>innerWidth<720;
 function syncMore(){const p=$("card").classList.contains("peek"),b=$("cardMore");b.setAttribute("aria-expanded",String(!p));b.setAttribute("aria-label",p?"Show details":"Collapse details")}
 function setPeek(on){$("card").classList.toggle("peek",on);syncMore();if(!on)$("cBody").scrollTop=0;relayout()}
 function list(a){a=a.map(article);return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
-function hideCard(){const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
+function hideCard(){capMarkSet(null);const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
 $("cardMore").onclick=e=>{e.stopPropagation();setPeek(!$("card").classList.contains("peek"))};
 $("cardClose").onclick=e=>{e.stopPropagation();if(mobCard()&&!$("card").classList.contains("peek"))setPeek(true);else hideCard()};
 $("card").addEventListener("click",e=>{if($("card").classList.contains("peek")&&!e.target.closest("button"))setPeek(false)});
@@ -3427,7 +3473,8 @@ function exploreFit(id,ms){
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");
   sndPage();setExplore(open,cardId);
-  if(open&&S.mode==="wander")setTimeout(()=>exploreFit(cardId),80);
+  if(open&&S.mode==="wander"){setTimeout(()=>exploreFit(cardId),80);setTimeout(()=>{if($("card").classList.contains("big")&&S.mode==="wander")capMarkSet(cardId)},1250)}
+  else capMarkSet(null);
   setTimeout(relayout,620);
   if(open)setTimeout(()=>{$("learn").scrollIntoView({behavior:reduced?"auto":"smooth",block:"nearest"})},120);
 };
@@ -3873,6 +3920,7 @@ function regionThumb(r){
   const path=d3.geoPath(proj).digits(1),base=playable.map(f=>path(geo(f))||"").join(""),hd=hi.map(f=>path(geo(f))||"").join("");
   return thumbCache[r]='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="'+W+'" height="'+H+'" rx="8" fill="var(--sea-mid)" opacity=".22"/><path d="'+base+'" fill="var(--ink)" opacity=".15"/><path d="'+hd+'" fill="'+col+'" fill-opacity="'+(r==="World"?".38":".85")+'" stroke="'+col+'" stroke-width="'+(isl?1.6:.5)+'" stroke-linejoin="round"/>'+dots.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="'+col+'"/>').join("")+'</svg>';
 }
+setTimeout(()=>{let i=0;const step=()=>{if(i<ALLR.length){try{regionThumb(ALLR[i++])}catch(e){}(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:600}):setTimeout(step,120))}};step()},3500);
 function regionTiles(cur,pick,subFn,list){
   return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
 }
@@ -4575,13 +4623,9 @@ function sndMode(m){
 function modeWash(m){
   placeDock();
   if(reduced)return;
-  const acc=MODE_ACC[m],w=$("wash");
-  w.style.clipPath="none";w.style.background="radial-gradient(130% 75% at 50% 0%,color-mix(in srgb,"+acc+" 30%,transparent),transparent 72%)";
-  w.animate([{opacity:0},{opacity:1,offset:.32},{opacity:0}],{duration:1000,easing:"ease-in-out"});
-  const n=$("modeName");n.textContent="";n.append(MODE_NAME[m],el("small",{},MODE_DESC[m]));
-  n.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none",offset:.3},{opacity:1,transform:"none",offset:.72},{opacity:0,transform:"translateY(-6px)"}],{duration:1500,easing:"cubic-bezier(.2,.8,.2,1)"});
-}
-/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
+  const dk=$("dock");   // the sliding pill already shows where you are; a soft ring of the mode colour pulses out of the dock, and nothing covers the menu that opens
+  dk.animate([{boxShadow:"0 0 0 0 color-mix(in srgb,"+MODE_ACC[m]+" 50%,transparent)"},{boxShadow:"0 0 0 12px color-mix(in srgb,"+MODE_ACC[m]+" 0%,transparent)"}],{duration:560,easing:"cubic-bezier(.2,.8,.2,1)"});
+}/* coming back to Explore: the globe turns, slowly, to the part of the world you have painted */
 function yourWorld(){
   if(S.mode!=="wander"||!S.found.size)return;
   const pts=[...S.found].filter(id=>FACTS[id]).map(id=>LL(id));if(!pts.length)return;
@@ -4603,8 +4647,7 @@ function yourWorld(){
   ["Find","Speed","Wander","Hot"].forEach(k=>$("mode"+k).setAttribute("aria-pressed",String(m===k.toLowerCase())));
   flyR=null;syncChips();
   if(!quiet){sndMode(m);modeWash(m)}else placeDock();
-  for(const gid of ["gcanvas","glcanvas"]){const gc=$(gid);gc.classList.remove("dip");void gc.offsetWidth;gc.classList.add("dip");setTimeout(()=>gc.classList.remove("dip"),900)}
-  { const g=$("globe");g.classList.remove("dip");void g.offsetWidth;g.classList.add("dip");setTimeout(()=>g.classList.remove("dip"),900) }
+
   hideCard();clearMissed();
   size();paint();updateProgress();
   if(m==="speed"){stopDrift();speedEnter()}

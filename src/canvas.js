@@ -206,6 +206,28 @@ function cvPattern(id,shown){
   p.__N=sp.N;cvPats[k2]=p;return p;
 }
 /* a country''s outline draws itself just before its wash blooms in */
+/* the capital of the country whose page is open: a small gold star with its name beside it */
+const CAPM={id:null,ll:null,t0:0};
+function capMarkSet(id){
+  const c=id&&typeof CAPLL!=="undefined"?CAPLL[id]:null;
+  if(!c){if(CAPM.id){CAPM.id=null;requestRender()}return}
+  CAPM.id=id;CAPM.ll=[c[1],c[0]];CAPM.t0=performance.now();
+  const tick=()=>{requestRender();if(CAPM.id&&performance.now()-CAPM.t0<800)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+}
+function capDraw(c,s){
+  if(!CAPM.id)return;
+  const r=projection.rotate(),cen=[-r[0],-r[1]];if(d3.geoDistance(CAPM.ll,cen)>1.45)return;
+  const p=projection(CAPM.ll);if(!p)return;
+  const k=Math.min(1,(performance.now()-CAPM.t0)/550),e=1-Math.pow(1-k,3),name=FACTS[CAPM.id].cap;
+  c.save();c.globalAlpha=e;c.translate(p[0],p[1]);
+  c.beginPath();c.arc(0,0,9+10*(1-e),0,6.2832);c.lineWidth=1.6;c.strokeStyle="rgba(58,47,38,.55)";c.stroke();
+  c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rad=i%2?3.1:6.6;c.lineTo(Math.cos(a)*rad,Math.sin(a)*rad)}c.closePath();
+  c.fillStyle="#F2C14E";c.fill();c.lineWidth=1.1;c.strokeStyle="rgba(58,47,38,.9)";c.stroke();
+  const left=p[0]>W-170,tx=left?-15:15;c.textAlign=left?"right":"left";c.textBaseline="middle";c.lineJoin="round";
+  c.font="italic 600 15px Newsreader,Georgia,serif";c.lineWidth=4;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText(name,tx,-5);c.fillStyle="#3a2f26";c.fillText(name,tx,-5);
+  c.font="600 9.5px Figtree,system-ui,sans-serif";c.lineWidth=3;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText("CAPITAL",tx,8);c.fillStyle="rgba(58,47,38,.75)";c.fillText("CAPITAL",tx,8);
+  c.restore();
+}
 const BLOOMOUT=new Map();
 function bloomOutline(id,ms){
   BLOOMOUT.set(id,{t0:performance.now(),ms});
@@ -238,7 +260,7 @@ function haloDraw(c,s){
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  haloDraw(c,s);
+  haloDraw(c,s);capDraw(c,s);
   if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null&&!BLOOMOUT.size)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
@@ -331,7 +353,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);capDraw(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){

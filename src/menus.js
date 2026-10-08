@@ -203,6 +203,7 @@ function regionThumb(r){
   const path=d3.geoPath(proj).digits(1),base=playable.map(f=>path(geo(f))||"").join(""),hd=hi.map(f=>path(geo(f))||"").join("");
   return thumbCache[r]='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="'+W+'" height="'+H+'" rx="8" fill="var(--sea-mid)" opacity=".22"/><path d="'+base+'" fill="var(--ink)" opacity=".15"/><path d="'+hd+'" fill="'+col+'" fill-opacity="'+(r==="World"?".38":".85")+'" stroke="'+col+'" stroke-width="'+(isl?1.6:.5)+'" stroke-linejoin="round"/>'+dots.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="'+col+'"/>').join("")+'</svg>';
 }
+setTimeout(()=>{let i=0;const step=()=>{if(i<ALLR.length){try{regionThumb(ALLR[i++])}catch(e){}(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:600}):setTimeout(step,120))}};step()},3500);
 function regionTiles(cur,pick,subFn,list){
   return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
 }

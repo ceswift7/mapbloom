@@ -261,7 +261,7 @@ const mobCard=()=>innerWidth<720;
 function syncMore(){const p=$("card").classList.contains("peek"),b=$("cardMore");b.setAttribute("aria-expanded",String(!p));b.setAttribute("aria-label",p?"Show details":"Collapse details")}
 function setPeek(on){$("card").classList.toggle("peek",on);syncMore();if(!on)$("cBody").scrollTop=0;relayout()}
 function list(a){a=a.map(article);return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
-function hideCard(){const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
+function hideCard(){capMarkSet(null);const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
 $("cardMore").onclick=e=>{e.stopPropagation();setPeek(!$("card").classList.contains("peek"))};
 $("cardClose").onclick=e=>{e.stopPropagation();if(mobCard()&&!$("card").classList.contains("peek"))setPeek(true);else hideCard()};
 $("card").addEventListener("click",e=>{if($("card").classList.contains("peek")&&!e.target.closest("button"))setPeek(false)});
@@ -305,7 +305,8 @@ function exploreFit(id,ms){
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");
   sndPage();setExplore(open,cardId);
-  if(open&&S.mode==="wander")setTimeout(()=>exploreFit(cardId),80);
+  if(open&&S.mode==="wander"){setTimeout(()=>exploreFit(cardId),80);setTimeout(()=>{if($("card").classList.contains("big")&&S.mode==="wander")capMarkSet(cardId)},1250)}
+  else capMarkSet(null);
   setTimeout(relayout,620);
   if(open)setTimeout(()=>{$("learn").scrollIntoView({behavior:reduced?"auto":"smooth",block:"nearest"})},120);
 };

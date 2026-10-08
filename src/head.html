@@ -773,6 +773,9 @@ details.fold[open]>summary::after{content:"\2013"}
 .silhint.bord{color:var(--mode-acc);font-weight:600}
 .hotlist i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
 .hotlist .hn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:899px){.sil.nameit{inset:0 0 auto 0;bottom:auto;padding:56px 10px 0;place-items:start center}.sil.nameit .silcard{padding:8px 14px 10px}.app.nameit .prompt{display:none}}
+.modal{padding-bottom:var(--kb,0px);box-sizing:border-box}
+@supports (height:100dvh){.sheet{max-height:min(88dvh,740px,calc(100dvh - var(--kb,0px) - 16px))}}
 @media (max-width:899px){.sil.nameit.hot{inset:0 0 auto 0;padding:56px 10px 0;place-items:start center;bottom:auto}
 .sil.nameit.hot .silcard{padding:7px 10px 8px;max-height:none;overflow:visible;border-radius:16px}
 .sil.hot:not(.hotdone) .silq{display:none}

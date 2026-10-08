@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    MASTERY QUIZZES: made from each country's own pages. Pass 2 of 3 on every page quiz (plus capital and flag) to master a country.
    ====================================================================== */
 /* ======================================================================
@@ -437,6 +437,11 @@ function masteryPageList(){
   while(i<ids.length){take=ids.slice(i,i+per);i+=per;pages.push([el("div",{style:"height:6px"}),el("div",{class:"mgrid"},take.map(tile))]);labels.push(take)}
   return {pages,labels:labels.map(t=>t.length?FACTS[t[0]].n.charAt(0)+"–"+FACTS[t[t.length-1]].n.charAt(0):"")};
 }
+/* one fixed-size tile per country: its map (painted if found, a dashed ghost if not) with the name underneath */
+function atlasTile(id,onclick){
+  const found=S.found.has(id),cv=document.createElement("canvas");paintInto(cv,id,112,84,[8,8]);
+  return el("button",{type:"button",class:"atile"+(found?" got":" dim"),title:FACTS[id].n+" · "+["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick},cv,el("span",{class:"an"},FACTS[id].n),found&&jrLevel(id)?el("i",{class:"alv"},jrGlyph(id).trim()):null);
+}
 function atlasPageList(){
   const [L]=atlasPages(),F=S.found,pages=[L],labels=["Overview"];
   REGIONS.forEach(r=>{
@@ -444,8 +449,7 @@ function atlasPageList(){
     const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
     pages.push([el("h2",{style:"display:flex;align-items:center;gap:10px"},el("span",{class:"swatch",style:`background:var(--c-${r});width:14px;height:14px`}),r==="Americas"?"The Americas":r),
       el("p",{style:"margin:2px 0 12px;color:var(--ink-soft);font-size:14px"},`${n} of ${ids.length} found · ${st} studied · ${ms}★`),
-      ids.some(id=>F.has(id))?el("div",{class:"gallery"},ids.filter(id=>F.has(id)).map(id=>paintThumb(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}))):null,
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))]);
+      el("div",{class:"agrid"},ids.map(id=>atlasTile(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)})))]);
     labels.push(r);
   });
   return {pages,labels};

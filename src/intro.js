@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    OPENING SEQUENCE: tap to begin (the tap unlocks audio), a drop of color washes the
    name onto the paper, the globe rises and a few countries bloom, then the game fades in.
    ====================================================================== */
@@ -81,7 +81,7 @@ function introPlay(){
   introSpin();
 }/* the globe rises already turning, then eases (fast, then slower and slower) onto the saved view while wind and soft notes follow its speed */
 let spinT=null,spinFinal=null,spinG=null;
-const INTRO_HOLD=2450;   // the last letters are still finishing as the globe starts to rise, so the title never just sits
+const INTRO_HOLD=4300;   // the name stays long enough to read the motto beneath it, then the globe rises
 const SPIN_MS=3300;
 function introSpin(){
   const r1=projection.rotate().slice(),k1=zoomK,D=SPIN_MS*(FX.ts||1);

@@ -400,6 +400,12 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   .bkpage.l,.bkpage.r{padding-left:18px;padding-right:18px}
   .bkpage.r{padding-top:0;padding-bottom:20px}
   .bk-tabs{left:auto;right:10px;gap:3px}.bk-tab{padding:0 9px;font-size:11.5px}
+  /* the mastery path on a phone: the page scrolls, so the tree takes its natural height instead of filling a (zero-height) flex space */
+  .bkpage .cbwrap{height:auto}
+  .bkpage.l:has(.cbwrap){overflow:visible}
+  .bkpage .cbtree{flex:none;width:100%;height:auto;aspect-ratio:360/440;max-width:420px;margin:2px auto 8px;overflow:visible}
+  .bkpage .cbtree>.mtree{height:100%;width:100%}
+  .agrid{grid-template-columns:repeat(3,1fr)}
   .sheet.book .x{top:8px;right:8px}
 }
 .adet{border-top:1px dashed var(--panel-line);padding:9px 0}
@@ -949,6 +955,15 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
 .gthumb canvas{width:64px;height:48px;display:block}
 .gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+/* Atlas region pages: a fixed grid of equal tiles, map on top, name beneath */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px 8px;margin:0 0 14px}
+.atile{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:6px 6px 7px;font:inherit;color:inherit;background:color-mix(in srgb,var(--paper) 55%,transparent);border:1px solid var(--panel-line);border-radius:10px;cursor:pointer;min-width:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
+.atile canvas{display:block;width:100%;height:auto;aspect-ratio:4/3}
+.atile .an{display:block;font-size:11.5px;line-height:1.2;text-align:center;color:var(--ink);height:2.4em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.atile.dim{opacity:.6}.atile.dim .an{color:var(--ink-faint)}
+.atile .alv{position:absolute;right:6px;top:4px;font-style:normal;font-size:11px;color:var(--ink-faint)}
+.atile:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+.atile.got{border-color:color-mix(in srgb,var(--ink) 28%,var(--panel-line))}
 /* the compact mode card */
 .modal.compact{background:transparent}
 .sheet.compact{width:min(350px,calc(100% - 24px));max-height:none;padding:20px 22px 18px;text-align:center}
@@ -4503,6 +4518,11 @@ function masteryPageList(){
   while(i<ids.length){take=ids.slice(i,i+per);i+=per;pages.push([el("div",{style:"height:6px"}),el("div",{class:"mgrid"},take.map(tile))]);labels.push(take)}
   return {pages,labels:labels.map(t=>t.length?FACTS[t[0]].n.charAt(0)+"–"+FACTS[t[t.length-1]].n.charAt(0):"")};
 }
+/* one fixed-size tile per country: its map (painted if found, a dashed ghost if not) with the name underneath */
+function atlasTile(id,onclick){
+  const found=S.found.has(id),cv=document.createElement("canvas");paintInto(cv,id,112,84,[8,8]);
+  return el("button",{type:"button",class:"atile"+(found?" got":" dim"),title:FACTS[id].n+" · "+["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick},cv,el("span",{class:"an"},FACTS[id].n),found&&jrLevel(id)?el("i",{class:"alv"},jrGlyph(id).trim()):null);
+}
 function atlasPageList(){
   const [L]=atlasPages(),F=S.found,pages=[L],labels=["Overview"];
   REGIONS.forEach(r=>{
@@ -4510,8 +4530,7 @@ function atlasPageList(){
     const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
     pages.push([el("h2",{style:"display:flex;align-items:center;gap:10px"},el("span",{class:"swatch",style:`background:var(--c-${r});width:14px;height:14px`}),r==="Americas"?"The Americas":r),
       el("p",{style:"margin:2px 0 12px;color:var(--ink-soft);font-size:14px"},`${n} of ${ids.length} found · ${st} studied · ${ms}★`),
-      ids.some(id=>F.has(id))?el("div",{class:"gallery"},ids.filter(id=>F.has(id)).map(id=>paintThumb(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}))):null,
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))]);
+      el("div",{class:"agrid"},ids.map(id=>atlasTile(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)})))]);
     labels.push(r);
   });
   return {pages,labels};
@@ -4943,7 +4962,7 @@ function introPlay(){
   introSpin();
 }/* the globe rises already turning, then eases (fast, then slower and slower) onto the saved view while wind and soft notes follow its speed */
 let spinT=null,spinFinal=null,spinG=null;
-const INTRO_HOLD=2450;   // the last letters are still finishing as the globe starts to rise, so the title never just sits
+const INTRO_HOLD=4300;   // the name stays long enough to read the motto beneath it, then the globe rises
 const SPIN_MS=3300;
 function introSpin(){
   const r1=projection.rotate().slice(),k1=zoomK,D=SPIN_MS*(FX.ts||1);

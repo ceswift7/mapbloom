@@ -32,7 +32,23 @@ function silDraw(id){
 }
 let silHideT=null;const silKeep=()=>{clearTimeout(silHideT);silHideT=null};   // a pending fade-out must never hide the next question box
 function silResetCard(){$("silQ").textContent="Which country is this?";$("silShow").textContent="Reveal";$("silSkip").textContent="Skip";$("silSkip").hidden=false;$("silHint").classList.remove("bord");$("sil").classList.remove("hotdone")}
-function silHide(){silKeep();silResetCard();HOT.on=false;$("silForm").hidden=false;$("hotList").innerHTML="";$("sil").classList.remove("hot");if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
+let rsilOn=false;   // a Silhouette race question is showing
+function silHide(){rsilOn=false;silKeep();silResetCard();HOT.on=false;$("silForm").hidden=false;$("hotList").innerHTML="";$("sil").classList.remove("hot");if(typeof US!=="undefined")US.hl=null,usHl();silOn=false;nmOn=false;hlSet(null);$("app").classList.remove("nameit");const e=$("sil");if(e){e.hidden=true;e.classList.remove("out","nameit")}$("silSvg").style.display="";$("app").classList.remove("silmode")}
+/* ---- SILHOUETTE RACE: the shape is shown, the answer is typed; wrong +2s, skip +10s ---- */
+function silRaceBegin(id){
+  silKeep();silResetCard();rsilOn=true;silOn=false;nmOn=false;hideCard();
+  $("app").classList.add("silmode");const b=$("sil");b.hidden=false;b.classList.remove("out","nameit");
+  $("silSvg").style.display="";silDraw(id);
+  $("silQ").textContent="Which country is this?";$("silIn").value="";$("silSug").innerHTML="";$("silHint").textContent="";
+  $("silShow").textContent="Skip · +10s";$("silSkip").hidden=true;
+  setTimeout(()=>{try{$("silIn").focus({preventScroll:true})}catch(e){}},80);
+}
+function silRaceGuess(){
+  const txt=$("silIn").value;if(!txt.trim()||!R.cur||R.phase!=="run")return;
+  if(silCheck(R.cur,txt)){const T=R.cur;$("silIn").value="";$("silSug").innerHTML="";raceHit(T,LL(T));return}
+  const fm=$("silForm");fm.classList.remove("shake");void fm.offsetWidth;fm.classList.add("shake");
+  racePen("Not “"+txt.trim()+"”. +2s");$("silIn").select();
+}
 /* ---- NAME IT: the country glows on the visible globe and you type its name (Quiz and Race) ---- */
 function nameFly(id){const a=FACTS[id].a,k=a<2500?7:a<9000?5.5:a<30000?4:a<150000?2.8:a<600000?1.9:a<3e6?1.35:1;stopDrift();flyTo(LL(id),1100,Math.max(k,Math.min(zoomK,2.2)))}
 function nameBegin(id,race){
@@ -89,8 +105,8 @@ function silGuess(){
   $("silIn").select();
 }
 $("silForm").onsubmit=e=>{e.preventDefault();if(S.mode==="find"&&S.done&&!S.qIdle&&!modal.classList.contains("on")){nextRound();return}   // Enter again while the answer is settling goes straight to the next question
-  if(HOT.on)hotGuess();else if(US.on)usNameGuess();else if(nmOn)nameGuess();else silGuess()};
-$("silShow").onclick=()=>{if(HOT.on){if(HOT.done)hotStart();else hotGiveUp();return}if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
+  if(HOT.on)hotGuess();else if(US.on)usNameGuess();else if(rsilOn)silRaceGuess();else if(nmOn)nameGuess();else silGuess()};
+$("silShow").onclick=()=>{if(HOT.on){if(HOT.done)hotStart();else hotGiveUp();return}if(US.on){if(S.mode==="speed")speedSkip();else if(!S.done)usSuccess(true);return}if(rsilOn){speedSkip();return}if(nmOn){if(S.mode==="speed")speedSkip();else nameFinish(true)}else silFinish(true)};
 $("silSkip").onclick=()=>{if(HOT.on){sndTick();hotEnter();return}if(US.on&&S.mode!=="speed"){sndTick();usNext();return}if(nmOn&&S.mode!=="speed"){sndTick();nextRound();return}if(!silOn)return;sndTick();nextRound()};
 /* Tab completes the typed text to the best match (press again to cycle through the others) */
 let tabSeed=null,tabList=[],tabI=0;

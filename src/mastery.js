@@ -632,6 +632,7 @@ function raceRecordsBlock(cur,cv){
   const tb=el("table",{class:"tbl"},el("tr",{},el("th",{},"Region"),el("th",{class:"t"},"Best"),el("th",{class:"t"},"Runs")));
   ALLR.forEach(r=>{const x=REC[rk(r)];tb.append(el("tr",{style:r===cur?"font-weight:600":""},el("td",{},r),el("td",{class:"t"},x&&x.best?fmtT(x.best):"-"),el("td",{class:"t"},x?x.runs.length:0)))});
   box.append(tb);
+  {const en=REC[rk(cur)];if(en&&Array.isArray(en.ended)&&en.ended.length)box.append(el("p",{style:"font-size:12.5px;color:var(--ink-faint);margin:4px 0 0"},"Ended races here: "+en.ended.length+" (not counted as best times)."))}
   const oldN=Object.entries(OLD).filter(([k,x])=>x&&x.best);
   if(oldN.length&&cv==="country")box.append(el("p",{style:"font-size:12.5px;color:var(--ink-faint)"},"Times from the earlier country lists are kept apart. Best then: "+oldN.map(([k,x])=>k+" "+fmtT(x.best,0)).join(", ")+"."));
   const x=REC[rk(cur)];

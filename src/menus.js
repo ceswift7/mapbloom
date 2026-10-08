@@ -63,7 +63,7 @@ function openReader(id){
   win.animate([{opacity:0,transform:"translateY(10px) scale(.98)"},{opacity:1,transform:"none"}],{duration:reduced?1:260,easing:"ease-out"});
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rdWin){e.stopPropagation();closeReader()}},true);
-function closeModal(){closeReader();try{for(const k in BKpos)delete BKpos[k];for(const k in cbPos)delete cbPos[k]}catch(e){}   // leaving the book completely forgets every page: the next visit starts at page 1
+function closeModal(){if(typeof raceResume==="function")raceResume();closeReader();try{for(const k in BKpos)delete BKpos[k];for(const k in cbPos)delete cbPos[k]}catch(e){}   // leaving the book completely forgets every page: the next visit starts at page 1
   try{cbTimers.forEach(clearTimeout)}catch(e){}
   modal.classList.remove("on");modal.setAttribute("aria-hidden","true");modal.inert=true;try{$("app").inert=false}catch(e){}
   if(modalOpener&&modalOpener.isConnected){try{modalOpener.focus({preventScroll:true})}catch(e){}}modalOpener=null;scheduleDrift()}

@@ -67,7 +67,7 @@ try{
   if(["auto","full","lite"].includes(s.fx)) S.fx=s.fx;
   if(["off","fast","normal","slow"].includes(s.autoNext)) S.autoNext=s.autoNext;
   S.engine2=["gl","canvas","svg"].includes(s.engine2)?s.engine2:(s.engine==="svg"?"svg":"gl");
-  if(["country","flag","capital","name"].includes(s.rv)) S.rv=s.rv;
+  if(["country","flag","capital","name","sil"].includes(s.rv)) S.rv=s.rv;
   if(["km","mi"].includes(s.unit)) S.unit=s.unit;
 }catch(e){}
 let WIPED=false;

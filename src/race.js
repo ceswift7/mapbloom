@@ -10,6 +10,7 @@ function syncSpeedUI(){
   $("restartBtn").hidden=!(ph==="run"||ph==="count"||ph==="done");
   b.textContent=ph==="run"?"Skip · +10s":ph==="done"?"Race again":ph==="count"?"Get ready…":"Start race";
   b.disabled=ph==="count";
+  $("endBtn").hidden=ph!=="run";
   $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
   if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
 }
@@ -31,14 +32,14 @@ function showStartSheet(){
   const where=S.region==="World"?"the whole world":S.region==="Americas"?"the Americas":S.region==="Antilles"?"the Antilles":S.region==="United States"?"the United States":S.region;
   sh.append(closeBtn(),el("h2",{},"Race"),el("p",{},`Find all ${S.region==="United States"?50:ids.length} ${S.region==="United States"?"states":"countries"} in ${where} against the clock. Wrong +2s, skip +10s.`));
   const vchips=el("div",{class:"row",style:"margin:0"});
-  [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"]].forEach(([k,l])=>vchips.append(el("button",{class:"chip","aria-pressed":String(S.rv===k),onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}},l)));
+  [["country","Locate"],["flag","Flag"],["capital","Capital"],["name","Name it"],["sil","Silhouette"]].forEach(([k,l])=>vchips.append(el("button",{class:"chip","aria-pressed":String(S.rv===k),onclick:()=>{sndTick();S.rv=k;save();showStartSheet()}},l)));
   const chips=el("div",{class:"row",style:"margin:0"});
   ALLR.forEach(r=>{
     const n=r==="World"?playable.length:r==="United States"?50:playable.filter(f=>inReg(f.id,r)).length,bb=bestOf(rkey(r));
     chips.append(el("button",{class:"chip","aria-pressed":String(r===S.region),onclick:()=>{sndTick();S.region=r;syncChips();updateProgress();stopDrift();flyTo(REGION_VIEW[r],1300,REGION_ZOOM[r]);if(r==="United States")usLoad().catch(()=>{});showStartSheet()}},
       r==="World"?"Earth":r,el("span",{class:"n"},isFinite(bb)?fmtT(bb,0):n+"")));
   });
-  const how={country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name."}[S.rv];
+  const how=S.region==="United States"&&["flag","sil"].includes(S.rv)?"Not available for states. Locate is used.":{country:"Tap the named country.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",sil:"A shape appears. Type its name."}[S.rv];
   sh.append(el("div",{class:"qcard"},
     step(1,"What to find",how,vchips),
     step(2,"Where","Each chip shows your best time, or the country count.",chips),
@@ -52,7 +53,7 @@ function showStartSheet(){
   if(S.region!=="United States")usStop();
   closeModal();stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);   // the camera settles on the region while the countdown runs
   R.region=S.region;R.found=new Set();R.pen=0;R.skips=0;R.wrong=0;R.times={};R.streak=0;R.riser=false;
-  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.queue=shuffle(regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap));R.total=R.queue.length;R.cur=null;R.phase="count";
+  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.pausedAt=null;R.ended=false;R.queue=shuffle(regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap));R.total=R.queue.length;R.cur=null;R.phase="count";
   if(S.region==="United States"){R.variant=["country","capital","name"].includes(S.rv)?S.rv:"country";R.queue=shuffle(US.names.map(n=>"us:"+n));R.total=R.queue.length;usEnter(false)}
   paint();updateProgress();syncSpeedUI();
   $("sTarget").textContent="";$("sHint").textContent="";$("sTime").textContent="0:00.0";$("sPen").textContent="";
@@ -80,6 +81,7 @@ function speedNext(){
     if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
     else if(v==="capital"){$("sAsk").textContent="Find the country whose capital is";swell($("sTarget"),ff.cap)}
     else if(v==="name"){$("sAsk").textContent="Name the glowing country";swell($("sTarget"),"?");nameBegin(R.cur,true)}
+    else if(v==="sil"){$("sAsk").textContent="Name this shape";swell($("sTarget"),"?");silRaceBegin(R.cur)}
     else{$("sAsk").textContent="";swell($("sTarget"),ff.n)}}
   
   $("sCount").textContent=`${R.found.size} / ${R.total}`;
@@ -88,7 +90,7 @@ function updatePen(pop){const e=$("sPen");e.textContent=R.pen?"+"+(R.pen/1000)+"
 function speedGuess(id,ll,other){
   if(R.phase!=="run"||!R.cur)return;
   if(other){swell($("sHint"),typeof other==="string"?`${other}: outside the game. No penalty.`:"Outside the game. No penalty.");sndOcean();return}
-  if(R.variant==="name")return;
+  if(R.variant==="name"||R.variant==="sil")return;
   const T=R.cur,f=FACTS[T];
   if(hitTest(id,ll,T)){raceHit(T,ll);return}
   if(id&&FACTS[id]){racePen(`Not ${article(FACTS[id].n)}. +2s`);
@@ -139,12 +141,55 @@ function finishRace(){
   setTimeout(()=>{if(R.phase==="done"&&S.mode==="speed")showResults(tot,isBest,prev)},1400);
   setTimeout(checkAch,2200);
 }
-function showResults(tot,isBest,prev){
+/* ---- ending a race you cannot finish: every country left costs the same +10s as skipping it, and the run is kept apart from finished times ---- */
+const RACE_LEFT_PEN=10000;
+function raceTotals(){const left=Math.max(0,R.total-R.found.size),elapsed=(R.pausedAt||performance.now())-R.t0;return {left,elapsed,adj:Math.round(elapsed+R.pen+left*RACE_LEFT_PEN)}}
+function raceResume(){if(!R.pausedAt)return;const d=performance.now()-R.pausedAt;R.t0+=d;R.tTarget+=d;R.pausedAt=null}   // the clock stands still while the End race sheet is open
+function showEndRace(){
+  if(R.phase!=="run"||R.pausedAt)return;
+  R.pausedAt=performance.now();sndTick();
+  const t=raceTotals(),sh=$("sheet");sh.innerHTML="";
+  const stat=(k,v)=>el("div",{class:"stat"},el("b",{},v),el("small",{},k));
+  sh.append(closeBtn(),el("h2",{},"End this race?"),
+    el("p",{},"You found "+R.found.size+" of "+R.total+". Each country left adds +"+(RACE_LEFT_PEN/1000)+"s, the same as skipping it, so the time stays fair. The clock is paused while you decide."),
+    el("div",{class:"stats"},stat("Found",R.found.size+" / "+R.total),stat("Time so far",fmtT(t.elapsed+R.pen)),stat("Left over","+"+(t.left*RACE_LEFT_PEN/1000)+"s"),stat("Adjusted time",fmtT(t.adj))),
+    el("p",{class:"bestline"},"Ended races are saved separately. They do not count as best times or stamps."),
+    el("div",{class:"sheetfoot"},el("button",{class:"btn",id:"keepRace",onclick:closeModal},"Keep racing"),el("span",{class:"grow"}),el("button",{class:"btn danger",onclick:endRace},"End race")));
+  openModal();setTimeout(()=>{const k=$("keepRace");if(k)k.focus({preventScroll:true})},60);
+}
+function endRace(){
+  if(R.phase!=="run")return;
+  const t=raceTotals();R.pausedAt=null;closeModal();
+  silHide();hlSet(null);R.phase="done";R.cur=null;R.ended=true;
+  stopMusic(true);syncSpeedUI();$("sTime").textContent=fmtT(t.adj);
+  const reg=rkey(R.region,R.variant,R.nb),rec=REC[reg]||(REC[reg]={best:null,runs:[]});
+  rec.ended=(Array.isArray(rec.ended)?rec.ended:[]).concat({t:t.adj,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total,found:R.found.size}).slice(-20);
+  saveRec();save();
+  showResults(t.adj,false,bestOf(reg),t);
+}
+$("endBtn").onclick=showEndRace;
+function showEndedResults(tot,t,where,what){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("div",{class:"hero"},
+    el("p",{class:"sub"},"Race ended · "+R.found.size+" of "+R.total+" found · "+where+what+(R.nb?" · borderless":"")),
+    el("div",{class:"bignum"},fmtT(tot)),
+    el("span",{class:"delta"},"Adjusted time: +"+(t.left*RACE_LEFT_PEN/1000)+"s for "+t.left+" left")));
+  const stat=(k,v)=>el("div",{class:"stat"},el("b",{},v),el("small",{},k));
+  sh.append(el("div",{class:"stats"},stat("Found",R.found.size+" / "+R.total),stat("Raw time",fmtT(t.elapsed)),stat("Penalties","+"+((R.pen+t.left*RACE_LEFT_PEN)/1000)+"s"),stat("Wrong",String(R.wrong))));
+  sh.append(el("p",{class:"bestline"},"Saved apart from finished races. It does not count as a best time."));
+  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:()=>setMode("wander")},"Back to Explore"),el("button",{class:"btn",onclick:()=>{sndTick();speedEnter()}},"Change settings"),el("span",{class:"grow"}),el("button",{class:"btn primary",onclick:()=>{sndTick();abortRace();startRace()}},"Race again")));
+  const left=R.queue.filter(id=>FACTS[id]).slice(0,16);
+  if(left.length)sh.append(fold("Still to find, worth a look",el("div",{class:"nchips",style:"padding-bottom:12px"},left.map(id=>el("button",{onclick:()=>{closeModal();setMode("wander");openCountry(id)}},FACTS[id].n)))));
+  sh.append(fold("Your records",raceRecordsBlock(R.region,R.variant)));
+  openModal();
+}
+function showResults(tot,isBest,prev,ended){
   const sh=$("sheet");sh.innerHTML="";
   const byR={};Object.keys(R.times).forEach(id=>{if(!FACTS[id])return;const r=FACTS[id].r;(byR[r]=byR[r]||[]).push(R.times[id])});
   const slow=Object.keys(R.times).sort((a,b)=>R.times[b]-R.times[a]).slice(0,5);
-  const where=R.region==="World"?"Earth":R.region==="Americas"?"the Americas":R.region,what=R.variant==="flag"?" \xB7 flags":R.variant==="capital"?" \xB7 capitals":R.variant==="name"?" \xB7 name it":"";
+  const where=R.region==="World"?"Earth":R.region==="Americas"?"the Americas":R.region,what=R.variant==="flag"?" \xB7 flags":R.variant==="capital"?" \xB7 capitals":R.variant==="name"?" \xB7 name it":R.variant==="sil"?" \xB7 silhouettes":"";
   const diff=isFinite(prev)?tot-prev:null;
+  if(ended)return showEndedResults(tot,ended,where,what);
   sh.append(closeBtn(),el("div",{class:"hero"},
     el("p",{class:"sub"},`${R.total} countries \xB7 ${where}${what}${R.nb?" \xB7 borderless":""}`),
     el("div",{class:"bignum"},fmtT(tot)),

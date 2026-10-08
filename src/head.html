@@ -738,7 +738,7 @@ details.fold[open]>summary::after{content:"\2013"}
 .silhint.bord{color:var(--mode-acc);font-weight:600}
 .hotlist i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
 .hotlist .hn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:899px){.sil.nameit{inset:0 0 auto 0;bottom:auto;padding:56px 10px 0;place-items:start center}.sil.nameit .silcard{padding:8px 14px 10px}.app.nameit .prompt{display:none}}
+@media (max-width:899px){.sil.nameit{inset:0 0 auto 0;bottom:auto;padding:56px 10px 0;place-items:start center}.sil.nameit .silcard{padding:8px 14px 10px}.app.nameit:not(.speed) .prompt{display:none}.app.speed.nameit .sil.nameit,.app.speed.silmode .sil{padding-top:150px}}
 .modal{padding-bottom:var(--kb,0px);box-sizing:border-box}
 @supports (height:100dvh){.sheet{max-height:min(88dvh,740px,calc(100dvh - var(--kb,0px) - 16px))}}
 @media (max-width:899px){.sil.nameit.hot{inset:0 0 auto 0;padding:56px 10px 0;place-items:start center;bottom:auto}
@@ -761,6 +761,11 @@ details.fold[open]>summary::after{content:"\2013"}
 .app.silmode #globe,.app.silmode #labels{opacity:0 !important;pointer-events:none !important}
 #globe,#labels{transition:opacity .8s ease}
 .app.silmode .prompt{opacity:0;pointer-events:none}
+.app.silmode.speed .prompt{opacity:1;pointer-events:auto}
+.app.silmode.speed #sAsk,.app.silmode.speed #sTarget,.app.silmode.speed #sFlag{display:none}
+.speed-prompt .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.endbtn{display:inline-flex;align-items:center;gap:6px}
+.endbtn[hidden]{display:none}
 .toast{position:fixed;right:16px;top:58px;z-index:60;transform:translate(0,-190px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:14px;padding:10px 16px;
   box-shadow:0 14px 30px -14px var(--paper-shadow);transition:transform .7s cubic-bezier(.2,.9,.2,1);display:flex;gap:10px;align-items:center;max-width:min(380px,calc(100% - 28px))}
 .toast.on{transform:translate(0,0)}
@@ -948,7 +953,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
         <img class="qflag" id="sFlag" alt="" hidden>
         <h2 class="target" id="sTarget"></h2>
         <p class="hint" id="sHint"></p>
-        <div class="actions"><button class="chip" id="skipBtn" title="Skip (S, or Alt+S while typing)">Skip · +10s</button></div>
+        <div class="actions"><button class="chip" id="skipBtn" title="Skip (S, or Alt+S while typing)">Skip · +10s</button><button class="chip endbtn" id="endBtn" type="button" hidden title="End the race. Each country left adds +10s, so it stays fair."><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg>End race</button></div>
       </div>
     </div>
 

@@ -83,7 +83,7 @@ let lastTs=0;
 d3.timer(ts=>{
   const dt=ts-lastTs;lastTs=ts;
   brushTick();
-  if(R.phase==="run")$("sTime").textContent=fmtT(performance.now()-R.t0+R.pen);
+  if(R.phase==="run")$("sTime").textContent=fmtT((R.pausedAt||performance.now())-R.t0+R.pen);
   if(D.active&&D.t0!=null){const dt2=D.tEnd!=null?D.tEnd:performance.now()-D.t0;$("dClock").textContent=fmtT(dt2);$("dClock").classList.toggle("gold",dt2<60000)}
   if(drifting&&introState==="done"&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&S.mode!=="speed"&&S.mode!=="hot"&&!nmOn&&!silOn){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
 });

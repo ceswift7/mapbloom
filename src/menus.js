@@ -155,6 +155,8 @@ function renderAbout(){
       el("p",{},"Maritime zones of the Pacific island countries: Flanders Marine Institute (2024), Union of the ESRI Country shapefile and the Exclusive Economic Zones (v4), CC BY 4.0, doi.org/10.14284/698, simplified."),
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
+    el("div",{class:"qcard"},el("h3",{},"A note on the maps"),
+      el("p",{},"All areas, borders and maritime zones in Mapbloom are illustrations made for learning. They are simplified and may not accurately represent real geography. Coastlines, borders and sea zones are approximate, some are disputed, and none should be used for navigation, legal or official purposes.")),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));
   openModal();
 }function isDark(){return S.theme==="dark"||(S.theme==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)}

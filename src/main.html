@@ -540,7 +540,7 @@ function size(){
   svg.attr("viewBox",`0 0 ${W} ${H}`);
   if(CANVAS)cvResize();
   cyVal=layoutCy();
-  if(lensOpen){layoutLens();fitLens();drawLens()}
+
   {const wc=document.getElementById("wc");if(wc){wc.setAttribute("filterUnits","userSpaceOnUse");wc.setAttribute("x",-stageLeft-10);wc.setAttribute("y",-stageTop-10);wc.setAttribute("width",innerWidth+20);wc.setAttribute("height",innerHeight+20)}}   // bound the paint filter to the screen, however big the painted area gets
   render(true);
   if(US.on)usLayout();
@@ -647,7 +647,7 @@ function paintSel(sel,landG,paintG){
   });
 }
 let artBudget=0,paintMore=false;
-function paint(){benchSoon();artBudget=14;paintMore=false;if(CANVAS){if(GLX.hasGL&&GLX.paint)GLX.paint();requestRender()}else paintSel(paths,gCountries,gPaint);if(lpaths)paintSel(lpaths,lLand,lPaint);updatePills();lensMarkState();if(paintMore)setTimeout(paint,40)}
+function paint(){benchSoon();artBudget=14;paintMore=false;if(CANVAS){if(GLX.hasGL&&GLX.paint)GLX.paint();requestRender()}else paintSel(paths,gCountries,gPaint);updateBeacons();if(paintMore)setTimeout(paint,40)}
 function clearMissed(){d3.selectAll(".missed").classed("missed",false);cvMiss(null)}
 /* ======================================================================
    ISLAND GROUPS: a small pill on the globe opens a magnified paper lens where
@@ -673,163 +673,32 @@ function reefUpdate(cen){
     const d=path(f)||"";e.g.style("display",null);e.on=true;e.g.selectAll("path").attr("d",d);
   });
 }
-const gBeacon=svg.append("g"),gPills=svg.append("g");
-const lensOf=id=>null;   // the lens is gone: island groups are zoom-out bubbles that fly you in
+const gBeacon=svg.append("g");
 const CL_DEF=[{name:"Pacific",ids:playable.map(f=>f.id).filter(id=>["Polynesia","Micronesia","Melanesia"].includes(FACTS[id].grp))},
   {name:"Lesser Antilles",ids:["028","052","212","308","659","662","670"]}];
 const clusterOf=id=>CL_DEF.find(c=>c.ids.includes(id))||null;
-const AREA_SET={"Pacific Islands":new Set(CL_DEF[0].ids),"Antilles":new Set(playable.map(f=>f.id).filter(id=>FACTS[id].grp==="Caribbean"||["192","388","332","214","044"].includes(id))),"United States":new Set()};const GR={};
-playable.forEach(f=>{const g=lensOf(f.id);if(g)(GR[g]=GR[g]||{name:g,ids:[]}).ids.push(f.id)});
-Object.values(GR).forEach(g=>{g.pts=g.ids.map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]]);g.c=d3.geoCentroid({type:"MultiPoint",coordinates:g.pts});g.label=g.name});
-const BEACON=playable.map(f=>f.id).filter(id=>!lensOf(id)&&FACTS[id].a<9000);
+const AREA_SET={"Pacific Islands":new Set(CL_DEF[0].ids),"Antilles":new Set(playable.map(f=>f.id).filter(id=>FACTS[id].grp==="Caribbean"||["192","388","332","214","044"].includes(id))),"United States":new Set()};
+const BEACON=playable.map(f=>f.id).filter(id=>FACTS[id].a<9000);
 CL_DEF.forEach(g=>{g.pts=g.ids.map(id=>[FACTS[id].ll[1],FACTS[id].ll[0]]);g.c=d3.geoCentroid({type:"MultiPoint",coordinates:g.pts});g.rad=Math.max(...g.pts.map(p=>d3.geoDistance(g.c,p)))});
-const clusterZoom=g=>clamp(.42*Math.min(W,H)/(baseScale*Math.sin(Math.min(1.5,g.rad+.06))),2.6,8);   // as far in as still fits every island of the group
-
-const lensEl=$("lens"),lensWrap=$("lensWrap"),lsvg=d3.select("#lensSvg");
-const lView=lsvg.append("g");
-const lLand=lView.append("g"),lPaint=lView.append("g").attr("filter","url(#wc)"),lFx=lView.append("g").style("pointer-events","none"),lMarks=lsvg.append("g");
-let LT=d3.zoomIdentity;
-const lzoom=d3.zoom().scaleExtent([1,6]).clickDistance(4).on("zoom",e=>{LT=e.transform;lView.attr("transform",LT.toString());positionLensMarks();positionLabels()});
-lsvg.call(lzoom).on("dblclick.zoom",null);
-function positionLensMarks(){lMarks.selectAll("circle").attr("cx",d=>LT.applyX(d.x)).attr("cy",d=>LT.applyY(d.y))}
-const lproj=d3.geoAzimuthalEquidistant().precision(.5),lpath=d3.geoPath(lproj);
-let lensOpen=false,lensG=null,LW=0,LH=0,lpaths=null;
-const LV={projection:lproj,path:lpath,gPaint:lPaint,gFx:lFx,get W(){return LW},get H(){return LH}};
-const lensLabels=el("div",{style:"position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden"});lensEl.append(lensLabels);
-
-const BR=innerWidth<720?19:22;     // badge radius
-const pillList=Object.values(GR).map((g,gi)=>{
-  const e=gPills.append("g").attr("class","pill").attr("tabindex",0).attr("role","button").attr("aria-label","Open the "+g.name+" islands");
-  e.append("title").text(g.name+" islands");
-  const cid="bubclip-"+gi;defs.append("clipPath").attr("id",cid).append("circle").attr("r",BR-1.4);
-  const body=e.append("g").attr("class","bub-body");
-  body.append("circle").attr("class","bub-shadow").attr("r",BR+.5).attr("cy",2.2);
-  const inner=body.append("g").attr("clip-path",`url(#${cid})`);
-  inner.append("circle").attr("class","bub-sea").attr("r",BR);
-  // a tiny map of the group: nearby coastline (low-res, drawn once) with each island as a dot at its true position
-  const mp=d3.geoAzimuthalEquidistant().rotate([-g.c[0],-g.c[1]]).fitExtent([[-BR+5,-BR+5],[BR-5,BR-5]],{type:"MultiPoint",coordinates:g.pts});
-  if(mp.scale()>2600)mp.scale(2600).translate([0,0]);
-  const mpath=d3.geoPath(mp).digits(1),rad=Math.max(...g.pts.map(p=>d3.geoDistance(g.c,p)))+.55;
-  const near=features.filter(ft=>ft._lo&&!g.ids.includes(ft.id)&&ft._c&&isFinite(ft._c[0])&&d3.geoDistance(ft._c,g.c)-(ft._r||0)<rad&&ft.id!=="010");
-  inner.append("g").selectAll("path").data(near).join("path").attr("class","bub-land").attr("d",ft=>mpath(ft._lo)||"");
-  const ipath=d3.geoPath(mp).digits(2);   // the islands themselves, as real outlines (a small stroke keeps the tiniest ones visible)
-  g.dots=inner.append("g").selectAll("path").data(g.ids).join("path").attr("class","bub-isle").attr("d",id=>ipath(byId[id])||"");
-  body.append("circle").attr("class","bub-ring").attr("r",BR-.5);
-  g.cnt=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle");
-  e.on("click",ev=>{ev.stopPropagation();pillTap(g)}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();pillTap(g)}});
-  g.el=e;return g;
-});const beaconList=BEACON.map(id=>{
+/* tiny countries get a dotted ring so they can be found and tapped */
+const beaconList=BEACON.map(id=>{
   const ge=gBeacon.append("g").attr("data-id",id);
   const c=ge.append("circle").attr("class","beacon").attr("r",5.5);
   ge.append("circle").attr("class","beaconhit").attr("r",10.5).attr("data-id",id)
     .on("click",()=>tap(id,LL(id))).on("pointermove",ev=>onMove(ev,{id})).on("pointerleave",clearHover);
   return {id,g:ge,c,diam:2*Math.sqrt(FACTS[id].a/Math.PI)/6371};
 });
-CL_DEF.forEach(g=>{const e=gPills.append("g").attr("class","pill hide").attr("tabindex",0).attr("role","button").attr("aria-label","Zoom into the "+g.name+" islands");
-  e.append("title").text(g.name+": tap to zoom in");
-  const body=e.append("g").attr("class","bub-body");
-  body.append("circle").attr("class","bub-shadow").attr("r",BR+.5).attr("cy",2.2);
-  body.append("circle").attr("class","bub-sea").attr("r",BR);
-  body.append("circle").attr("class","bub-ring").attr("r",BR-.5);
-  g.cnt=e.append("text").attr("class","bub-cnt").attr("y",4).attr("text-anchor","middle");
-  g.lab=e.append("text").attr("class","bub-cnt").attr("y",BR+11).attr("text-anchor","middle").text(g.name);
-  const go=()=>{sndTick();stopDrift();if(S.mode==="speed"&&R.phase==="run"&&!R.ret)R.ret={ll:[-projection.rotate()[0],-projection.rotate()[1]],k:zoomK};flyTo(g.c,900,clusterZoom(g))};
-  e.on("click",ev=>{ev.stopPropagation();go()}).on("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go()}});g.el=e});function positionIslands(cen){
+function positionIslands(cen){
   const s=baseScale*zoomK;reefUpdate(cen);
-  pillList.forEach(g=>{
-    const p=projection(g.c),vis=cen&&d3.geoDistance(g.c,cen)<1.42&&p;
-    if(!p)return;
-    g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`).classed("hide",!vis||(lensOpen&&lensG===g));
-  });
-  CL_DEF.forEach(g=>{const p=projection(g.c),show=false;   // the big group bubbles are gone: islands are found on the map itself
-  g.show=!!show;g.el.classed("hide",!show);if(p)g.el.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`)});
   beaconList.forEach(b=>{
-    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16&&!CL_DEF.some(g=>g.show&&g.ids.includes(b.id));
+    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16;
     b.g.attr("display",vis?null:"none");if(vis)b.g.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);
   });
 }
-function updatePills(){
+function updateBeacons(){
   const F=cf();
-  CL_DEF.forEach(g=>{const n=g.ids.filter(id=>F.has(id)).length;g.cnt.text(`${n}/${g.ids.length}`);g.el.classed("done",n===g.ids.length)});
-  pillList.forEach(g=>{const n=g.ids.filter(id=>F.has(id)).length;g.cnt.text(`${n}/${g.ids.length}`);g.el.classed("done",n===g.ids.length);g.dots.classed("found",id=>F.has(id)).style("fill",id=>F.has(id)?artColor(id):null).style("stroke",id=>F.has(id)?artColor(id):null)});
   beaconList.forEach(b=>{const on=F.has(b.id);b.c.classed("found",on).style("fill",on?(()=>{const k=ensureArt(b.id);if(CANVAS)ensureArtSvg(k);return `url(#af-${k})`})():null)});
-}
-function pillTap(g){
-  const p=projection(g.c);sndTick();
-  if(S.mode==="find"&&S.target&&!S.done&&lensOf(S.target)===g.name){
-    swell($("hint"),`Warm. It’s in here. Tap the island you think it is.`);g.el.classed("warm",true);setTimeout(()=>g.el.classed("warm",false),2400);
-  }
-  openLens(g.name,{x:p[0],y:p[1]});
-}
-
-function layoutLens(){
-  const mob=W<720;
-  LW=Math.round(Math.min(W-(mob?16:48),680));
-  const top=Math.round(Math.max(promptBottom+6,mob?120:130)),avail=H-top-(mob?10:14);
-  LH=Math.round(clamp(avail,240,mob?470:500));
-  Object.assign(lensEl.style,{left:Math.round((W-LW)/2)+"px",top:top+"px",width:LW+"px",height:LH+"px"});
-  lsvg.attr("viewBox",`0 0 ${LW} ${LH}`);
-  lzoom.extent([[0,0],[LW,LH]]).translateExtent([[-LW*.3,-LH*.3],[LW*1.3,LH*1.3]]);
-}
-function fitLens(){
-  const g=lensG;lproj.rotate([-g.c[0],-g.c[1]]).scale(1).translate([0,0]);
-  lproj.fitExtent([[60,66],[LW-60,LH-104]],{type:"MultiPoint",coordinates:g.pts});
-  if(lproj.scale()>5200)lproj.scale(5200).translate([LW/2,(LH-38)/2]);
-}
-function drawLens(){
-  if(!lpaths){
-    lpaths=lLand.selectAll("path").data(features).join("path").attr("class",d=>"country"+(FACTS[d.id]?"":" nopl")).attr("data-id",d=>d.id);
-    lpaths.on("click",(e,d)=>{if(lensG&&FACTS[d.id]&&lensG.ids.includes(d.id))lensTap(d.id)});
-  }
-  lpaths.classed("ctx",d=>!(FACTS[d.id]&&lensG.ids.includes(d.id)));
-  lpaths.attr("d",lpath);
-  const sh=lensG.ids.map(id=>{
-    const q=lproj(LL(id)),b=lpath.bounds(byId[id]),w=isFinite(b[0][0])?Math.max(b[1][0]-b[0][0],b[1][1]-b[0][1]):0;
-    return {id,x:q[0],y:q[1],r:clamp(w/2+5,10,24)};
-  });
-  lMarks.selectAll("circle").data(sh,d=>d.id).join("circle").attr("class","mark").attr("data-id",d=>d.id)
-    .attr("r",d=>d.r).on("click",(e,d)=>lensTap(d.id));
-  positionLensMarks();
-  paintSel(lpaths,lLand,lPaint);lensMarkState();
-}
-function lensMarkState(){if(!lensOpen)return;const F=cf();lMarks.selectAll("circle").classed("done",d=>F.has(d.id)).style("fill",d=>F.has(d.id)?artColor(d.id):null);$("lensCount").textContent=`${lensG.ids.filter(id=>F.has(id)).length} of ${lensG.ids.length}`}
-function lensTap(id){
-  const ll=LL(id);
-  if(S.mode==="wander"){lensCaption(id);sndTick();return}
-  if(S.mode==="speed")return speedGuess(id,ll);
-  guess(id,ll);
-}
-function lensCaption(id){
-  const f=FACTS[id],cap=$("lensCap");cap.innerHTML="";
-  const imgEl=FLAGS[id]?el("img",{src:FLAGS[id],alt:"Flag of "+f.n}):"";
-  cap.append(imgEl,el("div",{},el("b",{},f.n),el("small",{},[f.cap,areaTxt(f.a)].filter(Boolean).join(" · "))),
-    (S.mode==="wander"?el("button",{class:"btn",onclick:()=>{showCard(id);setExplore(true,id)}},"Explore"):""));
-  cap.classList.add("on");
-}
-function openLens(name,origin){
-  const g=GR[name];if(!g)return;
-  lensG=g;lensOpen=true;stopDrift();
-  layoutLens();fitLens();
-  LT=d3.zoomIdentity;lsvg.property("__zoom",d3.zoomIdentity);lView.attr("transform",null);
-  drawLens();
-  $("lensTitle").textContent=g.name;lensMarkState();
-  $("lensCap").classList.remove("on");lensLabels.innerHTML="";
-  const ox=origin?origin.x-parseFloat(lensEl.style.left):LW/2,oy=origin?origin.y-parseFloat(lensEl.style.top):LH/2;
-  lensEl.style.setProperty("--ox",ox+"px");lensEl.style.setProperty("--oy",oy+"px");
-  void lensEl.offsetWidth;
-  lensWrap.classList.add("on");lensWrap.setAttribute("aria-hidden","false");
-  sndPage();render();
-}
-function closeLens(){
-  if(!lensOpen)return;
-  lensOpen=false;lensG=null;
-  lensWrap.classList.remove("on");lensWrap.setAttribute("aria-hidden","true");$("lensCap").classList.remove("on");
-  for(let i=live.length-1;i>=0;i--)if(live[i].v===LV){live[i].el.remove();live.splice(i,1)}
-  scheduleDrift();render();
-}
-$("lensClose").onclick=closeLens;$("lensScrim").onclick=closeLens;
-
-/* ---------- interaction: drag to turn, wheel/pinch to zoom ---------- */
+}/* ---------- interaction: drag to turn, wheel/pinch to zoom ---------- */
 let lastT=d3.zoomIdentity, idleTimer=null, drifting=!reduced;
 let movT=null,moving=false,rq=false;
 function requestRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;render()})}
@@ -867,7 +736,7 @@ d3.timer(ts=>{
   brushTick();
   if(R.phase==="run")$("sTime").textContent=fmtT(performance.now()-R.t0+R.pen);
   if(D.active&&D.t0!=null){const dt2=D.tEnd!=null?D.tEnd:performance.now()-D.t0;$("dClock").textContent=fmtT(dt2);$("dClock").classList.toggle("gold",dt2<60000)}
-  if(drifting&&introState==="done"&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&!lensOpen&&S.mode!=="speed"&&S.mode!=="hot"&&!nmOn&&!silOn){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
+  if(drifting&&introState==="done"&&!LITE&&!animating&&dt<100&&zoomK<=1.03&&S.mode!=="speed"&&S.mode!=="hot"&&!nmOn&&!silOn){const r=projection.rotate();projection.rotate([r[0]+dt*.0035,r[1],r[2]]);render();}
 });
 svg.on("pointerenter",()=>{if(S.mode==="find")stopDrift()}).on("pointerleave",scheduleDrift);
 
@@ -901,7 +770,7 @@ function syncZoom(){lastT=d3.zoomIdentity.scale(zoomK);svg.property("__zoom",las
 const labelsEl=document.getElementById("labels");
 const live=[];
 function floatLabel(text,lonlat,ms=2600,v){v=v||MV;
-  const e=document.createElement("div");e.className="label";e.textContent=text;(v===LV?lensLabels:labelsEl).appendChild(e);
+  const e=document.createElement("div");e.className="label";e.textContent=text;labelsEl.appendChild(e);
   const item={el:e,lonlat,v};live.push(item);positionLabels();
   requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add("on")));
   if(ms) setTimeout(()=>{e.classList.remove("on");setTimeout(()=>{e.remove();const i=live.indexOf(item);if(i>-1)live.splice(i,1)},800)},ms);
@@ -910,7 +779,7 @@ function floatLabel(text,lonlat,ms=2600,v){v=v||MV;
 function positionLabels(){
   const c=projection.invert([W/2,cy()]);
   live.forEach(({el:e,lonlat,v})=>{
-    if(v===LV){const q=lproj(lonlat);e.style.left=LT.applyX(q[0])+"px";e.style.top=LT.applyY(q[1])+"px";e.style.visibility="visible";return}
+
     const p=projection(lonlat);const vis=c&&d3.geoDistance(lonlat,c)<Math.PI/2;
     e.style.left=p[0]+"px";e.style.top=p[1]+"px";e.style.visibility=vis?"visible":"hidden";
   });
@@ -1208,7 +1077,7 @@ const isMi=()=>S.unit==="mi";
 function distTxt(k){const v=isMi()?k*.621371:k;if(v<25)return "under 25 "+(isMi()?"miles":"km");const r=v<1000?Math.round(v/25)*25:Math.round(v/50)*50;return fmt(r)+(isMi()?" miles":" km")}
 function areaTxt(a){return isMi()?fmt(a*.386102)+" sq mi":fmt(a)+" km²"}
 function densTxt(p,a){const d=isMi()?p/(a*.386102):p/a;return (d<10?d.toFixed(1):fmt(d))+(isMi()?" per sq mi":" per km²")}
-const vwOf=id=>lensOpen&&lensG&&lensG.ids.includes(id)?LV:MV;
+
 function article(n){return /^(United|Netherlands|Philippines|Bahamas|Gambia|Central African|Czech|Dominican|Solomon|Falkland|Democratic|Republic|Ivory)/.test(n)?"the "+n:n}
 function swell(e,txt){
   e.textContent=txt;if(reduced)return;
@@ -1455,7 +1324,7 @@ function nextRound(){
   S.target=D.active?D.ids[D.idx]:pickTarget();
   if(S.target==null){S.practice=false;endSession();toast("\u{1F33F}","Nothing left to ask","There is nothing left for this setup. Pick another.");quizIdle();return}
   S.tries=0;S.done=false;warmArt(S.target);
-  if(lensOpen&&lensOf(S.target)!==lensG.name)closeLens();
+
   S.recent.push(S.target);if(S.recent.length>6)S.recent.shift();
   const f=FACTS[S.target];
   if(quizOf()==="silhouette"){silBegin();$("showBtn").hidden=true;$("nextBtn").hidden=true;save();return}
@@ -1484,7 +1353,7 @@ function armAutoNext(){
   const ms=AUTO_MS[S.autoNext]||2500,b=$("nextBtn");autoLeft=ms;
   b.style.setProperty("--auto-ms",ms+"ms");void b.offsetWidth;b.classList.add("auto");
   autoT=setInterval(()=>{
-    const hold=autoHold.card||autoHold.btn||autoHold.tapped||$("modal").classList.contains("on")||lensOpen||moving||document.hidden;
+    const hold=autoHold.card||autoHold.btn||autoHold.tapped||$("modal").classList.contains("on")||moving||document.hidden;
     b.classList.toggle("hold",!!hold);
     if(hold)return;
     autoLeft-=100;if(autoLeft<=0){clearAuto();if(S.mode==="find"&&S.done)nextRound()}
@@ -1505,7 +1374,7 @@ function guess(id,ll,other){
   if(id&&FACTS[id]){
     S.streak=0;const g=FACTS[id];
     d3.selectAll(`[data-id="${id}"]`).classed("missed",!cf().has(id));cvMiss(id,!cf().has(id));
-    floatLabel(g.n,ll,2600,vwOf(id));
+    floatLabel(g.n,ll,2600,MV);
     const d=km(LL(id),LL(T));
     const near=g.b.includes(f.n);
     swell($("hint"),!S.hints?`That’s ${article(g.n)}. Not quite.`:near?`That’s ${article(g.n)}. You’re right next door; ${tn()} borders it to the ${bearing(LL(id),LL(T))}.`
@@ -1558,17 +1427,11 @@ function success(shown,ll){
   $("showBtn").hidden=true;$("nextBtn").hidden=false;
   $("nextBtn").textContent=(D.active&&D.idx>=D.ids.length)||(RD.active&&!D.active&&!S.practice&&RD.done>=RD.n)?"See results":"Next place";
   armAutoNext();
-  if(shown&&lensOf(T)&&!(lensOpen&&lensG.ids.includes(T)))openLens(lensOf(T));
-  const inLens=lensOpen&&lensG.ids.includes(T);
-  let fp=null;
-  if(inLens)floatLabel(f.n,LL(T),3200,LV);
-  else{
-    fp=focusFor(T,ll);
-    if(fp.fly)flyTo(fp.fly,1300,Math.min(5,Math.max(zoomK,f.a<30000?2.6:f.a<350000?1.7:1))).then(()=>{floatLabel(f.n,fp.fly,3200)});
-    else floatLabel(f.n,fp.pt,3200);
-  }
-  startReveal(T,ll||(fp&&fp.pt)||LL(T),shown,()=>paint(),false,inLens?LV:MV,()=>{if(!shown){sndHit(f.r,first);if(big)setTimeout(()=>sndFlourish(big),700)}});
-  if(inLens)lensCaption(T);else showCard(T);
+  const fp=focusFor(T,ll);
+  if(fp.fly)flyTo(fp.fly,1300,Math.min(5,Math.max(zoomK,f.a<30000?2.6:f.a<350000?1.7:1))).then(()=>{floatLabel(f.n,fp.fly,3200)});
+  else floatLabel(f.n,fp.pt,3200);
+  startReveal(T,ll||fp.pt||LL(T),shown,()=>paint(),false,MV,()=>{if(!shown){sndHit(f.r,first);if(big)setTimeout(()=>sndFlourish(big),700)}});
+  showCard(T);
   setTimeout(checkAch,1800);
   setTimeout(()=>$("nextBtn").focus({preventScroll:true}),50);
 }
@@ -1680,7 +1543,7 @@ function startChain(daily){
   const day=todayStr();
   if(daily&&S.daily.chains&&S.daily.chains[day]){showChainResult(S.daily.chains[day],true);return}
   if(S.mode!=="find")setMode("find",true,true);
-  silHide();clearAuto();hideCard();clearMissed();closeLens();
+  silHide();clearAuto();hideCard();clearMissed();
   const [a,b]=chainPair(daily?seeded("mapbloom-chain-"+day):Math.random);
   Object.assign(C,{active:true,start:a,end:b,path:[a],par:nbPath(a,b),daily:!!daily,day,wrong:0,assists:0,done:false});
   S.qIdle=false;S.target=null;S.done=false;D.active=false;S.practice=false;
@@ -1850,7 +1713,7 @@ function speedNext(){
   if(R.phase!=="run")return;
   if(R.region==="United States"){usRaceNext();return}
   R.cur=R.queue[0];R.tTarget=performance.now();R.queue.slice(0,3).forEach(warmArt);
-  if(lensOpen&&lensOf(R.cur)!==lensG.name)closeLens();
+
   {const v=R.variant||"country",ff=FACTS[R.cur];
     $("sFlag").hidden=v!=="flag";$("sTarget").classList.toggle("small",v!=="country");
     if(v==="flag"){$("sFlag").src=FLAGS[R.cur]||"";$("sAsk").textContent="Find the country with this flag";swell($("sTarget"),"Whose flag is this?")}
@@ -1868,7 +1731,7 @@ function speedGuess(id,ll,other){
   const T=R.cur,f=FACTS[T];
   if(hitTest(id,ll,T)){raceHit(T,ll);return}
   if(id&&FACTS[id]){racePen(`Not ${article(FACTS[id].n)}. +2s`);
-    floatLabel(FACTS[id].n,ll,900,vwOf(id));
+    floatLabel(FACTS[id].n,ll,900,MV);
     const sel=d3.selectAll(`[data-id="${id}"]`);if(!R.found.has(id)){sel.classed("missed",true);cvMiss(id,true);setTimeout(()=>{sel.classed("missed",false);cvMiss(id,false)},520)}
   }else{
     swell($("sHint"),"Open water. No penalty.");sndOcean();
@@ -1888,7 +1751,7 @@ function raceHit(T,ll){
     if(R.variant==="flag")jrMark(T,"f");else if(R.variant==="capital")jrMark(T,"c");
     sndSpeedHit();musUpdate();updateProgress();
     swell($("sHint"),"");$("sCount").textContent=`${R.found.size} / ${R.total}`;
-    const vw=vwOf(T);   // Race never moves the camera: only the player's own dragging does
+    const vw=MV;   // Race never moves the camera: only the player's own dragging does
     startReveal(T,ll||LL(T),false,()=>paint(),true,vw);
     floatLabel(f.n,ll||LL(T),1100,vw);
     if(R.ret){const rt=R.ret;R.ret=null;setTimeout(()=>{if(R.phase==="run")flyTo(rt.ll,1000,rt.k)},900)}
@@ -2158,7 +2021,7 @@ function tmsFly(ll,ms,kEnd){
 async function tmsGo(){
   if(tms||S.mode!=="wander")return;
   if(reduced){/* no spectacle: a plain flight */}
-  hideCard();closeLens();
+  hideCard();
   const id=tmsPick(),f=FACTS[id],L=LEARN[id]||{},from=projection.invert([W/2,cy()])||[0,0],me={id,phase:"fly",cancel:false};
   tms=me;$("app").classList.add("tmsrun");
   $("briefGo").disabled=true;$("briefWhere").textContent="Somewhere in "+(f.s||f.r)+".";
@@ -2309,7 +2172,7 @@ function closeModal(){closeReader();try{for(const k in BKpos)delete BKpos[k];for
   modal.classList.remove("on");modal.setAttribute("aria-hidden","true");modal.inert=true;try{$("app").inert=false}catch(e){}
   if(modalOpener&&modalOpener.isConnected){try{modalOpener.focus({preventScroll:true})}catch(e){}}modalOpener=null;scheduleDrift()}
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal();else if(lensOpen)closeLens()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(modal.classList.contains("on"))closeModal()}});
 const raceBusy=()=>S.mode==="speed"&&(R.phase==="run"||R.phase==="count");
 function guardRace(){if(raceBusy()){toast("⏱️","Race in progress","The clock does not pause. Finish, or leave via Explore.");return true}return false}
 $("stampBtn").onclick=()=>{if(guardRace())return;sndTick();renderAtlas()};
@@ -2633,11 +2496,6 @@ function mqStart(id,key){
   if(!qs.length){toast("\u{1F4D8}","Not enough material","This page cannot be quizzed yet.",2600);return}
   mq={id,key,qs,i:0,right:0,title:f.n+": "+(mTitle[key]||Q_NAMES[key])};showQ();
 }
-function mOpenPage(id,key){
-  closeModal();if(S.mode!=="wander")setMode("wander",true);
-  showCard(id);setExplore(true,id);
-  setTimeout(()=>{const h=[...document.querySelectorAll("#learn section")].find(s=>s.querySelector("h3")&&s.querySelector("h3").textContent===Q_NAMES[key]);if(h)h.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"})},700);
-}
 const IC_BOOK='<path d="M-7 -4.2Q-3.5 -6.2 0 -3.6Q3.5 -6.2 7 -4.2V4.8Q3.5 2.8 0 5.4Q-3.5 2.8 -7 4.8Z"/><path d="M0 -3.6V5.4"/>';
 const IC_PAPER='<rect x="-6.5" y="-6.5" width="9.5" height="12.5" rx="1"/><path d="M-4 -3H0.5M-4 0H0.5M-4 3H-1"/><path class="pen" d="M0.8 5.2L6.2 -4.6L8.4 -3.3L3 6.6L0.2 7Z"/>';
 function mTree(id,j,secs){
@@ -2720,32 +2578,6 @@ function openCountryBook(id,from,opts){
   const key=e=>{if(!document.body.contains(bookEl)){document.removeEventListener("keydown",key);return}if(!modal.classList.contains("on")||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==="ArrowRight")moveTo(cur+1);else if(e.key==="ArrowLeft")moveTo(cur-1)};
   document.addEventListener("keydown",key);
 }function renderMastery(id,from,riffle){mqFrom=from||null;openCountryBook(id,from,{riffle:!!riffle})}
-function renderMasteryClassic(id,from,openKey){
-  mqFrom=from||null;const f=FACTS[id],j=jrObj(id),lv=jrLevel(id),sh=$("sheet"),secs=jrQSecs(id);sh.innerHTML="";
-  sh.append(closeBtn());
-
-  if(from==="book")sh.append(el("button",{class:"chip sback",onclick:()=>{sndPage();renderBook("mastery");const b=bookScroll;if(b)requestAnimationFrame(()=>{const all=[$("sheet"),...$("sheet").querySelectorAll("*")];b.forEach(([i,v])=>{if(all[i])all[i].scrollTop=v})})}},"\u2039 Back"));
-  // one module: the flag, the name, how far along it is, and the country's pages to read right here
-  const LR=LEARN[id]||{},fdd=typeof FOOD!=="undefined"&&FOOD[id],PG=[["o","At a glance",LR.o],["g","Land",LR.g],["c","People",LR.c],["f","Food",fdd&&fdd.x],["h","History",LR.h],["n","Name",LR.n]].filter(x=>x[2]);
-  const mod=el("div",{class:"mmod"},
-    el("div",{class:"mmod-top"},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):"",el("div",{class:"mmod-id"},el("h2",{},f.n),el("small",{},`${["Not found yet","Found","Studied","Mastered"][lv]} · ${jrDone(id)} of ${jrTotal(id)} steps`))));
-  if(PG.length){
-    const chips=el("div",{class:"mmod-read"},el("button",{class:"chip primary-chip",title:"Open the book on "+f.n,onclick:()=>{sndPage();openCountryBook(id,from,PG[0][0])}},"\u{1F4D6} Open the book"));
-    PG.forEach(([k,l])=>chips.append(el("button",{class:"chip",onclick:()=>{sndPage();openCountryBook(id,from,k)}},l+(k!=="o"&&(j.s||[]).includes(k)?" ✓":""))));
-    mod.append(chips);
-  }  sh.append(mod);
-  const tree=mTree(id,j,secs);
-  tree.addEventListener("click",e=>{
-    const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
-    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
-    if(a==="cap"||a==="flg")return mqStart(id,a);
-    const [k,t]=a.split(":");if(t==="r")return mOpenPage(id,k);
-    if(t==="g"){const jj=jrObj(id);if(!jj.p.includes(k)&&!jj.g.includes(k)){toast("\u270F\uFE0F","Pass the quiz first","Pass this page’s quiz to unlock its exam.",3000);return}return mqStartExam(id,k)}
-    mqStart(id,k);
-  });
-  sh.append(tree,el("p",{class:"mwhy"},"Read a page, pass its quiz (4 of 5), then earn its star in a typed exam (5 of 5). Every star plus Capital and Flag masters a country. The pulsing node is next."));
-  openModal();
-}
 function showExamQ(){
   const q=mq.qs[mq.i],sh=$("sheet"),id=mq.id;sh.innerHTML="";
   sh.append(closeBtn(),el("button",{class:"chip sback",onclick:()=>renderMastery(id,mqFrom)},"\u2039 Back"),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},mq.qs.length>1?`Question ${mq.i+1} of ${mq.qs.length} \u00B7 type your answer`:"Type your answer"));
@@ -3072,7 +2904,7 @@ function setMode(m,quiet,noIdle){
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
   if(tms){tms.cancel=true;tms=null;briefHide();if(tmsTimer){tmsTimer.stop();tmsTimer=null;animating=false;syncZoom()}}
-  const from=S.mode;closeLens();clearAuto();usStop();if(from==="hot")hotStop();
+  const from=S.mode;clearAuto();usStop();if(from==="hot")hotStop();
   if(from==="speed")abortRace();
   if(D.active&&m!=="find")D.active=false;
   if(m!=="find"){S.qIdle=false;chainStop();endSession();S.practice=false;if(typeof silHide==="function")silHide()}
@@ -3152,11 +2984,11 @@ function doEraseAll(){
   location.reload();
 }
 function doReset(){
-  closeModal();closeLens();hideCard();
+  closeModal();hideCard();
   const fin=()=>{
     S.found.clear();S.shown.clear();S.returnQ=[];S.weak={};S.recent=[];S.seen={};S.turn=0;S.streak=0;S.practice=false;
     S.done=false;save();paint();updateProgress();if(S.mode==="find")idleView();
-    d3.select("#paint").style("opacity",null);d3.select("#lensSvg").style("opacity",null);
+    d3.select("#paint").style("opacity",null);
     toast("\u{1F33F}","Fresh canvas","Everything’s blank paper again.");sndPage();
   };
   if(reduced){fin();return}
@@ -3300,7 +3132,7 @@ function applyFx(){
   LITE=soft;
   FX.wc=!soft;FX.bloomFx=!soft;
   FX.tiles=CANVAS?S.fx!=="lite":!soft;      // textures stay on with the canvas globe unless Lite is chosen
-  gPaint.attr("filter",FX.wc?"url(#wc)":null);lPaint.attr("filter",FX.wc?"url(#wc)":null);
+  gPaint.attr("filter",FX.wc?"url(#wc)":null);
   gShadow.style("display",soft||CANVAS?"none":null);gLift.style("display",soft||CANVAS?"none":null);
   projection.precision(soft?1.2:.4);projC.precision(soft?1.2:.5);
   document.body.classList.toggle("lite",S.fx==="lite"||(soft&&!CANVAS));   // lite = no paper grain either

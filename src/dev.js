@@ -110,9 +110,9 @@
   }
   async function benchClicks(n){
     if(S.mode!=="find"||S.qIdle){toast("T","Dev","Start a Quiz (free play) first");return}
-    const rows=[];stopDrift();closeLens();
+    const rows=[];stopDrift();
     for(let i=0;i<n;i++){
-      const ids=playable.map(f=>f.id).filter(id=>!lensOf(id)),id=ids[Math.floor(Math.random()*ids.length)];
+      const ids=playable.map(f=>f.id).filter(()=>true),id=ids[Math.floor(Math.random()*ids.length)];
       S.found.delete(id);S.shown.delete(id);S.target=id;S.done=false;S.tries=0;
       projection.rotate([-(Math.random()*340-170),-(Math.random()*60-30),0]);zoomK=1;syncZoom();render();
       await sleep(350);
@@ -166,12 +166,12 @@
     el("div",{},el("button",{onclick:()=>benchClicks(8)},"Click-to-pan ×8"),el("button",{onclick:benchTour},"Drag at zoom 1-8"),el("button",{onclick:report},"Copy report")),
     out,
     el("h4",{},"Isolate what costs frames"),
-    chk("paint filter (#wc)",()=>FX.wc,v=>{FX.wc=v;gPaint.attr("filter",v?"url(#wc)":null);lPaint.attr("filter",v?"url(#wc)":null)}),
+    chk("paint filter (#wc)",()=>FX.wc,v=>{FX.wc=v;gPaint.attr("filter",v?"url(#wc)":null)}),
     chk("bloom mask filter",()=>FX.bloomFx,v=>FX.bloomFx=v),
     chk("painting tiles (off = flat colour)",()=>FX.tiles,v=>{FX.tiles=v;paint()}),
     chk("globe shadow / lift",()=>true,v=>{disp(gShadow,v);disp(gLift,v)}),
     chk("graticule",()=>true,v=>disp(grat,v)),
-    chk("pills, rings, labels",()=>true,v=>{disp(gPills,v);disp(gBeacon,v);labelsEl.style.display=v?"":"none"}),
+    chk("pills, rings, labels",()=>true,v=>{disp(gBeacon,v);labelsEl.style.display=v?"":"none"}),
     chk("viewport clipping",()=>FX.clip,v=>{FX.clip=v;render()}),
     chk("off-screen culling",()=>FX.cull,v=>{FX.cull=v;render()}),
     chk("auto-drift",()=>true,v=>{noDrift=!v;if(!v)stopDrift();else scheduleDrift()}),
@@ -186,11 +186,11 @@
   );
   /* ---------- culprit finder + per-shape profile ---------- */
   const ctoggles=[
-    ["paint filter (#wc)",()=>{FX.wc=false;gPaint.attr("filter",null);lPaint.attr("filter",null)},()=>{FX.wc=true;gPaint.attr("filter","url(#wc)");lPaint.attr("filter","url(#wc)")}],
+    ["paint filter (#wc)",()=>{FX.wc=false;gPaint.attr("filter",null)},()=>{FX.wc=true;gPaint.attr("filter","url(#wc)")}],
     ["painting tiles (flat colour)",()=>{FX.tiles=false;paint()},()=>{FX.tiles=true;paint()}],
     ["globe shadow / lift",()=>{disp(gShadow,false);disp(gLift,false)},()=>{disp(gShadow,true);disp(gLift,true)}],
     ["graticule",()=>disp(grat,false),()=>disp(grat,true)],
-    ["pills, rings, labels",()=>{disp(gPills,false);disp(gBeacon,false);labelsEl.style.display="none"},()=>{disp(gPills,true);disp(gBeacon,true);labelsEl.style.display=""}],
+    ["pills, rings, labels",()=>{disp(gBeacon,false);labelsEl.style.display="none"},()=>{disp(gBeacon,true);labelsEl.style.display=""}],
     ["viewport clipping",()=>{FX.clip=false;render(true)},()=>{FX.clip=true;render(true)}],
     ["off-screen culling",()=>{FX.cull=false;render(true)},()=>{FX.cull=true;render(true)}],
     ["detail forced to lowest",()=>{FX.lod=0;render(true)},()=>{FX.lod="auto";render(true)}]

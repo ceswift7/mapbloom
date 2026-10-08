@@ -444,6 +444,7 @@ function atlasPageList(){
     const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
     pages.push([el("h2",{style:"display:flex;align-items:center;gap:10px"},el("span",{class:"swatch",style:`background:var(--c-${r});width:14px;height:14px`}),r==="Americas"?"The Americas":r),
       el("p",{style:"margin:2px 0 12px;color:var(--ink-soft);font-size:14px"},`${n} of ${ids.length} found · ${st} studied · ${ms}★`),
+      ids.some(id=>F.has(id))?el("div",{class:"gallery"},ids.filter(id=>F.has(id)).map(id=>paintThumb(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}))):null,
       el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))]);
     labels.push(r);
   });
@@ -534,7 +535,7 @@ function atlasPages(){
   add("Best first-try streak",S.bestStreak||0);
   add("Expeditions completed",`${EXPS.filter(e=>S.expDone[e.id]).length} of ${EXPS.length}`);
   add("Stamps",`${got} of ${ACH.length}`);
-  return [[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} of ${tot} countries discovered`),bar,dl]];
+  return [[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} ${nFound===1?"place":"places"} in your world`,el("small",{style:"font:12.5px var(--sans);color:var(--ink-faint);margin-left:8px"},`${tot-nFound} still to find`)),bar,dl]];
 }function setSound(v){
   S.sound=v;save();
   if(S.sound){if(AC("mus")){if(S.mode==="speed"&&R.phase==="run")startMusic()}sndTick();audioGesture()}
@@ -652,7 +653,7 @@ function raceRecordsBlock(cur,cv){
 }
 /* ---------- mode switching & buttons ---------- */
 $("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done){if(hintOk()){hintStep();return}success(true)}};
-$("nextBtn").onclick=()=>{if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();

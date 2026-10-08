@@ -928,6 +928,16 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 @media (pointer:coarse){
   .seg2 button,.silsug li button,.chip{min-height:34px}
 }
+.gallery{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
+.gthumb canvas{width:64px;height:48px;display:block}
+.gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+/* one easing and a quieter label style across the interface */
+:root{--ease:cubic-bezier(.2,.8,.2,1)}
+.tile,.tbtn,.btn,.chip,.icon-btn,.mrow{transition-timing-function:var(--ease)}
+.card dt{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);align-self:center}
+.card .learned{font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
+.sp-time,.sp-pen,.dclock,.sp-lab{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body class="introing">
@@ -1736,17 +1746,47 @@ function cvPattern(id,shown){
   if(!p||!p.setTransform){cvPats[k2]=false;return null}
   p.__N=sp.N;cvPats[k2]=p;return p;
 }
+/* a country''s outline draws itself just before its wash blooms in */
+const BLOOMOUT=new Map();
+function bloomOutline(id,ms){
+  BLOOMOUT.set(id,{t0:performance.now(),ms});
+  const tick=()=>{const n=performance.now();BLOOMOUT.forEach((o,k)=>{if(n-o.t0>o.ms)BLOOMOUT.delete(k)});requestRender();if(BLOOMOUT.size)requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+}
+function outDraw(c,s,cen0,lim,lvl){
+  if(!BLOOMOUT.size)return;const n=performance.now();
+  BLOOMOUT.forEach((o,id)=>{
+    const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;
+    const k=Math.min(1,(n-o.t0)/o.ms),a=Math.min(1,k/.35)*(1-Math.max(0,(k-.55)/.45));
+    c.save();c.beginPath();drawFeatureCtx(g,cen0,lim);c.lineJoin="round";c.lineWidth=2.4;c.globalAlpha=Math.max(0,a);c.strokeStyle=(CV.pd&&CV.pd[FACTS[id].r])||"#5b4a3a";c.stroke();c.restore();
+  });
+}
+/* hot and cold: a soft halo around the globe in the colour of the latest guess */
+const HALO={col:null,t0:0};
+function hotHaloSet(col){
+  HALO.col=col;HALO.t0=performance.now();
+  if(!col)return;
+  const tick=()=>{requestRender();if(performance.now()-HALO.t0<700)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+}
+function haloDraw(c,s){
+  if(S.mode!=="hot"||!HALO.col||!d3.color(HALO.col))return;
+  const k=Math.min(1,(performance.now()-HALO.t0)/600),e=1-Math.pow(1-k,3),cx=W/2,cy0=cy(),col=d3.color(HALO.col);
+  const g=c.createRadialGradient(cx,cy0,s*.8,cx,cy0,s*1.14);
+  g.addColorStop(0,col.copy({opacity:0}).formatRgb());g.addColorStop(.6,col.copy({opacity:.36*e}).formatRgb());g.addColorStop(1,col.copy({opacity:0}).formatRgb());
+  c.save();c.fillStyle=g;c.beginPath();c.arc(cx,cy0,s*1.14,0,6.2832);c.fill();c.restore();
+}
 /* GPU globe: the thin 2D canvas above it only carries the hover / wrong-guess tints */
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null)return;
+  haloDraw(c,s);
+  if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null&&!BLOOMOUT.size)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
   HC.forEach((col,id)=>one(id,col));hcDots(c,s);
   cvMissed.forEach(id=>one(id,CV.miss));
   if(cvHover!=null&&!cvMissed.has(cvHover)&&!HC.has(cvHover))one(cvHover,CV.hover);
-  hlDraw(c,s,cen0,lim,lvl);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);
 }
 /* hot and cold: a guessed country too small to see gets a coloured dot, so a guess like Tonga is never invisible */
 function hcDots(c,s){
@@ -1832,7 +1872,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);hcDots(c,s);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){
@@ -2498,7 +2538,11 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
     drop.attr("cx",p[0]).attr("cy",p[1]-(fast?36:60)*(1-e)).attr("r",6-2.5*e).attr("opacity",k<1?.95:0);
     if(k>=1){tm.stop();drop.remove();impact()}
   });
-  function impact(){
+  function impact(){   // outline draws itself first, then the wash blooms out of it
+    if(reduced||fast||!CANVAS){impactMain();return}
+    bloomOutline(id,520);setTimeout(impactMain,230);
+  }
+  function impactMain(){
     if(!fast)sndDrop();rings(ll,col,fast,v);
     if(GLX.on&&v===MV){      // GPU globe: the wash bleeds out inside the shader
       const rMax=(src._r||.3)*1.6+.04,si=GLX.bloomStart(id,ll,rMax,shown,f.r);
@@ -2932,7 +2976,7 @@ function chainPair(rnd){
   const g=nbGraph(),ids=playable.map(f=>f.id).filter(id=>g[id].size>0).sort();
   for(let tries=0;tries<80;tries++){
     const a=ids[Math.floor(rnd()*ids.length)],d=nbDist(a);
-    let c=ids.filter(id=>d[id]>=4&&d[id]<=6);if(!c.length)c=ids.filter(id=>d[id]>=3&&d[id]<=7);
+    let c=ids.filter(id=>d[id]>=10&&d[id]<=13);if(!c.length)c=ids.filter(id=>d[id]>=8&&d[id]<=15);if(!c.length)c=ids.filter(id=>d[id]>=6&&d[id]<=17);   // long chains: ten or more countries across the land map
     if(c.length)return [a,c[Math.floor(rnd()*c.length)]];
   }
   return ["620","496"];   // Portugal to Mongolia
@@ -2956,7 +3000,9 @@ function chainRender(){
   $("qFlag").hidden=true;$("ask").textContent="Neighbour chain \u00B7 shortest is "+C.par.length;
   const tg=$("target");tg.classList.add("small");tg.textContent=FACTS[C.start].n+" \u2192 "+FACTS[C.end].n;
   $("hint").textContent=C.path.map(id=>FACTS[id].n).join(" \u2192 ")+(C.done?"":" \u2192 \u2026");
-  $("showBtn").hidden=C.done;syncHintBtn();$("nextBtn").hidden=C.path.length<2||C.done;$("nextBtn").textContent="Undo";
+  $("showBtn").hidden=C.done;syncHintBtn();
+  if(C.done){$("nextBtn").hidden=false;$("nextBtn").textContent="Quiz menu"}   // a finished chain always leaves a way back to the menu on screen
+  else{$("nextBtn").hidden=C.path.length<2;$("nextBtn").textContent="Undo"}
   $("dClock").classList.remove("on");
 }
 function chainGuess(id,ll,other){
@@ -3245,13 +3291,12 @@ function showResults(tot,isBest,prev,ended){
 let cardId=null;
 const restart=e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""};
 /* the card's picture: the country's outline, filled with its own painting once you have found it */
-function cardPaint(id){
-  const cv=$("cPaint");if(!cv)return;
-  const dpr=Math.min(2,window.devicePixelRatio||1),w=440,h=92;
-  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+function paintInto(cv,id,w,h,pad){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
   const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
   try{
-    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[w/2-130,8],[w/2+130,h-8]],feat),path=d3.geoPath(proj,c);
+    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[pad[0],pad[1]],[w-pad[0],h-pad[1]]],feat),path=d3.geoPath(proj,c);
     const f=FACTS[id],cs=getComputedStyle(document.documentElement),dark=cs.getPropertyValue("--c-"+f.r+"-d").trim()||"#555",mid=cs.getPropertyValue("--c-"+f.r).trim()||"#999",found=S.found.has(id)||S.shown.has(id);
     let fill=null;if(found&&FX.tiles){try{const key=ensureArt(id),tile=artCv[key];if(tile)fill=c.createPattern(tile,"repeat")}catch(e){}}
     c.beginPath();path(feat);
@@ -3259,7 +3304,8 @@ function cardPaint(id){
     else{c.globalAlpha=.14;c.fillStyle=cs.getPropertyValue("--ink").trim()||"#333";c.fill();c.globalAlpha=1;c.lineWidth=1.2;c.setLineDash([4,3]);c.strokeStyle=cs.getPropertyValue("--ink-soft").trim()||"#555";c.stroke();c.setLineDash([])}
   }catch(e){}
 }
-function showCard(id,keepOpen){
+function cardPaint(id){const cv=$("cPaint");if(cv)paintInto(cv,id,440,92,[90,8])}
+function paintThumb(id,onclick){const cv=document.createElement("canvas");paintInto(cv,id,64,48,[4,4]);return el("button",{type:"button",class:"gthumb",title:FACTS[id].n,"aria-label":FACTS[id].n,onclick},cv)}function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
   const img=$("cFlagImg"),src=typeof FLAGS!=="undefined"&&FLAGS[id];
@@ -4237,6 +4283,7 @@ function atlasPageList(){
     const n=ids.filter(id=>F.has(id)).length,st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length;
     pages.push([el("h2",{style:"display:flex;align-items:center;gap:10px"},el("span",{class:"swatch",style:`background:var(--c-${r});width:14px;height:14px`}),r==="Americas"?"The Americas":r),
       el("p",{style:"margin:2px 0 12px;color:var(--ink-soft);font-size:14px"},`${n} of ${ids.length} found · ${st} studied · ${ms}★`),
+      ids.some(id=>F.has(id))?el("div",{class:"gallery"},ids.filter(id=>F.has(id)).map(id=>paintThumb(id,()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}))):null,
       el("div",{class:"nchips"},ids.map(id=>el("button",{class:F.has(id)?"got":"dim",title:["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))]);
     labels.push(r);
   });
@@ -4327,7 +4374,7 @@ function atlasPages(){
   add("Best first-try streak",S.bestStreak||0);
   add("Expeditions completed",`${EXPS.filter(e=>S.expDone[e.id]).length} of ${EXPS.length}`);
   add("Stamps",`${got} of ${ACH.length}`);
-  return [[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} of ${tot} countries discovered`),bar,dl]];
+  return [[el("h2",{},"Atlas"),el("h3",{style:"margin-top:10px"},`${nFound} ${nFound===1?"place":"places"} in your world`,el("small",{style:"font:12.5px var(--sans);color:var(--ink-faint);margin-left:8px"},`${tot-nFound} still to find`)),bar,dl]];
 }function setSound(v){
   S.sound=v;save();
   if(S.sound){if(AC("mus")){if(S.mode==="speed"&&R.phase==="run")startMusic()}sndTick();audioGesture()}
@@ -4445,7 +4492,7 @@ function raceRecordsBlock(cur,cv){
 }
 /* ---------- mode switching & buttons ---------- */
 $("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done){if(hintOk()){hintStep();return}success(true)}};
-$("nextBtn").onclick=()=>{if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
@@ -4905,11 +4952,11 @@ function hotResolve(txt){
 }
 const hotWhere=()=>S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
 function hotEnter(){
-  HOT.on=false;HC.clear();S.done=false;hideCard();clearMissed();
+  HOT.on=false;HC.clear();hotHaloSet(null);S.done=false;hideCard();clearMissed();
   if(S.region==="United States"){S.region="World";syncChips()}
   paint();updateProgress();showHotSheet();
 }
-function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
+function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const best=(S.counts.hotBest||{})[S.region];
@@ -4929,7 +4976,7 @@ function hotStart(daily){
   daily=daily===true;
   if(daily&&S.region!=="World"){S.region="World";syncChips();updateProgress()}
   const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
-  $("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  hotHaloSet(null);$("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
   silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
@@ -4954,7 +5001,7 @@ function hotGuess(){
   const T=HOT.target,win=id===T,nb=!win&&hotBorders(id,T),d=win?0:nb?0:hotDist(id,T);
   const g={id,d,nb,col:win?"#3fa66a":heatOf(d),dir:win?"":bearing(LL(id),LL(T))};
   $("silHint").classList.remove("bord");HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
-  hotRender();paint();requestRender();updateProgress();
+  hotRender();paint();requestRender();updateProgress();hotHaloSet(g.col);
   if(win)return hotFinish(false);
   if(nb)sndBorder();else sndHeat(1-Math.min(d,14000)/14000);nameFly(id);$("silHint").textContent=nb?FACTS[id].n+" shares a border with the hidden country!":"Warmer colours are closer.";$("silHint").classList.toggle("bord",!!nb);
 }

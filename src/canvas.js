@@ -200,17 +200,47 @@ function cvPattern(id,shown){
   if(!p||!p.setTransform){cvPats[k2]=false;return null}
   p.__N=sp.N;cvPats[k2]=p;return p;
 }
+/* a country''s outline draws itself just before its wash blooms in */
+const BLOOMOUT=new Map();
+function bloomOutline(id,ms){
+  BLOOMOUT.set(id,{t0:performance.now(),ms});
+  const tick=()=>{const n=performance.now();BLOOMOUT.forEach((o,k)=>{if(n-o.t0>o.ms)BLOOMOUT.delete(k)});requestRender();if(BLOOMOUT.size)requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+}
+function outDraw(c,s,cen0,lim,lvl){
+  if(!BLOOMOUT.size)return;const n=performance.now();
+  BLOOMOUT.forEach((o,id)=>{
+    const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;
+    const k=Math.min(1,(n-o.t0)/o.ms),a=Math.min(1,k/.35)*(1-Math.max(0,(k-.55)/.45));
+    c.save();c.beginPath();drawFeatureCtx(g,cen0,lim);c.lineJoin="round";c.lineWidth=2.4;c.globalAlpha=Math.max(0,a);c.strokeStyle=(CV.pd&&CV.pd[FACTS[id].r])||"#5b4a3a";c.stroke();c.restore();
+  });
+}
+/* hot and cold: a soft halo around the globe in the colour of the latest guess */
+const HALO={col:null,t0:0};
+function hotHaloSet(col){
+  HALO.col=col;HALO.t0=performance.now();
+  if(!col)return;
+  const tick=()=>{requestRender();if(performance.now()-HALO.t0<700)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+}
+function haloDraw(c,s){
+  if(S.mode!=="hot"||!HALO.col||!d3.color(HALO.col))return;
+  const k=Math.min(1,(performance.now()-HALO.t0)/600),e=1-Math.pow(1-k,3),cx=W/2,cy0=cy(),col=d3.color(HALO.col);
+  const g=c.createRadialGradient(cx,cy0,s*.8,cx,cy0,s*1.14);
+  g.addColorStop(0,col.copy({opacity:0}).formatRgb());g.addColorStop(.6,col.copy({opacity:.36*e}).formatRgb());g.addColorStop(1,col.copy({opacity:0}).formatRgb());
+  c.save();c.fillStyle=g;c.beginPath();c.arc(cx,cy0,s*1.14,0,6.2832);c.fill();c.restore();
+}
 /* GPU globe: the thin 2D canvas above it only carries the hover / wrong-guess tints */
 function drawOverlay(s,cen0,lim,lvl){
   const c=cctx,dpr=cvDpr;
   c.setTransform(dpr,0,0,dpr,stageLeft*dpr,stageTop*dpr);c.clearRect(-stageLeft,-stageTop,innerWidth,innerHeight);
-  if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null)return;
+  haloDraw(c,s);
+  if(!cvMissed.size&&!HC.size&&cvHover==null&&cvHL==null&&!BLOOMOUT.size)return;
   c.lineWidth=.5;c.strokeStyle=nbNow()?"rgba(0,0,0,0)":CV.border;
   const one=(id,col)=>{const f=byId[id];if(!f)return;const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;c.beginPath();drawFeatureCtx(g,cen0,lim);c.fillStyle=col;c.fill();c.stroke()};
   HC.forEach((col,id)=>one(id,col));hcDots(c,s);
   cvMissed.forEach(id=>one(id,CV.miss));
   if(cvHover!=null&&!cvMissed.has(cvHover)&&!HC.has(cvHover))one(cvHover,CV.hover);
-  hlDraw(c,s,cen0,lim,lvl);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);
 }
 /* hot and cold: a guessed country too small to see gets a coloured dot, so a guess like Tonga is never invisible */
 function hcDots(c,s){
@@ -296,7 +326,7 @@ function drawCanvas(s,cen0,lim,lvl){
     c.globalAlpha=shown?a*.25:a*.5;c.strokeStyle=CV.pd[fa.r];c.lineWidth=shown?.6:.8;c.stroke();
     c.globalAlpha=1;
   });
-  hlDraw(c,s,cen0,lim,lvl);hcDots(c,s);
+  hlDraw(c,s,cen0,lim,lvl);outDraw(c,s,cen0,lim,lvl);hcDots(c,s);haloDraw(c,s);
   if(cvPending){cvPending=false;requestRender()}
 }/* which country is under a point on the globe? (smallest containing shape wins, so enclaves like Lesotho work) */
 function hitCountry(ll){

@@ -19,7 +19,7 @@ function chainPair(rnd){
   const g=nbGraph(),ids=playable.map(f=>f.id).filter(id=>g[id].size>0).sort();
   for(let tries=0;tries<80;tries++){
     const a=ids[Math.floor(rnd()*ids.length)],d=nbDist(a);
-    let c=ids.filter(id=>d[id]>=4&&d[id]<=6);if(!c.length)c=ids.filter(id=>d[id]>=3&&d[id]<=7);
+    let c=ids.filter(id=>d[id]>=10&&d[id]<=13);if(!c.length)c=ids.filter(id=>d[id]>=8&&d[id]<=15);if(!c.length)c=ids.filter(id=>d[id]>=6&&d[id]<=17);   // long chains: ten or more countries across the land map
     if(c.length)return [a,c[Math.floor(rnd()*c.length)]];
   }
   return ["620","496"];   // Portugal to Mongolia
@@ -43,7 +43,9 @@ function chainRender(){
   $("qFlag").hidden=true;$("ask").textContent="Neighbour chain \u00B7 shortest is "+C.par.length;
   const tg=$("target");tg.classList.add("small");tg.textContent=FACTS[C.start].n+" \u2192 "+FACTS[C.end].n;
   $("hint").textContent=C.path.map(id=>FACTS[id].n).join(" \u2192 ")+(C.done?"":" \u2192 \u2026");
-  $("showBtn").hidden=C.done;syncHintBtn();$("nextBtn").hidden=C.path.length<2||C.done;$("nextBtn").textContent="Undo";
+  $("showBtn").hidden=C.done;syncHintBtn();
+  if(C.done){$("nextBtn").hidden=false;$("nextBtn").textContent="Quiz menu"}   // a finished chain always leaves a way back to the menu on screen
+  else{$("nextBtn").hidden=C.path.length<2;$("nextBtn").textContent="Undo"}
   $("dClock").classList.remove("on");
 }
 function chainGuess(id,ll,other){

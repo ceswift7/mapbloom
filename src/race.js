@@ -206,13 +206,12 @@ function showResults(tot,isBest,prev,ended){
 let cardId=null;
 const restart=e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""};
 /* the card's picture: the country's outline, filled with its own painting once you have found it */
-function cardPaint(id){
-  const cv=$("cPaint");if(!cv)return;
-  const dpr=Math.min(2,window.devicePixelRatio||1),w=440,h=92;
-  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+function paintInto(cv,id,w,h,pad){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
   const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
   try{
-    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[w/2-130,8],[w/2+130,h-8]],feat),path=d3.geoPath(proj,c);
+    const feat=silShape(id),ctr=d3.geoCentroid(feat),proj=d3.geoAzimuthalEqualArea().rotate([-ctr[0],-ctr[1]]).fitExtent([[pad[0],pad[1]],[w-pad[0],h-pad[1]]],feat),path=d3.geoPath(proj,c);
     const f=FACTS[id],cs=getComputedStyle(document.documentElement),dark=cs.getPropertyValue("--c-"+f.r+"-d").trim()||"#555",mid=cs.getPropertyValue("--c-"+f.r).trim()||"#999",found=S.found.has(id)||S.shown.has(id);
     let fill=null;if(found&&FX.tiles){try{const key=ensureArt(id),tile=artCv[key];if(tile)fill=c.createPattern(tile,"repeat")}catch(e){}}
     c.beginPath();path(feat);
@@ -220,7 +219,8 @@ function cardPaint(id){
     else{c.globalAlpha=.14;c.fillStyle=cs.getPropertyValue("--ink").trim()||"#333";c.fill();c.globalAlpha=1;c.lineWidth=1.2;c.setLineDash([4,3]);c.strokeStyle=cs.getPropertyValue("--ink-soft").trim()||"#555";c.stroke();c.setLineDash([])}
   }catch(e){}
 }
-function showCard(id,keepOpen){
+function cardPaint(id){const cv=$("cPaint");if(cv)paintInto(cv,id,440,92,[90,8])}
+function paintThumb(id,onclick){const cv=document.createElement("canvas");paintInto(cv,id,64,48,[4,4]);return el("button",{type:"button",class:"gthumb",title:FACTS[id].n,"aria-label":FACTS[id].n,onclick},cv)}function showCard(id,keepOpen){
   const f=FACTS[id],card=$("card"),wasOn=card.classList.contains("on");
   cardId=id;
   const img=$("cFlagImg"),src=typeof FLAGS!=="undefined"&&FLAGS[id];

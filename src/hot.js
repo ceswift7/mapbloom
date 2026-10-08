@@ -27,11 +27,11 @@ function hotResolve(txt){
 }
 const hotWhere=()=>S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
 function hotEnter(){
-  HOT.on=false;HC.clear();S.done=false;hideCard();clearMissed();
+  HOT.on=false;HC.clear();hotHaloSet(null);S.done=false;hideCard();clearMissed();
   if(S.region==="United States"){S.region="World";syncChips()}
   paint();updateProgress();showHotSheet();
 }
-function hotStop(){HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
+function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){
   const sh=$("sheet");sh.innerHTML="";
   const best=(S.counts.hotBest||{})[S.region];
@@ -51,7 +51,7 @@ function hotStart(daily){
   daily=daily===true;
   if(daily&&S.region!=="World"){S.region="World";syncChips();updateProgress()}
   const rp=regionPool().filter(id=>byId[id]&&id!==HOT.target);if(!rp.length)return;
-  $("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
+  hotHaloSet(null);$("sil").classList.remove("hotdone");HOT.daily=daily;HOT.target=daily?hotDailyTarget(todayStr()):rp[Math.floor(Math.random()*rp.length)];HOT.list=[];HOT.done=false;HOT.on=true;HC.clear();
   silKeep();silOn=false;nmOn=false;hideCard();clearMissed();hlSet(null);
   $("app").classList.add("nameit");
   const box=$("sil");box.hidden=false;box.classList.remove("out");box.classList.add("nameit","hot");$("silSvg").style.display="none";
@@ -76,7 +76,7 @@ function hotGuess(){
   const T=HOT.target,win=id===T,nb=!win&&hotBorders(id,T),d=win?0:nb?0:hotDist(id,T);
   const g={id,d,nb,col:win?"#3fa66a":heatOf(d),dir:win?"":bearing(LL(id),LL(T))};
   $("silHint").classList.remove("bord");HOT.list.push(g);HOT.last=g;HC.set(id,g.col);inp.value="";$("silSug").innerHTML="";
-  hotRender();paint();requestRender();updateProgress();
+  hotRender();paint();requestRender();updateProgress();hotHaloSet(g.col);
   if(win)return hotFinish(false);
   if(nb)sndBorder();else sndHeat(1-Math.min(d,14000)/14000);nameFly(id);$("silHint").textContent=nb?FACTS[id].n+" shares a border with the hidden country!":"Warmer colours are closer.";$("silHint").classList.toggle("bord",!!nb);
 }

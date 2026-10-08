@@ -89,7 +89,11 @@ function startReveal(id,ll,shown,done,fast,v,onPayoff){
     drop.attr("cx",p[0]).attr("cy",p[1]-(fast?36:60)*(1-e)).attr("r",6-2.5*e).attr("opacity",k<1?.95:0);
     if(k>=1){tm.stop();drop.remove();impact()}
   });
-  function impact(){
+  function impact(){   // outline draws itself first, then the wash blooms out of it
+    if(reduced||fast||!CANVAS){impactMain();return}
+    bloomOutline(id,520);setTimeout(impactMain,230);
+  }
+  function impactMain(){
     if(!fast)sndDrop();rings(ll,col,fast,v);
     if(GLX.on&&v===MV){      // GPU globe: the wash bleeds out inside the shader
       const rMax=(src._r||.3)*1.6+.04,si=GLX.bloomStart(id,ll,rMax,shown,f.r);

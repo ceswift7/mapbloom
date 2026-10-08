@@ -928,6 +928,16 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 @media (pointer:coarse){
   .seg2 button,.silsug li button,.chip{min-height:34px}
 }
+.gallery{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
+.gthumb canvas{width:64px;height:48px;display:block}
+.gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+/* one easing and a quieter label style across the interface */
+:root{--ease:cubic-bezier(.2,.8,.2,1)}
+.tile,.tbtn,.btn,.chip,.icon-btn,.mrow{transition-timing-function:var(--ease)}
+.card dt{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);align-self:center}
+.card .learned{font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
+.sp-time,.sp-pen,.dclock,.sp-lab{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body class="introing">

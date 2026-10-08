@@ -104,7 +104,7 @@ function nextRound(){
   let pre="";
   if(D.active)pre=`Daily ${D.idx+1} of ${D.ids.length}. `;
   else if(S.practice)pre=`Practice, ${weakIds().length} to revisit. `;
-  const co=clusterOf(S.target),isl=co?` It’s in the ${co.name} islands: tap their bubble to zoom in.`:(BEACON.includes(S.target)?` It’s tiny: look for its dotted ring.`:"");
+  const co=clusterOf(S.target),isl=co?` It’s in the ${co.name} islands: tap their bubble to zoom in.`:(eezHas(S.target)?` It’s an island nation: tap anywhere inside its dashed sea zone.`:BEACON.includes(S.target)?` It’s tiny: look for its dotted ring.`:"");
   if(quizOf()==="name")swell($("hint"),S.hints?pre+`It is in ${regName(f)}.`:pre.trim());else
   swell($("hint"),S.hints?pre+(S.region==="World"||S.practice||D.active?`Somewhere in ${regName(f)}. Take your time.`:`Take your time. Turn the globe and tap it when you spot it.`)+isl:pre.trim());
   $("showBtn").hidden=false;$("nextBtn").hidden=true;hintReset();

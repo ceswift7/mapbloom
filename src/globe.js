@@ -40,7 +40,7 @@ const beaconList=BEACON.map(id=>{
 function positionIslands(cen){
   const s=baseScale*zoomK;reefUpdate(cen);
   beaconList.forEach(b=>{
-    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16;
+    const ll=LL(b.id),p=projection(ll),vis=cen&&d3.geoDistance(ll,cen)<1.5&&b.diam*s<16&&!(typeof eezHas==="function"&&eezHas(b.id));   // countries with a maritime zone have no dot: the whole zone is their area
     b.g.attr("display",vis?null:"none");if(vis)b.g.attr("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);
   });
 }

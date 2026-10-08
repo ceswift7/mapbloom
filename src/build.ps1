@@ -5,6 +5,8 @@ param([switch]$Debug,[switch]$Release)
 $d=$PSScriptRoot; $u=New-Object Text.UTF8Encoding $false
 function ReadPart($n){[IO.File]::ReadAllText("$d\$n",[Text.Encoding]::UTF8)}
 $main=ReadPart "main.html"
+# source parts: a marker line  /*@include name.js*/  in main.html is replaced by that file, so the single-file output is unchanged
+$main=[regex]::Replace($main,'/\*@include (\S+?)\*/\r?\n',{param($m)ReadPart $m.Groups[1].Value})
 if(Test-Path "$d\glglobe.js"){ $gl=ReadPart "glglobe.js"; $main=$main.Replace("`n})();`n</script>","`n$gl`n})();`n</script>") }
 if(-not $Release -and (Test-Path "$d\dev.js")){ $dev=ReadPart "dev.js"; $main=$main.Replace("`n})();`n</script>","`n$dev`n})();`n</script>") }
 $parts={param($m)(ReadPart "head.html")+(ReadPart "data.html")+"`n<script>`n/* real flag images (flagcdn.com), embedded so the game works offline */`n"+(ReadPart "flags.js")+"`n</script>`n<script>`n/* country reading pages: text adapted from Wikipedia (CC BY-SA 4.0); population etc. from Wikidata (CC0) */`n"+(ReadPart "learn.js")+"`n</script>`n<script>`n/* authored quiz facts */`n"+(((@("quiz.js")+@(Get-ChildItem "$d\quiz_*.js" | Sort-Object Name | ForEach-Object Name)) | ForEach-Object { ReadPart $_ }) -join "`n")+"`n</script>`n"+$m}

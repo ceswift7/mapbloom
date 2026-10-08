@@ -5522,7 +5522,7 @@ function usLoad(){
   if(!US.loading)US.loading=fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(r=>r.json()).then(t=>{
     const fs=topojson.feature(t,t.objects.states).features.filter(f=>US.names.includes(f.properties.name));
     if(fs.length<50)throw new Error("states missing");
-    US.data=fs;
+    US.data=fs;usColorsBuild();
   }).catch(e=>{US.loading=null;toast("\u{1F5FA}️","Could not load the state map","The states need an internet connection the first time.",4000);throw e});
   return US.loading;
 }
@@ -5552,7 +5552,20 @@ function usLayout(){
   US.svg.attr("viewBox",`0 0 ${W} ${H}`).style("width",W+"px").style("height",H+"px");if(US.zoom)US.zoom.extent([[0,0],[W,H]]).translateExtent([[0,0],[W,H]]);
   US.g.selectAll("path").attr("d",path);
 }
-function usColor(n){const i=US.names.indexOf(n);return d3.hsl((i*47)%360,.42,.8).formatRgb()}
+/* the states paint in red, white and blue, with no two neighbours alike (a greedy colouring over the shared borders; a fourth, softer blue only where three will not do) */
+const US_RWB=["#D2343F","#FAF6EC","#2F55A4","#7F9BD6"];
+function usColorsBuild(){
+  const vk=new Map();US.data.forEach(f=>{const n=f.properties.name,polys=f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates];polys.forEach(p=>p.forEach(r=>r.forEach(q=>{const k=q[0].toFixed(3)+","+q[1].toFixed(3);let s=vk.get(k);if(!s){s=new Set();vk.set(k,s)}s.add(n)})))});
+  const nb={};US.names.forEach(n=>nb[n]=new Map());
+  vk.forEach(s=>{if(s.size>1){const a=[...s];a.forEach(x=>a.forEach(y=>{if(x!==y)nb[x].set(y,(nb[x].get(y)||0)+1)}))}});
+  const col={},todo=new Set(US.names),usedOf=n=>{const u=new Set();nb[n].forEach((c,o)=>{if(c>1&&col[o]!==undefined)u.add(col[o])});return u};
+  while(todo.size){   // DSATUR: always colour the most constrained state next, so the softer fourth colour is rarely needed
+    let best=null,bs=-1,bd=-1;todo.forEach(n=>{const s=usedOf(n).size,d=nb[n].size;if(s>bs||(s===bs&&d>bd)){best=n;bs=s;bd=d}});
+    const u=usedOf(best);let k=0;while(u.has(k)&&k<3)k++;col[best]=k;todo.delete(best);
+  }
+  US.col=col;
+}
+function usColor(n){const k=US.col&&US.col[n];return US_RWB[k===undefined?1:k]}
 function usPaint(){if(!US.g)return;US.g.selectAll("path").style("fill",d=>US.painted.has(d.properties.name)?usColor(d.properties.name):null)}
 function usHl(){if(!US.g)return;US.g.selectAll("path").classed("hl",d=>d.properties.name===US.hl)}
 function usStop(){if(!US.on&&!US.svg)return;US.on=false;US.round=null;US.target=null;US.hl=null;$("app").classList.remove("usmode");if(US.g)usHl();usZoomReset()}

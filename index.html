@@ -950,7 +950,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .gthumb canvas{width:64px;height:48px;display:block}
 .gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
 /* the compact mode card */
-.modal.compact{background:rgba(30,24,14,.1)}
+.modal.compact{background:transparent}
 .sheet.compact{width:min(350px,calc(100% - 24px));max-height:none;padding:20px 22px 18px;text-align:center}
 .sheet.compact h2{font-size:28px;padding-right:0}
 .sheet.compact .modesub{margin:4px 0 0}
@@ -5761,15 +5761,21 @@ function glUploadBand(tex,canvas,y,h){
 }
 
 /* ---- baking: land colours ---- */
-function glLandKey(f){const fa=FACTS[f.id];return !fa?"nopl":S.mode==="wander"?(fa.x?"EA":fa.r):"land"}
+function glLandKey(f,mode=S.mode){const fa=FACTS[f.id];return !fa?"nopl":mode==="wander"?(fa.x?"EA":fa.r):"land"}
 function glLandColor(key){return key==="land"?CV.land:key==="nopl"?CV.nopl:key==="EA"?CV.tintEA:CV.tint[key]}
-function glStartLand(){
-  if(glLandRun){glLandAgain=true;return}
+/* every look the land has been baked in (theme, Explore tints, borderless, night race) keeps its texture, so switching game modes swaps one texture instead of re-painting the whole world */
+const glLandCache=new Map();
+const glDropLand=()=>{const cur=glT.land;if(cur&&GLc&&![...glLandCache.values()].includes(cur))GLc.deleteTexture(cur)};   // a texture that was never cached is freed once replaced
+const glLandVK=(mode=S.mode)=>[CV.land,CV.nopl,mode==="wander"?CV.tintEA+JSON.stringify(CV.tint):"",nbNow()].join("|");
+function glStartLand(bgMode){   // bgMode: bake that look quietly into the cache without showing it (done once the globe is idle, so the first mode switch is already ready)
+  const mode=bgMode||S.mode,vk=glLandVK(mode),hit=glLandCache.get(vk);
+  if(hit){if(bgMode)return;glLandCache.delete(vk);glLandCache.set(vk,hit);if(glT.land!==hit){glDropLand();glT.land=hit}render(true);return}
+  if(glLandRun){if(!bgMode)glLandAgain=true;return}
   glLandRun=true;glLandAgain=false;
   const job=glJob(j=>{
     if(!j.st){
       const c=glMakeCanvas(glTW,glTH),ctx=c.getContext("2d"),groups=new Map();
-      features.forEach(f=>{const k=glLandKey(f);let a=groups.get(k);if(!a){a=[];groups.set(k,a)}a.push(f)});
+      features.forEach(f=>{const k=glLandKey(f,mode);let a=groups.get(k);if(!a){a=[];groups.set(k,a)}a.push(f)});
       j.st={c,ctx,list:[...groups.entries()],i:0};
     }
     const st=j.st;if(st.i>=st.list.length)return true;
@@ -5782,10 +5788,11 @@ function glStartLand(){
     return st.i>=st.list.length;
   },null);
   job.finish=()=>{
-    if(job.st){glUploadFull(glT.land,job.st.c);job.st=null}
+    if(job.st){const tex=glTexNew(1,1);glUploadFull(tex,job.st.c);job.st=null;if(!bgMode||vk===glLandVK()){glDropLand();glT.land=tex}
+      if(glLandVK(mode)===vk){glLandCache.set(vk,tex);while(glLandCache.size>4){const k0=glLandCache.keys().next().value,old=glLandCache.get(k0);glLandCache.delete(k0);if(old!==glT.land)GLc.deleteTexture(old)}}}
     glLandRun=false;
     if(glLandAgain)glStartLand();
-    render(true);
+    if(!bgMode)render(true);
   };
 }
 /* ---- baking: paintings ---- */
@@ -6077,7 +6084,7 @@ function glBegin(){
   glDoSync();
   // flag completion of the first land/lines bake
   const wait=()=>{
-    if(!glLandRun&&glJobs.length===0&&!glArtRun){GLX.landDone=true;GLX.linesDone=true;GLX.baking=false;glMaybeReady();return}
+    if(!glLandRun&&glJobs.length===0&&!glArtRun){GLX.landDone=true;GLX.linesDone=true;GLX.baking=false;glMaybeReady();setTimeout(()=>{if(!glLandRun&&!glJobs.length)glStartLand(S.mode==="wander"?"find":"wander")},2500);return}
     setTimeout(wait,60);
   };
   setTimeout(wait,120);
@@ -6087,7 +6094,7 @@ if(GLWANT&&CANVAS){
     if(glInitGL()){
       GLX.hasGL=true;
       glC.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLX.on=false;document.body.classList.remove("gl");render(true)});
-      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
+      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glLandCache.clear();glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
       GLX.resize();
       setTimeout(glBegin,50);
     }

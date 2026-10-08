@@ -6,7 +6,7 @@ const cv=document.getElementById("gcanvas"),cctx=cv.getContext?cv.getContext("2d
 if(!cctx)CANVAS=false;
 const pcPath=d3.geoPath(projection,cctx),pcC=d3.geoPath(projC,cctx);
 let cvHL=null,hlTimer=null,nmOn=false,nmMiss=0;
-let cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
+let cvFast=0,cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
 const CV={},cvMissed=new Set(),cvFades=new Map();
 let cvKey=null;
 function cvColors(){
@@ -163,7 +163,7 @@ function makePaperBg(){   // the page background: a fine per-pixel grain (the gl
   PPC[pk]=`url(${c.toDataURL("image/png")})`;document.documentElement.style.setProperty("--paper-img",PPC[pk]);
 }
 function cvResize(){
-  cvDpr=Math.max(1,Math.min(1.5,window.devicePixelRatio||1)*cvQ);
+  cvDpr=Math.max(.6,Math.min(1.5,(window.devicePixelRatio||1)*cvQ));
   const w=innerWidth,h=innerHeight;
   const nw=Math.round(w*cvDpr),nh=Math.round(h*cvDpr),same=cv.width===nw&&cv.height===nh;
   if(GLX.resize)GLX.resize();
@@ -212,10 +212,11 @@ function cvPattern(id,shown){
 }
 /* a country''s outline draws itself just before its wash blooms in */
 /* the capital of the country whose page is open: a small gold star with its name beside it */
-const CAPM={id:null,ll:null,t0:0};
+const CAPM={id:null,ll:null,t0:0,ink:"#3a2f26",paper:"#f3ead3"};
 function capMarkSet(id){
   const c=id&&typeof CAPLL!=="undefined"?CAPLL[id]:null;
   if(!c){if(CAPM.id){CAPM.id=null;requestRender()}return}
+  const cs=getComputedStyle(document.documentElement);CAPM.ink=cs.getPropertyValue("--ink").trim()||"#3a2f26";CAPM.paper=cs.getPropertyValue("--paper").trim()||"#f3ead3";
   CAPM.id=id;CAPM.ll=[c[1],c[0]];CAPM.t0=performance.now();
   const tick=()=>{requestRender();if(CAPM.id&&performance.now()-CAPM.t0<800)requestAnimationFrame(tick)};requestAnimationFrame(tick);
 }
@@ -228,9 +229,14 @@ function capDraw(c,s){
   c.beginPath();c.arc(0,0,9+10*(1-e),0,6.2832);c.lineWidth=1.6;c.strokeStyle="rgba(58,47,38,.55)";c.stroke();
   c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rad=i%2?3.1:6.6;c.lineTo(Math.cos(a)*rad,Math.sin(a)*rad)}c.closePath();
   c.fillStyle="#F2C14E";c.fill();c.lineWidth=1.1;c.strokeStyle="rgba(58,47,38,.9)";c.stroke();
-  const left=p[0]>W-170,tx=left?-15:15;c.textAlign=left?"right":"left";c.textBaseline="middle";c.lineJoin="round";
-  c.font="italic 600 15px Newsreader,Georgia,serif";c.lineWidth=4;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText(name,tx,-5);c.fillStyle="#3a2f26";c.fillText(name,tx,-5);
-  c.font="600 9.5px Figtree,system-ui,sans-serif";c.lineWidth=3;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText("CAPITAL",tx,8);c.fillStyle="rgba(58,47,38,.75)";c.fillText("CAPITAL",tx,8);
+  // the name sits on a solid plate in the theme's own paper and ink colours (no outline glow), so it reads cleanly over land, sea and in dark mode
+  const left=p[0]>W-190;c.textBaseline="middle";c.font="600 14px Figtree,system-ui,sans-serif";
+  const nw=c.measureText(name).width,pw=nw+22,ph=36,px=left?-16-pw:16,py=-ph/2-4;
+  c.beginPath();if(c.roundRect)c.roundRect(px,py,pw,ph,8);else c.rect(px,py,pw,ph);
+  c.shadowColor="rgba(0,0,0,.28)";c.shadowBlur=8;c.shadowOffsetY=2;c.fillStyle=CAPM.paper;c.fill();c.shadowColor="transparent";c.shadowBlur=0;c.shadowOffsetY=0;
+  c.lineWidth=1;c.strokeStyle=CAPM.ink;c.globalAlpha=e*.35;c.stroke();c.globalAlpha=e;
+  c.textAlign="left";c.fillStyle=CAPM.ink;c.fillText(name,px+11,py+13);
+  c.font="600 9.5px Figtree,system-ui,sans-serif";c.globalAlpha=e*.7;c.fillText("CAPITAL",px+11,py+27);
   c.restore();
 }
 const BLOOMOUT=new Map();
@@ -477,7 +483,9 @@ function renderNow(){
     const n=performance.now();
     if(cvLastT&&n-cvLastT<200){cvAvg=cvAvg*.92+(n-cvLastT)*.08;cvN++}
     cvLastT=n;
-    if(cvN>30&&cvAvg>19&&cvQ>.6&&cvDpr>1){cvQ=Math.max(.6,cvQ-.15);cvN=0;cvAvg=16;cvResize()}   // 60 fps governor: render a little smaller whenever frames run long
+    // frame-rate governor: when frames run long the globe is drawn at a lower internal resolution (the watercolour look hides it well, down to 60% of the screen) and creeps back up once there is headroom
+    if(cvN>24&&cvAvg>20.5&&cvDpr>.62){cvQ=Math.max(.45,cvQ-.15);cvN=0;cvAvg=16;cvFast=0;cvResize()}
+    else if(cvAvg<13.5&&cvQ<1){if(++cvFast>240){cvQ=Math.min(1,cvQ+.1);cvN=0;cvAvg=16;cvFast=0;cvResize()}}else cvFast=0;
   }else cvLastT=0;
 }
 const jit=id=>.88+((+id*37)%9)/100;  // each wash settles a little differently

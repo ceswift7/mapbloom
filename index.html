@@ -1607,7 +1607,7 @@ const cv=document.getElementById("gcanvas"),cctx=cv.getContext?cv.getContext("2d
 if(!cctx)CANVAS=false;
 const pcPath=d3.geoPath(projection,cctx),pcC=d3.geoPath(projC,cctx);
 let cvHL=null,hlTimer=null,nmOn=false,nmMiss=0;
-let cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
+let cvFast=0,cvDpr=1,cvPA=1,cvHover=null,cvQ=1,cvLastT=0,cvAvg=16,cvN=0;
 const CV={},cvMissed=new Set(),cvFades=new Map();
 let cvKey=null;
 function cvColors(){
@@ -1764,7 +1764,7 @@ function makePaperBg(){   // the page background: a fine per-pixel grain (the gl
   PPC[pk]=`url(${c.toDataURL("image/png")})`;document.documentElement.style.setProperty("--paper-img",PPC[pk]);
 }
 function cvResize(){
-  cvDpr=Math.max(1,Math.min(1.5,window.devicePixelRatio||1)*cvQ);
+  cvDpr=Math.max(.6,Math.min(1.5,(window.devicePixelRatio||1)*cvQ));
   const w=innerWidth,h=innerHeight;
   const nw=Math.round(w*cvDpr),nh=Math.round(h*cvDpr),same=cv.width===nw&&cv.height===nh;
   if(GLX.resize)GLX.resize();
@@ -1813,10 +1813,11 @@ function cvPattern(id,shown){
 }
 /* a country''s outline draws itself just before its wash blooms in */
 /* the capital of the country whose page is open: a small gold star with its name beside it */
-const CAPM={id:null,ll:null,t0:0};
+const CAPM={id:null,ll:null,t0:0,ink:"#3a2f26",paper:"#f3ead3"};
 function capMarkSet(id){
   const c=id&&typeof CAPLL!=="undefined"?CAPLL[id]:null;
   if(!c){if(CAPM.id){CAPM.id=null;requestRender()}return}
+  const cs=getComputedStyle(document.documentElement);CAPM.ink=cs.getPropertyValue("--ink").trim()||"#3a2f26";CAPM.paper=cs.getPropertyValue("--paper").trim()||"#f3ead3";
   CAPM.id=id;CAPM.ll=[c[1],c[0]];CAPM.t0=performance.now();
   const tick=()=>{requestRender();if(CAPM.id&&performance.now()-CAPM.t0<800)requestAnimationFrame(tick)};requestAnimationFrame(tick);
 }
@@ -1829,9 +1830,14 @@ function capDraw(c,s){
   c.beginPath();c.arc(0,0,9+10*(1-e),0,6.2832);c.lineWidth=1.6;c.strokeStyle="rgba(58,47,38,.55)";c.stroke();
   c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rad=i%2?3.1:6.6;c.lineTo(Math.cos(a)*rad,Math.sin(a)*rad)}c.closePath();
   c.fillStyle="#F2C14E";c.fill();c.lineWidth=1.1;c.strokeStyle="rgba(58,47,38,.9)";c.stroke();
-  const left=p[0]>W-170,tx=left?-15:15;c.textAlign=left?"right":"left";c.textBaseline="middle";c.lineJoin="round";
-  c.font="italic 600 15px Newsreader,Georgia,serif";c.lineWidth=4;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText(name,tx,-5);c.fillStyle="#3a2f26";c.fillText(name,tx,-5);
-  c.font="600 9.5px Figtree,system-ui,sans-serif";c.lineWidth=3;c.strokeStyle="rgba(255,250,236,.92)";c.strokeText("CAPITAL",tx,8);c.fillStyle="rgba(58,47,38,.75)";c.fillText("CAPITAL",tx,8);
+  // the name sits on a solid plate in the theme's own paper and ink colours (no outline glow), so it reads cleanly over land, sea and in dark mode
+  const left=p[0]>W-190;c.textBaseline="middle";c.font="600 14px Figtree,system-ui,sans-serif";
+  const nw=c.measureText(name).width,pw=nw+22,ph=36,px=left?-16-pw:16,py=-ph/2-4;
+  c.beginPath();if(c.roundRect)c.roundRect(px,py,pw,ph,8);else c.rect(px,py,pw,ph);
+  c.shadowColor="rgba(0,0,0,.28)";c.shadowBlur=8;c.shadowOffsetY=2;c.fillStyle=CAPM.paper;c.fill();c.shadowColor="transparent";c.shadowBlur=0;c.shadowOffsetY=0;
+  c.lineWidth=1;c.strokeStyle=CAPM.ink;c.globalAlpha=e*.35;c.stroke();c.globalAlpha=e;
+  c.textAlign="left";c.fillStyle=CAPM.ink;c.fillText(name,px+11,py+13);
+  c.font="600 9.5px Figtree,system-ui,sans-serif";c.globalAlpha=e*.7;c.fillText("CAPITAL",px+11,py+27);
   c.restore();
 }
 const BLOOMOUT=new Map();
@@ -2078,7 +2084,9 @@ function renderNow(){
     const n=performance.now();
     if(cvLastT&&n-cvLastT<200){cvAvg=cvAvg*.92+(n-cvLastT)*.08;cvN++}
     cvLastT=n;
-    if(cvN>30&&cvAvg>19&&cvQ>.6&&cvDpr>1){cvQ=Math.max(.6,cvQ-.15);cvN=0;cvAvg=16;cvResize()}   // 60 fps governor: render a little smaller whenever frames run long
+    // frame-rate governor: when frames run long the globe is drawn at a lower internal resolution (the watercolour look hides it well, down to 60% of the screen) and creeps back up once there is headroom
+    if(cvN>24&&cvAvg>20.5&&cvDpr>.62){cvQ=Math.max(.45,cvQ-.15);cvN=0;cvAvg=16;cvFast=0;cvResize()}
+    else if(cvAvg<13.5&&cvQ<1){if(++cvFast>240){cvQ=Math.min(1,cvQ+.1);cvN=0;cvAvg=16;cvFast=0;cvResize()}}else cvFast=0;
   }else cvLastT=0;
 }
 const jit=id=>.88+((+id*37)%9)/100;  // each wash settles a little differently
@@ -3510,31 +3518,58 @@ function setExplore(open,id){
   if(open){renderLearn(id||cardId);S.learned.add(id||cardId);$("cLearned").hidden=false;save();setTimeout(checkAch,600)}
 }
 /* "Explore this country": the globe turns and zooms so the whole country fills the part of the screen the reading card leaves free, centred in it */
+/* the outline of a country as it is drawn: the mainland plus any large nearby piece (Alaska, Chukotka), sampled to a few hundred points for fast fitting */
+function fitShape(id){
+  const f=byId[id];if(f._fit)return f._fit;
+  const polys=f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates];
+  const ps=polys.map(co=>{const g={type:"Polygon",coordinates:co};return {co,a:d3.geoArea(g),c:d3.geoCentroid(g)}}).sort((a,b)=>b.a-a.a),m=ps[0];
+  const keep=ps.filter(p=>p===m||d3.geoDistance(p.c,m.c)<.5||(p.a>=m.a*.03&&d3.geoDistance(p.c,m.c)<.95));
+  const all=[];keep.forEach(p=>p.co[0].forEach(q=>all.push(q)));
+  const st=Math.max(1,Math.floor(all.length/240)),pts=all.filter((_,i)=>i%st===0);
+  [0,1].forEach(ax=>{let lo=all[0],hi=all[0];all.forEach(q=>{if(q[ax]<lo[ax])lo=q;if(q[ax]>hi[ax])hi=q});pts.push(lo,hi)});   // always keep the extreme points
+  return (f._fit={pts,c:d3.geoCentroid({type:"Feature",geometry:{type:"MultiPolygon",coordinates:keep.map(p=>p.co)}})});
+}
 function exploreFit(id,ms){
   const feat=byId[id];if(!feat||W<720)return;
-  const shape=silShape(id),[L,B]=d3.geoCentroid(shape),c0=[L,B],cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
-  const top=promptBottom+6,bot=H-58,tx=visW/2,ty=(top+bot)/2,availW=visW*.84,availH=(bot-top)*.84,gx=W/2,gy=cy();
-  let R=baseScale*zoomK;const rot=projection.rotate().slice(),pr=d3.geoOrthographic().clipAngle(90).translate([gx,gy]),path=d3.geoPath(pr);
-  rot[0]=-L;rot[1]=-B;
-  const D2R=Math.PI/180,clampLat=v=>Math.max(-78,Math.min(78,v));
-  let fin=null;
-  for(let it=0;it<40;it++){
-    pr.scale(R).rotate([rot[0],rot[1],0]);
-    // centre the middle of the country's outline as drawn (not its centroid, which sits off-centre for sprawling countries like Russia, Canada and the US)
-    const b=path.bounds(shape),w=b[1][0]-b[0][0],h=b[1][1]-b[0][1];
-    let bx=(b[0][0]+b[1][0])/2,by=(b[0][1]+b[1][1])/2;
-    if(!isFinite(bx)||!isFinite(by)||!(w>1)||!(h>1)){const p=pr(c0);if(!p)break;bx=p[0];by=p[1]}
-    const q=pr.invert([bx,by]),qlat=q?q[1]:B;
-    rot[0]+=Math.max(-25,Math.min(25,.8*((tx-bx)/(R*Math.max(.35,Math.cos(qlat*D2R))))/D2R));   // damped and capped: near the poles a pixel is many degrees of longitude
-    rot[1]=clampLat(rot[1]-Math.max(-20,Math.min(20,.8*((ty-by)/R)/D2R)));
-    rot[0]=Math.max(-L-55,Math.min(-L+55,rot[0]));rot[1]=Math.max(-B-35,Math.min(-B+35,rot[1]));   // never wander far from the country itself: one wider than the visible half-globe (Russia) cannot be centred exactly, so it stays centred on its middle
-    pr.rotate([rot[0],rot[1],0]);
-    const b2=path.bounds(shape),w2=b2[1][0]-b2[0][0],h2=b2[1][1]-b2[0][1];
-    if(isFinite(w2)&&isFinite(h2)&&w2>1&&h2>1){R=Math.max(baseScale,Math.min(baseScale*8,R*Math.pow(Math.min(availW/w2,availH/h2),.85)));fin=[(b2[0][0]+b2[1][0])/2,(b2[0][1]+b2[1][1])/2,w2,h2]}
+  const fit=fitShape(id),[L,B]=fit.c,cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
+  const top=promptBottom+6,bot=H-58,tx0=visW/2,ty=(top+bot)/2,availW=visW*.86,availH=(bot-top)*.86,gx=W/2,gy=cy();
+  let tx=tx0;const pr=d3.geoOrthographic().translate([gx,gy]),D2R=Math.PI/180,cl=(v,a)=>Math.max(-a,Math.min(a,v));
+  // at a given zoom: turn the globe until the middle of the outline's drawn box sits in the middle of the free area
+  const at=(R,rot0)=>{
+    const rot=rot0.slice();let o={rot,w:0,h:0,ex:1e9,ey:1e9,hidden:fit.pts.length};
+    for(let it=0;it<10;it++){
+      pr.scale(R).rotate([rot[0],rot[1],0]);
+      const cen=[-rot[0],-rot[1]];let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,hid=0;
+      for(const q of fit.pts){if(d3.geoDistance(q,cen)>1.5){hid++;continue}const p=pr(q);if(!p)continue;if(p[0]<x0)x0=p[0];if(p[0]>x1)x1=p[0];if(p[1]<y0)y0=p[1];if(p[1]>y1)y1=p[1]}
+      if(x1<x0)break;
+      const bx=(x0+x1)/2,by=(y0+y1)/2;o={rot:rot.slice(),w:x1-x0,h:y1-y0,ex:tx-bx,ey:ty-by,hidden:hid};
+      if(Math.abs(o.ex)<1.5&&Math.abs(o.ey)<1.5)break;
+      const qq=pr.invert([bx,by]),ql=qq?qq[1]:-rot[1];
+      rot[0]+=cl(.8*o.ex/(R*Math.max(.35,Math.cos(ql*D2R)))/D2R,25);   // damped and capped: near the poles a pixel is many degrees of longitude
+      rot[0]=Math.max(-L-80,Math.min(-L+80,rot[0]));
+      rot[1]=Math.max(-B-30,Math.min(-B+30,cl(rot[1]-cl(.8*o.ey/R/D2R,20),80)));
+    }
+    return o;
+  };
+  const ok=o=>o.hidden===0&&o.w<=availW&&o.h<=availH&&Math.abs(o.ex)<4&&Math.abs(o.ey)<4;
+  // scan from close to far: the first (largest) zoom at which the whole country fits, sits entirely on the near side of the globe, and is centred
+  // (a plain search will not do: very far out the free area's offset cannot be reached, very close the country is too big)
+  let best=null,R=baseScale,found=false,first=null;
+  // a country too wide to be centred in the free area (Russia) is aimed a little nearer the middle of the screen until it fits whole
+  for(const frac of [0,.5,.8,1]){
+    tx=tx0+(gx-tx0)*frac;let bestScore=1e18,warm=[-L,-B],cand=null,cR=baseScale;
+    for(let z=baseScale*8;z>=baseScale*.999;z/=1.09){
+      const r=at(z,warm);if(r.hidden<fit.pts.length)warm=r.rot;
+      if(ok(r)){cand=r;cR=z;found=true;break}
+      const sc=Math.max(0,r.w-availW)+Math.max(0,r.h-availH)+Math.abs(r.ex)+Math.abs(r.ey)+r.hidden*40;
+      if(sc<bestScore){bestScore=sc;cand=r;cR=z}
+    }
+    if(!first)first={cand,cR};
+    if(found){best=cand;R=cR;break}
   }
-  const kk=Math.max(1,Math.min(8,R/baseScale));
-  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,85);
-  return {lon:-rot[0],lat:-rot[1],k:kk,fin,target:[tx,ty,availW,availH]};
+  if(!found){best=first.cand;R=first.cR;tx=tx0}  const rot=best.rot,kk=Math.max(1,Math.min(8,R/baseScale));
+  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,80);
+  return {lon:-rot[0],lat:-rot[1],k:kk,fin:[tx-best.ex,ty-best.ey,best.w,best.h],hidden:best.hidden,target:[tx0,ty,availW,availH]};
 }
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");
@@ -4945,6 +4980,25 @@ function introHandoff(fast){
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
 }
+/* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */
+let fpsHud=null;
+function fpsToggle(){
+  if(fpsHud){fpsHud.stop=true;fpsHud.el.remove();fpsHud=null;renderNow=fpsHud0;return}
+  const el=document.createElement("div");el.style.cssText="position:fixed;left:10px;bottom:34px;z-index:99;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;background:rgba(0,0,0,.72);color:#e8e2cf;padding:7px 10px;border-radius:8px;pointer-events:none;white-space:pre";
+  document.body.append(el);
+  let gpu="unknown";try{const t=document.createElement("canvas").getContext("webgl2"),x=t&&t.getExtension("WEBGL_debug_renderer_info");if(x)gpu=t.getParameter(x.UNMASKED_RENDERER_WEBGL)}catch(e){}
+  const h={el,stop:false};fpsHud=h;let acc=0,cnt=0,last=performance.now(),ds=[],t0=last;
+  fpsHud0=renderNow;const orig=renderNow;renderNow=function(){const a=performance.now();orig();acc+=performance.now()-a;cnt++};
+  const tick=t=>{if(h.stop)return;ds.push(t-last);last=t;
+    if(t-t0>1000){const s=ds.slice().sort((a,b)=>a-b),avg=s.reduce((a,b)=>a+b,0)/s.length;
+      el.textContent=`${Math.round(1000/avg)} fps   worst ${Math.round(s[s.length-1])} ms   95% ${Math.round(s[Math.floor(s.length*.95)])} ms\ndraw code ${cnt?(acc/cnt).toFixed(1):"0"} ms x ${cnt}/s   engine ${GLX.on?"GPU":CANVAS?"canvas":"svg"}\nscreen ${innerWidth}x${innerHeight} @${devicePixelRatio}x   chip: ${gpu}`;
+      ds=[];acc=0;cnt=0;t0=t}
+    requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+}
+let fpsHud0=null;
+if(/[?&]fps/.test(location.search))setTimeout(fpsToggle,800);
+document.addEventListener("keydown",e=>{if(e.shiftKey&&e.key==="F"&&!e.ctrlKey&&!e.metaKey&&!/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||""))fpsToggle()});
 /* ---------- phones: no page zoom, and lighter effects only if the device is visibly struggling ---------- */
 const onSheet=e=>!!(e.target&&e.target.closest&&e.target.closest("#modal,.rdwin"));
 ["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>{if(!onSheet(e))e.preventDefault()}));
@@ -5611,7 +5665,7 @@ function glTexNew(w,h,fmt){
   const t=GLc.createTexture();GLc.bindTexture(GLc.TEXTURE_2D,t);
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.CLAMP_TO_EDGE);
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR_MIPMAP_LINEAR);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MAG_FILTER,GLc.LINEAR);
-  if(glAniso)GLc.texParameterf(GLc.TEXTURE_2D,glAniso.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,GLc.getParameter(glAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  if(glAniso)GLc.texParameterf(GLc.TEXTURE_2D,glAniso.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(4,GLc.getParameter(glAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
   GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,1,1,0,GLc.RGBA,GLc.UNSIGNED_BYTE,new Uint8Array([0,0,0,0]));
   return t;
 }

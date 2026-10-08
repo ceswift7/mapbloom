@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    SPEED MODE: find every country in the region, against the clock
    ====================================================================== */
 const REGION_VIEW={World:[15,20],Africa:[18,3],Americas:[-75,8],Asia:[95,30],Europe:[14,50],Oceania:[150,-22]};
@@ -288,31 +288,58 @@ function setExplore(open,id){
   if(open){renderLearn(id||cardId);S.learned.add(id||cardId);$("cLearned").hidden=false;save();setTimeout(checkAch,600)}
 }
 /* "Explore this country": the globe turns and zooms so the whole country fills the part of the screen the reading card leaves free, centred in it */
+/* the outline of a country as it is drawn: the mainland plus any large nearby piece (Alaska, Chukotka), sampled to a few hundred points for fast fitting */
+function fitShape(id){
+  const f=byId[id];if(f._fit)return f._fit;
+  const polys=f.geometry.type==="MultiPolygon"?f.geometry.coordinates:[f.geometry.coordinates];
+  const ps=polys.map(co=>{const g={type:"Polygon",coordinates:co};return {co,a:d3.geoArea(g),c:d3.geoCentroid(g)}}).sort((a,b)=>b.a-a.a),m=ps[0];
+  const keep=ps.filter(p=>p===m||d3.geoDistance(p.c,m.c)<.5||(p.a>=m.a*.03&&d3.geoDistance(p.c,m.c)<.95));
+  const all=[];keep.forEach(p=>p.co[0].forEach(q=>all.push(q)));
+  const st=Math.max(1,Math.floor(all.length/240)),pts=all.filter((_,i)=>i%st===0);
+  [0,1].forEach(ax=>{let lo=all[0],hi=all[0];all.forEach(q=>{if(q[ax]<lo[ax])lo=q;if(q[ax]>hi[ax])hi=q});pts.push(lo,hi)});   // always keep the extreme points
+  return (f._fit={pts,c:d3.geoCentroid({type:"Feature",geometry:{type:"MultiPolygon",coordinates:keep.map(p=>p.co)}})});
+}
 function exploreFit(id,ms){
   const feat=byId[id];if(!feat||W<720)return;
-  const shape=silShape(id),[L,B]=d3.geoCentroid(shape),c0=[L,B],cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
-  const top=promptBottom+6,bot=H-58,tx=visW/2,ty=(top+bot)/2,availW=visW*.84,availH=(bot-top)*.84,gx=W/2,gy=cy();
-  let R=baseScale*zoomK;const rot=projection.rotate().slice(),pr=d3.geoOrthographic().clipAngle(90).translate([gx,gy]),path=d3.geoPath(pr);
-  rot[0]=-L;rot[1]=-B;
-  const D2R=Math.PI/180,clampLat=v=>Math.max(-78,Math.min(78,v));
-  let fin=null;
-  for(let it=0;it<40;it++){
-    pr.scale(R).rotate([rot[0],rot[1],0]);
-    // centre the middle of the country's outline as drawn (not its centroid, which sits off-centre for sprawling countries like Russia, Canada and the US)
-    const b=path.bounds(shape),w=b[1][0]-b[0][0],h=b[1][1]-b[0][1];
-    let bx=(b[0][0]+b[1][0])/2,by=(b[0][1]+b[1][1])/2;
-    if(!isFinite(bx)||!isFinite(by)||!(w>1)||!(h>1)){const p=pr(c0);if(!p)break;bx=p[0];by=p[1]}
-    const q=pr.invert([bx,by]),qlat=q?q[1]:B;
-    rot[0]+=Math.max(-25,Math.min(25,.8*((tx-bx)/(R*Math.max(.35,Math.cos(qlat*D2R))))/D2R));   // damped and capped: near the poles a pixel is many degrees of longitude
-    rot[1]=clampLat(rot[1]-Math.max(-20,Math.min(20,.8*((ty-by)/R)/D2R)));
-    rot[0]=Math.max(-L-55,Math.min(-L+55,rot[0]));rot[1]=Math.max(-B-35,Math.min(-B+35,rot[1]));   // never wander far from the country itself: one wider than the visible half-globe (Russia) cannot be centred exactly, so it stays centred on its middle
-    pr.rotate([rot[0],rot[1],0]);
-    const b2=path.bounds(shape),w2=b2[1][0]-b2[0][0],h2=b2[1][1]-b2[0][1];
-    if(isFinite(w2)&&isFinite(h2)&&w2>1&&h2>1){R=Math.max(baseScale,Math.min(baseScale*8,R*Math.pow(Math.min(availW/w2,availH/h2),.85)));fin=[(b2[0][0]+b2[1][0])/2,(b2[0][1]+b2[1][1])/2,w2,h2]}
+  const fit=fitShape(id),[L,B]=fit.c,cw=Math.min(460,W-24),visW=Math.max(W*.5,W-cw-24);
+  const top=promptBottom+6,bot=H-58,tx0=visW/2,ty=(top+bot)/2,availW=visW*.86,availH=(bot-top)*.86,gx=W/2,gy=cy();
+  let tx=tx0;const pr=d3.geoOrthographic().translate([gx,gy]),D2R=Math.PI/180,cl=(v,a)=>Math.max(-a,Math.min(a,v));
+  // at a given zoom: turn the globe until the middle of the outline's drawn box sits in the middle of the free area
+  const at=(R,rot0)=>{
+    const rot=rot0.slice();let o={rot,w:0,h:0,ex:1e9,ey:1e9,hidden:fit.pts.length};
+    for(let it=0;it<10;it++){
+      pr.scale(R).rotate([rot[0],rot[1],0]);
+      const cen=[-rot[0],-rot[1]];let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,hid=0;
+      for(const q of fit.pts){if(d3.geoDistance(q,cen)>1.5){hid++;continue}const p=pr(q);if(!p)continue;if(p[0]<x0)x0=p[0];if(p[0]>x1)x1=p[0];if(p[1]<y0)y0=p[1];if(p[1]>y1)y1=p[1]}
+      if(x1<x0)break;
+      const bx=(x0+x1)/2,by=(y0+y1)/2;o={rot:rot.slice(),w:x1-x0,h:y1-y0,ex:tx-bx,ey:ty-by,hidden:hid};
+      if(Math.abs(o.ex)<1.5&&Math.abs(o.ey)<1.5)break;
+      const qq=pr.invert([bx,by]),ql=qq?qq[1]:-rot[1];
+      rot[0]+=cl(.8*o.ex/(R*Math.max(.35,Math.cos(ql*D2R)))/D2R,25);   // damped and capped: near the poles a pixel is many degrees of longitude
+      rot[0]=Math.max(-L-80,Math.min(-L+80,rot[0]));
+      rot[1]=Math.max(-B-30,Math.min(-B+30,cl(rot[1]-cl(.8*o.ey/R/D2R,20),80)));
+    }
+    return o;
+  };
+  const ok=o=>o.hidden===0&&o.w<=availW&&o.h<=availH&&Math.abs(o.ex)<4&&Math.abs(o.ey)<4;
+  // scan from close to far: the first (largest) zoom at which the whole country fits, sits entirely on the near side of the globe, and is centred
+  // (a plain search will not do: very far out the free area's offset cannot be reached, very close the country is too big)
+  let best=null,R=baseScale,found=false,first=null;
+  // a country too wide to be centred in the free area (Russia) is aimed a little nearer the middle of the screen until it fits whole
+  for(const frac of [0,.5,.8,1]){
+    tx=tx0+(gx-tx0)*frac;let bestScore=1e18,warm=[-L,-B],cand=null,cR=baseScale;
+    for(let z=baseScale*8;z>=baseScale*.999;z/=1.09){
+      const r=at(z,warm);if(r.hidden<fit.pts.length)warm=r.rot;
+      if(ok(r)){cand=r;cR=z;found=true;break}
+      const sc=Math.max(0,r.w-availW)+Math.max(0,r.h-availH)+Math.abs(r.ex)+Math.abs(r.ey)+r.hidden*40;
+      if(sc<bestScore){bestScore=sc;cand=r;cR=z}
+    }
+    if(!first)first={cand,cR};
+    if(found){best=cand;R=cR;break}
   }
-  const kk=Math.max(1,Math.min(8,R/baseScale));
-  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,85);
-  return {lon:-rot[0],lat:-rot[1],k:kk,fin,target:[tx,ty,availW,availH]};
+  if(!found){best=first.cand;R=first.cR;tx=tx0}  const rot=best.rot,kk=Math.max(1,Math.min(8,R/baseScale));
+  stopDrift();flyTo([-rot[0],-rot[1]],ms||1500,kk,80);
+  return {lon:-rot[0],lat:-rot[1],k:kk,fin:[tx-best.ex,ty-best.ey,best.w,best.h],hidden:best.hidden,target:[tx0,ty,availW,availH]};
 }
 $("learnBtn").onclick=()=>{
   const open=!$("card").classList.contains("big");

@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    GPU GLOBE (WebGL2). The detailed, painted world is baked once into equirectangular textures
    (land colours, border lines, paintings); each frame is a single shader pass, so nothing is
    simplified or dropped while the globe moves. Falls back to the 2D canvas engine when WebGL2
@@ -206,7 +206,7 @@ function glTexNew(w,h,fmt){
   const t=GLc.createTexture();GLc.bindTexture(GLc.TEXTURE_2D,t);
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_S,GLc.REPEAT);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_WRAP_T,GLc.CLAMP_TO_EDGE);
   GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MIN_FILTER,GLc.LINEAR_MIPMAP_LINEAR);GLc.texParameteri(GLc.TEXTURE_2D,GLc.TEXTURE_MAG_FILTER,GLc.LINEAR);
-  if(glAniso)GLc.texParameterf(GLc.TEXTURE_2D,glAniso.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,GLc.getParameter(glAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  if(glAniso)GLc.texParameterf(GLc.TEXTURE_2D,glAniso.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(4,GLc.getParameter(glAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
   GLc.texImage2D(GLc.TEXTURE_2D,0,GLc.RGBA8,1,1,0,GLc.RGBA,GLc.UNSIGNED_BYTE,new Uint8Array([0,0,0,0]));
   return t;
 }

@@ -127,6 +127,25 @@ function introHandoff(fast){
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
 }
+/* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */
+let fpsHud=null;
+function fpsToggle(){
+  if(fpsHud){fpsHud.stop=true;fpsHud.el.remove();fpsHud=null;renderNow=fpsHud0;return}
+  const el=document.createElement("div");el.style.cssText="position:fixed;left:10px;bottom:34px;z-index:99;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;background:rgba(0,0,0,.72);color:#e8e2cf;padding:7px 10px;border-radius:8px;pointer-events:none;white-space:pre";
+  document.body.append(el);
+  let gpu="unknown";try{const t=document.createElement("canvas").getContext("webgl2"),x=t&&t.getExtension("WEBGL_debug_renderer_info");if(x)gpu=t.getParameter(x.UNMASKED_RENDERER_WEBGL)}catch(e){}
+  const h={el,stop:false};fpsHud=h;let acc=0,cnt=0,last=performance.now(),ds=[],t0=last;
+  fpsHud0=renderNow;const orig=renderNow;renderNow=function(){const a=performance.now();orig();acc+=performance.now()-a;cnt++};
+  const tick=t=>{if(h.stop)return;ds.push(t-last);last=t;
+    if(t-t0>1000){const s=ds.slice().sort((a,b)=>a-b),avg=s.reduce((a,b)=>a+b,0)/s.length;
+      el.textContent=`${Math.round(1000/avg)} fps   worst ${Math.round(s[s.length-1])} ms   95% ${Math.round(s[Math.floor(s.length*.95)])} ms\ndraw code ${cnt?(acc/cnt).toFixed(1):"0"} ms x ${cnt}/s   engine ${GLX.on?"GPU":CANVAS?"canvas":"svg"}\nscreen ${innerWidth}x${innerHeight} @${devicePixelRatio}x   chip: ${gpu}`;
+      ds=[];acc=0;cnt=0;t0=t}
+    requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+}
+let fpsHud0=null;
+if(/[?&]fps/.test(location.search))setTimeout(fpsToggle,800);
+document.addEventListener("keydown",e=>{if(e.shiftKey&&e.key==="F"&&!e.ctrlKey&&!e.metaKey&&!/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||""))fpsToggle()});
 /* ---------- phones: no page zoom, and lighter effects only if the device is visibly struggling ---------- */
 const onSheet=e=>!!(e.target&&e.target.closest&&e.target.closest("#modal,.rdwin"));
 ["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>{if(!onSheet(e))e.preventDefault()}));

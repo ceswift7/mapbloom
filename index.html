@@ -936,7 +936,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 :root{--ease:cubic-bezier(.2,.8,.2,1)}
 .tile,.tbtn,.btn,.chip,.icon-btn,.mrow{transition-timing-function:var(--ease)}
 .card dt{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);align-self:center}
-.card .learned{font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
+.card .learned{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
 .sp-time,.sp-pen,.dclock,.sp-lab{font-variant-numeric:tabular-nums}
 </style>
 </head>
@@ -1014,7 +1014,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
       <div class="cardhead">
         <div class="chero" aria-hidden="true"><canvas id="cPaint"></canvas></div>
         <div class="top"><img class="flagimg" id="cFlagImg" alt="" hidden><span class="flag" id="cFlag"></span><div class="tname"><h2 id="cName"></h2><div class="tsub" id="cSub"></div></div></div>
-        <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden>✓ read</span></p>
+        <p class="where"><span class="swatch" id="cSwatch"></span><span id="cWhere"></span><span class="learned" id="cLearned" hidden><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Read</span></p>
         <button class="jrbtn" id="cJr" type="button" aria-label="Mastery"></button>
       </div>
       <div class="cardbody" id="cBody">
@@ -1718,10 +1718,15 @@ function cvMiss(id,on){
   if(on)cvMissed.add(id);else cvMissed.delete(id);
   if(CANVAS)requestRender();
 }
-function cvTweenPA(to,ms,done){
-  const from=cvPA;
+let cvPAtok=0;
+function cvTweenPA(to,ms,done){   // the painted layer's opacity; a newer call always takes over from an older one and finishes at its own target
+  const from=cvPA,tok=++cvPAtok;
   if(reduced||!ms){cvPA=to;requestRender();if(done)done();return}
-  d3.transition("cvpa").duration(ms).ease(d3.easeCubicInOut).tween("pa",()=>t=>{cvPA=from+(to-from)*t;render()}).on("end",()=>{cvPA=to;render();if(done)done()});
+  const t0=performance.now(),tm=d3.timer(()=>{
+    if(tok!==cvPAtok){tm.stop();return}
+    const k=Math.min(1,(performance.now()-t0)/ms);cvPA=from+(to-from)*d3.easeCubicInOut(k);render();
+    if(k>=1){tm.stop();cvPA=to;render();if(done)done()}
+  });
 }
 function cvFadeIn(id){
   if(GLX.on){GLX.fade(id);return}
@@ -2820,6 +2825,7 @@ const total=()=>playable.length;
 const foundN=()=>playable.filter(f=>cf().has(f.id)).length;
 function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
+  if(CANVAS&&cvPA<.99&&performance.now()>fadeUntil)cvTweenPA(1,300);   // safety net: painted countries are never left invisible
   if(S.mode==="find"&&HC.size){HC.clear();paint()}{const hs=$("hintShape");if(hs)hs.hidden=true}
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
@@ -2883,10 +2889,16 @@ function success(shown,ll){
 }
 
 /* ---- clean-slate sessions + the Quiz start sheet ---- */
+let fadeTok=0,fadeUntil=0;
 function fadeRepaint(fn){
   const pg=document.getElementById("paint");
   if(reduced||!pg){fn();return}
-  if(CANVAS){cvTweenPA(0,350,()=>{fn();GLX.whenIdle(()=>cvTweenPA(1,350))});return}
+  if(CANVAS){
+    const tok=++fadeTok;fadeUntil=performance.now()+2500;
+    cvTweenPA(0,350);
+    setTimeout(()=>{fn();GLX.whenIdle(()=>{if(tok===fadeTok)cvTweenPA(1,350)})},380);   // every repaint runs; only the latest one fades the paint back in, so it can never be left invisible
+    return;
+  }
   pg.style.transition="opacity .35s ease";pg.style.opacity="0";
   setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
 }

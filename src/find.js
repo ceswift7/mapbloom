@@ -165,6 +165,7 @@ const total=()=>playable.length;
 const foundN=()=>playable.filter(f=>cf().has(f.id)).length;
 function success(shown,ll){
   const T=S.target,f=FACTS[T];S.done=true;
+  if(CANVAS&&cvPA<.99&&performance.now()>fadeUntil)cvTweenPA(1,300);   // safety net: painted countries are never left invisible
   if(S.mode==="find"&&HC.size){HC.clear();paint()}{const hs=$("hintShape");if(hs)hs.hidden=true}
   const before=foundN(),regBefore=playable.filter(x=>FACTS[x.id].r===f.r&&cf().has(x.id)).length,regB=(f.x?[f.r,f.x]:[f.r]).map(r=>[r,playable.filter(x=>inReg(x.id,r)&&cf().has(x.id)).length,playable.filter(x=>inReg(x.id,r)).length]);
   const first=S.tries===0&&!shown;
@@ -228,10 +229,16 @@ function success(shown,ll){
 }
 
 /* ---- clean-slate sessions + the Quiz start sheet ---- */
+let fadeTok=0,fadeUntil=0;
 function fadeRepaint(fn){
   const pg=document.getElementById("paint");
   if(reduced||!pg){fn();return}
-  if(CANVAS){cvTweenPA(0,350,()=>{fn();GLX.whenIdle(()=>cvTweenPA(1,350))});return}
+  if(CANVAS){
+    const tok=++fadeTok;fadeUntil=performance.now()+2500;
+    cvTweenPA(0,350);
+    setTimeout(()=>{fn();GLX.whenIdle(()=>{if(tok===fadeTok)cvTweenPA(1,350)})},380);   // every repaint runs; only the latest one fades the paint back in, so it can never be left invisible
+    return;
+  }
   pg.style.transition="opacity .35s ease";pg.style.opacity="0";
   setTimeout(()=>{fn();pg.style.opacity="";setTimeout(()=>{pg.style.transition=""},420)},360);
 }

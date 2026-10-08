@@ -172,10 +172,15 @@ function cvMiss(id,on){
   if(on)cvMissed.add(id);else cvMissed.delete(id);
   if(CANVAS)requestRender();
 }
-function cvTweenPA(to,ms,done){
-  const from=cvPA;
+let cvPAtok=0;
+function cvTweenPA(to,ms,done){   // the painted layer's opacity; a newer call always takes over from an older one and finishes at its own target
+  const from=cvPA,tok=++cvPAtok;
   if(reduced||!ms){cvPA=to;requestRender();if(done)done();return}
-  d3.transition("cvpa").duration(ms).ease(d3.easeCubicInOut).tween("pa",()=>t=>{cvPA=from+(to-from)*t;render()}).on("end",()=>{cvPA=to;render();if(done)done()});
+  const t0=performance.now(),tm=d3.timer(()=>{
+    if(tok!==cvPAtok){tm.stop();return}
+    const k=Math.min(1,(performance.now()-t0)/ms);cvPA=from+(to-from)*d3.easeCubicInOut(k);render();
+    if(k>=1){tm.stop();cvPA=to;render();if(done)done()}
+  });
 }
 function cvFadeIn(id){
   if(GLX.on){GLX.fade(id);return}

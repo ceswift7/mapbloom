@@ -653,11 +653,11 @@ function raceRecordsBlock(cur,cv){
 }
 /* ---------- mode switching & buttons ---------- */
 $("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done){if(hintOk()){hintStep();return}success(true)}};
-$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizCompact();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
-  else if(R.phase==="done"||R.phase==="idle")speedEnter();
+  else if(R.phase==="done"||R.phase==="idle")speedEnter(true);
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
 const MODE_DESC={wander:"Discover the world at your own pace.",find:"Can you name the country?",speed:"How many can you find before time runs out?",hot:"Find the hidden country by following the temperature."};
@@ -687,9 +687,19 @@ function yourWorld(){
   const c=pts.length>=40?REGION_VIEW.World:d3.geoCentroid({type:"MultiPoint",coordinates:pts});
   stopDrift();flyTo(c,2400,1);
 }function setMode(m,quiet,noIdle){
-  if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}else if(m==="hot"){sndTick();showHotSheet()}return}
+  if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizCompact()}else if(m==="hot"){sndTick();showHotCompact()}else if(m==="speed"&&R.phase==="idle"){sndTick();showRaceCompact()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
+  // into or out of the night-race look: the whole screen cross-fades instead of snapping (the browser keeps a picture of the old screen)
+  if(!quiet&&!reduced&&!themeBusy&&document.startViewTransition&&(S.mode==="speed")!==(m==="speed")){
+    let ran=false;const run=()=>{if(ran)return;ran=true;setModeNow(m,quiet,noIdle)};
+    try{const vt=document.startViewTransition(async()=>{run();await new Promise(r=>setTimeout(r,90))});vt.finished.catch(()=>{});vt.ready.catch(()=>{})}catch(e){}
+    setTimeout(run,350);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
+    return;
+  }
+  setModeNow(m,quiet,noIdle);
+}
+function setModeNow(m,quiet,noIdle){
   if(tms){tms.cancel=true;tms=null;briefHide();if(tmsTimer){tmsTimer.stop();tmsTimer=null;animating=false;syncZoom()}}
   const from=S.mode;clearAuto();usStop();if(from==="hot")hotStop();else if(HC.size){HC.clear()}
   if(from==="speed")abortRace();
@@ -705,9 +715,9 @@ function yourWorld(){
 
   hideCard();clearMissed();
   size();paint();updateProgress();
-  if(m==="speed"){stopDrift();speedEnter()}
-  else if(m==="hot"){stopDrift();hotEnter()}
-  else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
+  if(m==="speed"){stopDrift();speedEnter(!quiet)}
+  else if(m==="hot"){stopDrift();hotEnter(!quiet)}
+  else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle(!quiet);if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
   else{scheduleDrift();if(from!=="wander"&&!quiet)setTimeout(yourWorld,900)}
 }$("modeFind").onclick=()=>setMode("find");
 $("modeSpeed").onclick=()=>setMode("speed");

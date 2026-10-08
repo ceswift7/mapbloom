@@ -50,7 +50,7 @@ function closeBtn(){return el("button",{class:"icon-btn x closebtn","aria-label"
 function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
 window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
 let modalOpener=null;
-function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").onclick=null;$("sheet").classList.toggle("book",book==="book");$("sheet").classList.toggle("compact",book==="compact");modal.classList.toggle("compact",book==="compact");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
 /* ---- the reading window: the country's pages beside the mastery path, closed whenever a quiz or exam starts so answers stay from memory ---- */
 let rdWin=null;
 function closeReader(){modal.classList.remove("rd");if(rdWin){rdWin.remove();rdWin=null;jrReset()}}
@@ -204,6 +204,17 @@ function regionThumb(r){
   return thumbCache[r]='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="'+W+'" height="'+H+'" rx="8" fill="var(--sea-mid)" opacity=".22"/><path d="'+base+'" fill="var(--ink)" opacity=".15"/><path d="'+hd+'" fill="'+col+'" fill-opacity="'+(r==="World"?".38":".85")+'" stroke="'+col+'" stroke-width="'+(isl?1.6:.5)+'" stroke-linejoin="round"/>'+dots.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="'+col+'"/>').join("")+'</svg>';
 }
 setTimeout(()=>{let i=0;const step=()=>{if(i<ALLR.length){try{regionThumb(ALLR[i++])}catch(e){}(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:600}):setTimeout(step,120))}};step()},3500);
+/* Quiz, Race and Hot & cold open as a small card in the middle of the screen; tap Options (or the card) to open the full menu */
+function expandFrom(fn){fn();const sh=$("sheet");sh.classList.remove("grow");void sh.offsetWidth;sh.classList.add("grow")}
+function modeCompact(o){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},o.title),el("p",{class:"modesub"},o.desc),
+    el("div",{class:"csum"},...o.chips.map(([ic,t])=>el("span",{class:"cs"},el("span",{class:"csi",html:svgIcon(ic)}),t))),
+    el("div",{class:"sheetfoot cfoot"},el("button",{class:"tbtn",type:"button",onclick:o.expand},"Options ▾"),el("span",{class:"grow"}),el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
+  openModal("compact");
+  sh.onclick=e=>{if(e.target.closest("button"))return;o.expand()};
+  setTimeout(()=>{const b=$("cStart");if(b)b.focus({preventScroll:true})},60);
+}
 function regionTiles(cur,pick,subFn,list){
   return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
 }

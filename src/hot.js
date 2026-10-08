@@ -26,10 +26,16 @@ function hotResolve(txt){
   return near.length===1?near[0]:null;
 }
 const hotWhere=()=>S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
-function hotEnter(){
+function hotEnter(compact){
   HOT.on=false;HC.clear();hotHaloSet(null);S.done=false;hideCard();clearMissed();
   if(S.region==="United States"){S.region="World";syncChips()}
-  paint();updateProgress();showHotSheet();
+  paint();updateProgress();
+  if(compact)showHotCompact();else showHotSheet();
+}
+function showHotCompact(){
+  const best=(S.counts.hotBest||{})[S.region];
+  modeCompact({title:"Hot & cold",desc:MODE_DESC.hot,chips:[["hot","Guess by temperature"],["rall",regionLabel(S.region)],["r20",regionCount(S.region)+" countries"+(best?" · best "+best:"")]],
+    startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
 }
 function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){

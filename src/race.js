@@ -15,12 +15,17 @@ function syncSpeedUI(){
   $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
   if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
 }
-function speedEnter(){
+function speedEnter(compact){
   usStop();
   R.phase="idle";R.found=new Set();R.pen=0;
   S.done=false;hideCard();clearMissed();
   paint();updateProgress();syncSpeedUI();
-  showStartSheet();
+  if(compact)showRaceCompact();else showStartSheet();
+}
+function showRaceCompact(){
+  const st=RACE_STYLES.find(x=>x[0]===S.rv)||RACE_STYLES[0],bb=bestOf(rkey(S.region)),us=S.region==="United States",n=us?50:regionCount(S.region);
+  modeCompact({title:"Race",desc:MODE_DESC.speed,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],["r20",n+(us?" states":" countries")+(isFinite(bb)?" · best "+fmtT(bb,0):"")]],
+    startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
 }
 function abortRace(){
   silHide();R.ret=null;R.phase="idle";R.found=new Set();R.cur=null;R.queue=[];R.pen=0;stopMusic();

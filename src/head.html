@@ -932,6 +932,17 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
 .gthumb canvas{width:64px;height:48px;display:block}
 .gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+/* the compact mode card */
+.modal.compact{background:rgba(30,24,14,.1)}
+.sheet.compact{width:min(350px,calc(100% - 24px));max-height:none;padding:20px 22px 18px;text-align:center}
+.sheet.compact h2{font-size:28px;padding-right:0}
+.sheet.compact .modesub{margin:4px 0 0}
+.csum{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0 2px}
+.cs{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--panel-line);border-radius:8px;padding:5px 10px}
+.csi svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cfoot{justify-content:space-between;margin-top:16px}
+.sheet.grow{animation:sheetGrow .34s var(--ease)}
+@keyframes sheetGrow{from{opacity:.55;transform:scale(.93)}to{opacity:1;transform:none}}
 /* one easing and one set of durations across the interface; close buttons are rounded rectangles, never ellipses */
 :root{--ease:cubic-bezier(.2,.8,.2,1);--t-fast:.2s;--t-med:.35s;--t-slow:.6s}
 .icon-btn.x,.closebtn,.card .close,.rdwin .icon-btn{border-radius:10px}

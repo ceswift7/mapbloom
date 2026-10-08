@@ -932,6 +932,17 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .gthumb{padding:0;border:1px solid var(--panel-line);border-radius:10px;background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:pointer;overflow:hidden;line-height:0;transition:transform .25s var(--ease),border-color .25s var(--ease)}
 .gthumb canvas{width:64px;height:48px;display:block}
 .gthumb:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 40%,var(--panel-line))}
+/* the compact mode card */
+.modal.compact{background:rgba(30,24,14,.1)}
+.sheet.compact{width:min(350px,calc(100% - 24px));max-height:none;padding:20px 22px 18px;text-align:center}
+.sheet.compact h2{font-size:28px;padding-right:0}
+.sheet.compact .modesub{margin:4px 0 0}
+.csum{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0 2px}
+.cs{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--panel-line);border-radius:8px;padding:5px 10px}
+.csi svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cfoot{justify-content:space-between;margin-top:16px}
+.sheet.grow{animation:sheetGrow .34s var(--ease)}
+@keyframes sheetGrow{from{opacity:.55;transform:scale(.93)}to{opacity:1;transform:none}}
 /* one easing and one set of durations across the interface; close buttons are rounded rectangles, never ellipses */
 :root{--ease:cubic-bezier(.2,.8,.2,1);--t-fast:.2s;--t-med:.35s;--t-slow:.6s}
 .icon-btn.x,.closebtn,.card .close,.rdwin .icon-btn{border-radius:10px}
@@ -2984,7 +2995,13 @@ function idleView(){fbHide();
   if(typeof silHide==="function")silHide();
   updateProgress();
 }
-function quizIdle(){idleView();showQuizSheet()}
+function quizIdle(compact){idleView();if(compact)showQuizCompact();else showQuizSheet()}
+function showQuizCompact(){
+  chainStop();
+  const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" countries";
+  modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
+    startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
+}
 function beginFree(){
   if(S.region==="United States"){usQuizBegin();return}
   closeModal();D.active=false;S.qIdle=false;S.practice=false;
@@ -3183,12 +3200,17 @@ function syncSpeedUI(){
   $("sCount").textContent=ph==="run"||ph==="done"?`${R.found.size} / ${R.total}`:"";
   if(ph==="idle"){$("sFlag").hidden=true;$("sAsk").textContent="";$("sTarget").classList.remove("small");$("sTarget").textContent="Ready?";$("sTime").textContent="0:00.0";$("sPen").textContent="";$("sHint").textContent="No hints, no continent. Every wrong country costs 2 seconds."}
 }
-function speedEnter(){
+function speedEnter(compact){
   usStop();
   R.phase="idle";R.found=new Set();R.pen=0;
   S.done=false;hideCard();clearMissed();
   paint();updateProgress();syncSpeedUI();
-  showStartSheet();
+  if(compact)showRaceCompact();else showStartSheet();
+}
+function showRaceCompact(){
+  const st=RACE_STYLES.find(x=>x[0]===S.rv)||RACE_STYLES[0],bb=bestOf(rkey(S.region)),us=S.region==="United States",n=us?50:regionCount(S.region);
+  modeCompact({title:"Race",desc:MODE_DESC.speed,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],["r20",n+(us?" states":" countries")+(isFinite(bb)?" · best "+fmtT(bb,0):"")]],
+    startLabel:"Start race",start:()=>startRace(),expand:()=>expandFrom(showStartSheet)});
 }
 function abortRace(){
   silHide();R.ret=null;R.phase="idle";R.found=new Set();R.cur=null;R.queue=[];R.pen=0;stopMusic();
@@ -3767,7 +3789,7 @@ function closeBtn(){return el("button",{class:"icon-btn x closebtn","aria-label"
 function bkFit(){const sh=$("sheet");if(!sh.classList.contains("book"))return;sh.style.zoom="";if(innerWidth<720)return;const w=sh.offsetWidth,h=sh.offsetHeight+34+44,z=Math.min(1,(innerWidth-24)/w,(innerHeight-8)/h);sh.style.zoom=z<1?z.toFixed(3):""}   // the book keeps one size; a small window just shrinks all of it
 window.addEventListener("resize",()=>{if(modal.classList.contains("on"))bkFit()});
 let modalOpener=null;
-function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").classList.toggle("book",book==="book");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
+function openModal(book){modalOpener=document.activeElement&&document.activeElement!==document.body?document.activeElement:modalOpener;modal.inert=false;try{const a=$("app");if(a&&!a.contains(modal))a.inert=true}catch(e){}$("sheet").style.zoom="";$("sheet").onclick=null;$("sheet").classList.toggle("book",book==="book");$("sheet").classList.toggle("compact",book==="compact");modal.classList.toggle("compact",book==="compact");modal.classList.add("on");modal.setAttribute("aria-hidden","false");stopDrift()}
 /* ---- the reading window: the country's pages beside the mastery path, closed whenever a quiz or exam starts so answers stay from memory ---- */
 let rdWin=null;
 function closeReader(){modal.classList.remove("rd");if(rdWin){rdWin.remove();rdWin=null;jrReset()}}
@@ -3921,6 +3943,17 @@ function regionThumb(r){
   return thumbCache[r]='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="'+W+'" height="'+H+'" rx="8" fill="var(--sea-mid)" opacity=".22"/><path d="'+base+'" fill="var(--ink)" opacity=".15"/><path d="'+hd+'" fill="'+col+'" fill-opacity="'+(r==="World"?".38":".85")+'" stroke="'+col+'" stroke-width="'+(isl?1.6:.5)+'" stroke-linejoin="round"/>'+dots.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="'+col+'"/>').join("")+'</svg>';
 }
 setTimeout(()=>{let i=0;const step=()=>{if(i<ALLR.length){try{regionThumb(ALLR[i++])}catch(e){}(window.requestIdleCallback?window.requestIdleCallback(step,{timeout:600}):setTimeout(step,120))}};step()},3500);
+/* Quiz, Race and Hot & cold open as a small card in the middle of the screen; tap Options (or the card) to open the full menu */
+function expandFrom(fn){fn();const sh=$("sheet");sh.classList.remove("grow");void sh.offsetWidth;sh.classList.add("grow")}
+function modeCompact(o){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},o.title),el("p",{class:"modesub"},o.desc),
+    el("div",{class:"csum"},...o.chips.map(([ic,t])=>el("span",{class:"cs"},el("span",{class:"csi",html:svgIcon(ic)}),t))),
+    el("div",{class:"sheetfoot cfoot"},el("button",{class:"tbtn",type:"button",onclick:o.expand},"Options ▾"),el("span",{class:"grow"}),el("button",{class:"btn primary",id:"cStart",type:"button",onclick:o.start},o.startLabel)));
+  openModal("compact");
+  sh.onclick=e=>{if(e.target.closest("button"))return;o.expand()};
+  setTimeout(()=>{const b=$("cStart");if(b)b.focus({preventScroll:true})},60);
+}
 function regionTiles(cur,pick,subFn,list){
   return tiles((list||ALLR).map(r=>tile({map:regionThumb(r),label:regionLabel(r),sub:subFn?subFn(r):"",pressed:r===cur,onclick:()=>pick(r)})),3,"regions");
 }
@@ -4598,11 +4631,11 @@ function raceRecordsBlock(cur,cv){
 }
 /* ---------- mode switching & buttons ---------- */
 $("showBtn").onclick=()=>{if(US.on&&S.mode==="find"){if(!S.done)usSuccess(true);return}if(C.active){chainReveal();return}if(!S.done){if(hintOk()){hintStep();return}success(true)}};
-$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizSheet();else nextRound()};
+$("nextBtn").onclick=()=>{if(C.active&&C.done){sndTick();chainStop();quizIdle();return}if(C.active){chainUndo();return}sndTick();if(S.qIdle)showQuizCompact();else nextRound()};
 $("restartBtn").onclick=()=>{if(S.mode!=="speed")return;sndTick();abortRace();startRace()};
 $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
-  else if(R.phase==="done"||R.phase==="idle")speedEnter();
+  else if(R.phase==="done"||R.phase==="idle")speedEnter(true);
 };
 const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
 const MODE_DESC={wander:"Discover the world at your own pace.",find:"Can you name the country?",speed:"How many can you find before time runs out?",hot:"Find the hidden country by following the temperature."};
@@ -4632,9 +4665,19 @@ function yourWorld(){
   const c=pts.length>=40?REGION_VIEW.World:d3.geoCentroid({type:"MultiPoint",coordinates:pts});
   stopDrift();flyTo(c,2400,1);
 }function setMode(m,quiet,noIdle){
-  if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizSheet()}else if(m==="hot"){sndTick();showHotSheet()}return}
+  if(S.mode===m){if(m==="find"&&!noIdle){sndTick();showQuizCompact()}else if(m==="hot"){sndTick();showHotCompact()}else if(m==="speed"&&R.phase==="idle"){sndTick();showRaceCompact()}return}
   if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){if(!confirm("Leave this race? This run won’t be saved."))return;}
   if(D.active&&m!=="find"&&!leaveDailyOk())return;
+  // into or out of the night-race look: the whole screen cross-fades instead of snapping (the browser keeps a picture of the old screen)
+  if(!quiet&&!reduced&&!themeBusy&&document.startViewTransition&&(S.mode==="speed")!==(m==="speed")){
+    let ran=false;const run=()=>{if(ran)return;ran=true;setModeNow(m,quiet,noIdle)};
+    try{const vt=document.startViewTransition(async()=>{run();await new Promise(r=>setTimeout(r,90))});vt.finished.catch(()=>{});vt.ready.catch(()=>{})}catch(e){}
+    setTimeout(run,350);   // if the browser never gets round to the cross-fade (a hidden tab, say), the switch still happens
+    return;
+  }
+  setModeNow(m,quiet,noIdle);
+}
+function setModeNow(m,quiet,noIdle){
   if(tms){tms.cancel=true;tms=null;briefHide();if(tmsTimer){tmsTimer.stop();tmsTimer=null;animating=false;syncZoom()}}
   const from=S.mode;clearAuto();usStop();if(from==="hot")hotStop();else if(HC.size){HC.clear()}
   if(from==="speed")abortRace();
@@ -4650,9 +4693,9 @@ function yourWorld(){
 
   hideCard();clearMissed();
   size();paint();updateProgress();
-  if(m==="speed"){stopDrift();speedEnter()}
-  else if(m==="hot"){stopDrift();hotEnter()}
-  else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle();if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
+  if(m==="speed"){stopDrift();speedEnter(!quiet)}
+  else if(m==="hot"){stopDrift();hotEnter(!quiet)}
+  else if(m==="find"){if(noIdle){S.qIdle=false;nextRound()}else quizIdle(!quiet);if(from==="speed")flyTo(REGION_VIEW[S.region],1200,REGION_ZOOM[S.region]);scheduleDrift()}
   else{scheduleDrift();if(from!=="wander"&&!quiet)setTimeout(yourWorld,900)}
 }$("modeFind").onclick=()=>setMode("find");
 $("modeSpeed").onclick=()=>setMode("speed");
@@ -5058,10 +5101,16 @@ function hotResolve(txt){
   return near.length===1?near[0]:null;
 }
 const hotWhere=()=>S.region==="World"?"Earth":S.region==="Americas"?"the Americas":S.region;
-function hotEnter(){
+function hotEnter(compact){
   HOT.on=false;HC.clear();hotHaloSet(null);S.done=false;hideCard();clearMissed();
   if(S.region==="United States"){S.region="World";syncChips()}
-  paint();updateProgress();showHotSheet();
+  paint();updateProgress();
+  if(compact)showHotCompact();else showHotSheet();
+}
+function showHotCompact(){
+  const best=(S.counts.hotBest||{})[S.region];
+  modeCompact({title:"Hot & cold",desc:MODE_DESC.hot,chips:[["hot","Guess by temperature"],["rall",regionLabel(S.region)],["r20",regionCount(S.region)+" countries"+(best?" · best "+best:"")]],
+    startLabel:"Start",start:()=>hotStart(),expand:()=>expandFrom(showHotSheet)});
 }
 function hotStop(){hotHaloSet(null);HOT.on=false;HOT.done=false;HC.clear();silHide();paint();requestRender()}
 function showHotSheet(){

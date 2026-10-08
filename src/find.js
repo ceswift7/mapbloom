@@ -253,7 +253,13 @@ function idleView(){fbHide();
   if(typeof silHide==="function")silHide();
   updateProgress();
 }
-function quizIdle(){idleView();showQuizSheet()}
+function quizIdle(compact){idleView();if(compact)showQuizCompact();else showQuizSheet()}
+function showQuizCompact(){
+  chainStop();
+  const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" countries";
+  modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
+    startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
+}
 function beginFree(){
   if(S.region==="United States"){usQuizBegin();return}
   closeModal();D.active=false;S.qIdle=false;S.practice=false;

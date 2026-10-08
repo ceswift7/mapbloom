@@ -2378,9 +2378,12 @@ function audioGesture(){
   if(!S.sound)return;
   if(!actx){if(introState==="wait"||introState==="ready")return;AC();return}
   if(actx.state!=="running")actx.resume().then(audioFlush,()=>{});
-}function sndIntroDrop(f){const c=AC();if(!c)return;const t=c.currentTime;f=f||392;blip(t,1250,330,.22,.22);blip(t+.06,1900,620,.12,.08);bell(f,t+.02,.05,1.8);noise(t,.35,{type:"lowpass",f0:900,f1:300,q:.6,vol:.05,wet:.4})}
-function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done)noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.012,attack:.3,wet:.5});else noise(t,.22,{type:"bandpass",f0:700,f1:2600,q:.9,vol:.018,wet:.3})}
-function sndIntroFall(){const c=AC();if(!c)return;noise(c.currentTime,.43,{f0:2600,f1:700,q:.8,vol:.03,attack:.25,wet:.3})}
+}/* the opening is all in one key (C major pentatonic): the page sound, the drops, the spin plucks and the closing chord share it.
+   Each drop is tuned: the water "plop" slides down onto the bell's own pitch, so it never fights the note. v (0..1) varies speed, loudness and a few cents of tuning per drop. */
+function sndIntroDrop(f,v){const c=AC();if(!c)return;const t=c.currentTime;v=v==null?.5:v;f=(f||523.25)*Math.pow(2,(v-.5)*.016);
+  blip(t,f*(2.7+v*.9),f,.15+(1-v)*.1,.16+v*.05);blip(t+.05,f*4,f*2,.1,.05+v*.03);bell(f,t+.02,.04+v*.025,1.5+(1-v)*.6);noise(t,.3,{type:"lowpass",f0:900,f1:300,q:.6,vol:.035,wet:.4})}
+function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done){noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.01,attack:.3,wet:.5});bell(1046.5,t+.05,.012,2.2,.7)}else{const j=.85+Math.random()*.3;noise(t,.2,{type:"bandpass",f0:700*j,f1:2400*j,q:.9,vol:.014,wet:.3})}}
+function sndIntroFall(){const c=AC();if(!c)return;const t=c.currentTime;crackle(t,.3,.03);bell(261.63,t+.04,.02,1.8,.7);noise(t,.43,{f0:2600,f1:700,q:.8,vol:.026,attack:.25,wet:.3})}   // the tap: a paper rustle and a low C that the drops then play over
 function sndDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1100,380,.16,.07);blip(t+.07,1800,700,.1,.025)}
 function sndBloom(fast){
   const c=AC();if(!c)return;const t=c.currentTime,k=fast?.45:1;
@@ -4821,7 +4824,7 @@ function initIntro(){
 }
 function introPlay(){
   if(introState!=="ready")return;introState="run";
-  unlockAudio(AC());audioReady(()=>{sndPage();sndIntroFall()});   // inside the user’s gesture: the first sound plays right away
+  unlockAudio(AC());audioReady(()=>sndIntroFall());   // inside the user’s gesture: the first sound plays right away
   $("introBegin").classList.add("gone");$("introHint").classList.remove("on");$("introSkip").hidden=false;
   if(reduced){introHandoff(true);return}
   // eight drops, one per letter, each a different watercolour of the game palette in rainbow order, landing in a shuffled, staggered order
@@ -4830,7 +4833,9 @@ function introPlay(){
   const guide=document.querySelector(".intro-word .guide"),guides=[];   // the faint grey word is split too, so each grey letter melts away as its colour arrives
   if(guide){guide.textContent="";"Mapbloom".split("").forEach(ch=>{const g=document.createElement("span");g.className="gl";g.textContent=ch;guide.append(g);guides.push(g)})}
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
-  const order=[0,1,2,3,4,5,6,7],pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
+  const order=[0,1,2,3,4,5,6,7];
+  // each drop is a note of the C pentatonic scale, wandering up and down (never the same note twice) and settling on a restful one
+  const mel=[];{let p=[0,2,3][Math.floor(Math.random()*3)];for(let n=0;n<8;n++){mel.push(p);let q;do{q=Math.max(0,Math.min(7,p+(Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*3))))}while(q===p);p=q}mel[7]=[0,3,5][Math.floor(Math.random()*3)];if(mel[7]===mel[6])mel[7]=mel[7]===5?3:5}
   for(let i=0;i<7;i++)if(Math.random()<.3){[order[i],order[i+1]]=[order[i+1],order[i]];i++}   // a brush sweeping left to right, with the odd drop landing a little ahead
   const brush=$("introBrush"),wordEl=document.querySelector(".intro-word");let reach=0;
   if(brush){brush.classList.remove("settle");brush.style.setProperty("--p",0)}
@@ -4851,7 +4856,7 @@ function introPlay(){
       introLater(impact,FALL2);   // the impact and its sound are on a clock of their own, so a slow frame can never shift the beat
       function impact(){
         if(introState!=="run")return;
-        audioReady(()=>{sndIntroDrop(262*pent[n]);sndBrush(false);if(n===0)sndBloom(false)});
+        audioReady(()=>{sndIntroDrop(note("Europe",mel[n])*2,Math.random());sndBrush(false);if(n===0)sndBloom(true)});
         if(brush&&wordEl){const wr=wordEl.getBoundingClientRect();reach=Math.max(reach,Math.min(1,(lr.right-wr.left)/wr.width));brush.style.setProperty("--p",reach.toFixed(3))}   // the stroke follows the drops across the word
         ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);
         L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");if(guides[li])guides[li].style.opacity=0;

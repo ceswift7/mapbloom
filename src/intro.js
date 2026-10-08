@@ -29,7 +29,7 @@ function initIntro(){
 }
 function introPlay(){
   if(introState!=="ready")return;introState="run";
-  unlockAudio(AC());audioReady(()=>{sndPage();sndIntroFall()});   // inside the user’s gesture: the first sound plays right away
+  unlockAudio(AC());audioReady(()=>sndIntroFall());   // inside the user’s gesture: the first sound plays right away
   $("introBegin").classList.add("gone");$("introHint").classList.remove("on");$("introSkip").hidden=false;
   if(reduced){introHandoff(true);return}
   // eight drops, one per letter, each a different watercolour of the game palette in rainbow order, landing in a shuffled, staggered order
@@ -38,7 +38,9 @@ function introPlay(){
   const guide=document.querySelector(".intro-word .guide"),guides=[];   // the faint grey word is split too, so each grey letter melts away as its colour arrives
   if(guide){guide.textContent="";"Mapbloom".split("").forEach(ch=>{const g=document.createElement("span");g.className="gl";g.textContent=ch;guide.append(g);guides.push(g)})}
   const letters="Mapbloom".split("").map((ch,i)=>{const b=document.createElement("span");b.className="il";b.textContent=ch;b.style.setProperty("--a",RB[i][0]);b.style.setProperty("--b",RB[i][1]);ink.append(b);return b});
-  const order=[0,1,2,3,4,5,6,7],pent=[1,1.122,1.26,1.498,1.682,2,2.245,2.52];
+  const order=[0,1,2,3,4,5,6,7];
+  // each drop is a note of the C pentatonic scale, wandering up and down (never the same note twice) and settling on a restful one
+  const mel=[];{let p=[0,2,3][Math.floor(Math.random()*3)];for(let n=0;n<8;n++){mel.push(p);let q;do{q=Math.max(0,Math.min(7,p+(Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*3))))}while(q===p);p=q}mel[7]=[0,3,5][Math.floor(Math.random()*3)];if(mel[7]===mel[6])mel[7]=mel[7]===5?3:5}
   for(let i=0;i<7;i++)if(Math.random()<.3){[order[i],order[i+1]]=[order[i+1],order[i]];i++}   // a brush sweeping left to right, with the odd drop landing a little ahead
   const brush=$("introBrush"),wordEl=document.querySelector(".intro-word");let reach=0;
   if(brush){brush.classList.remove("settle");brush.style.setProperty("--p",0)}
@@ -59,7 +61,7 @@ function introPlay(){
       introLater(impact,FALL2);   // the impact and its sound are on a clock of their own, so a slow frame can never shift the beat
       function impact(){
         if(introState!=="run")return;
-        audioReady(()=>{sndIntroDrop(262*pent[n]);sndBrush(false);if(n===0)sndBloom(false)});
+        audioReady(()=>{sndIntroDrop(note("Europe",mel[n])*2,Math.random());sndBrush(false);if(n===0)sndBloom(true)});
         if(brush&&wordEl){const wr=wordEl.getBoundingClientRect();reach=Math.max(reach,Math.min(1,(lr.right-wr.left)/wr.width));brush.style.setProperty("--p",reach.toFixed(3))}   // the stroke follows the drops across the word
         ring.style.left=ring2.style.left=dx+"px";ring.style.top=ring2.style.top=dy+"px";ring.classList.add("go");ring2.classList.add("go");setTimeout(()=>{ring.remove();ring2.remove()},2000);
         L.classList.remove("hit");void L.offsetWidth;L.classList.add("hit");if(guides[li])guides[li].style.opacity=0;

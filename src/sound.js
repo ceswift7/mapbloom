@@ -118,9 +118,12 @@ function audioGesture(){
   if(!S.sound)return;
   if(!actx){if(introState==="wait"||introState==="ready")return;AC();return}
   if(actx.state!=="running")actx.resume().then(audioFlush,()=>{});
-}function sndIntroDrop(f){const c=AC();if(!c)return;const t=c.currentTime;f=f||392;blip(t,1250,330,.22,.22);blip(t+.06,1900,620,.12,.08);bell(f,t+.02,.05,1.8);noise(t,.35,{type:"lowpass",f0:900,f1:300,q:.6,vol:.05,wet:.4})}
-function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done)noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.012,attack:.3,wet:.5});else noise(t,.22,{type:"bandpass",f0:700,f1:2600,q:.9,vol:.018,wet:.3})}
-function sndIntroFall(){const c=AC();if(!c)return;noise(c.currentTime,.43,{f0:2600,f1:700,q:.8,vol:.03,attack:.25,wet:.3})}
+}/* the opening is all in one key (C major pentatonic): the page sound, the drops, the spin plucks and the closing chord share it.
+   Each drop is tuned: the water "plop" slides down onto the bell's own pitch, so it never fights the note. v (0..1) varies speed, loudness and a few cents of tuning per drop. */
+function sndIntroDrop(f,v){const c=AC();if(!c)return;const t=c.currentTime;v=v==null?.5:v;f=(f||523.25)*Math.pow(2,(v-.5)*.016);
+  blip(t,f*(2.7+v*.9),f,.15+(1-v)*.1,.16+v*.05);blip(t+.05,f*4,f*2,.1,.05+v*.03);bell(f,t+.02,.04+v*.025,1.5+(1-v)*.6);noise(t,.3,{type:"lowpass",f0:900,f1:300,q:.6,vol:.035,wet:.4})}
+function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done){noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.01,attack:.3,wet:.5});bell(1046.5,t+.05,.012,2.2,.7)}else{const j=.85+Math.random()*.3;noise(t,.2,{type:"bandpass",f0:700*j,f1:2400*j,q:.9,vol:.014,wet:.3})}}
+function sndIntroFall(){const c=AC();if(!c)return;const t=c.currentTime;crackle(t,.3,.03);bell(261.63,t+.04,.02,1.8,.7);noise(t,.43,{f0:2600,f1:700,q:.8,vol:.026,attack:.25,wet:.3})}   // the tap: a paper rustle and a low C that the drops then play over
 function sndDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1100,380,.16,.07);blip(t+.07,1800,700,.1,.025)}
 function sndBloom(fast){
   const c=AC();if(!c)return;const t=c.currentTime,k=fast?.45:1;

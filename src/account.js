@@ -158,7 +158,9 @@ function acctSignIn(step,email,note){
     const v=em.value.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){err.textContent="Enter a valid email address.";return}
     send.b.disabled=true;err.textContent="";
     const {error}=await CLOUD.sb.auth.signInWithOtp({email:v,options:{shouldCreateUser:true,emailRedirectTo:location.href.split("#")[0].split("?")[0]}});
-    if(error){send.b.disabled=false;err.textContent=/rate|seconds|too many/i.test(error.message)?"Please wait a minute before asking for another code.":cloudMsg(error);return}
+    if(error){send.b.disabled=false;const m=String(error.message||""),hourly=/email rate limit|rate limit exceeded/i.test(m),short=/seconds|too many/i.test(m)&&!hourly;
+      err.textContent=hourly?"The email service has reached its sending limit for now, so no new code can go out for up to an hour. If a code from an earlier attempt reached your inbox, you can still use it below.":short?"Please wait a minute before asking for another code. If one already arrived, you can use it below.":cloudMsg(error);
+      if(hourly||short){err.append(" ",el("button",{class:"chip",type:"button",onclick:()=>acctSignIn("code",v)},"I already have a code"))}return}
     sndTick();acctSignIn("code",v);
   };
   sh.append(el("p",{},"Sign in to keep your map safe in the cloud and play with friends. No password: we email you a one-time code."),em,err,

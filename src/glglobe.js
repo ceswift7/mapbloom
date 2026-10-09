@@ -376,6 +376,26 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.beginPath();pgen(f);
   ctx.globalAlpha=pat?(shown?.5:glJit(id)):(shown?.4:1);
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
+  if(pat&&!shown&&S2>140&&isFinite(cx+cy+S2)){   // a vast country (Russia, Canada...): the paper tile repeats many times across it, so seeded washes of lighter, darker and slightly shifted colour are laid over it to break the repetition
+    const rr=seeded("mv-"+id),n=Math.min(44,5+Math.floor(S2/55)),base=d3.hcl(d3.color(CV.p[fa.r])||"#888");
+    ctx.save();ctx.beginPath();pgen(f);ctx.clip();
+    {   // soft-edged copies of the paper tile at its natural scale, turned and mirrored, give the fine detail the stretched tile has lost
+      const rs=pgen===glPath?1:(pgen.projection().scale()/glPeq.scale()),D=Math.round(sp.N*1.7*rs),m=Math.min(16,3+Math.floor(S2/110)),tc=document.createElement("canvas");tc.width=tc.height=D;const tx=tc.getContext("2d");
+      for(let i=0;i<m;i++){
+        tx.globalCompositeOperation="source-over";tx.clearRect(0,0,D,D);tx.drawImage(tile,0,0,D,D);
+        tx.globalCompositeOperation="destination-in";const mg=tx.createRadialGradient(D/2,D/2,0,D/2,D/2,D/2);mg.addColorStop(0,"rgba(0,0,0,1)");mg.addColorStop(.55,"rgba(0,0,0,.7)");mg.addColorStop(1,"rgba(0,0,0,0)");tx.fillStyle=mg;tx.fillRect(0,0,D,D);
+        const x=b[0][0]+rr()*(b[1][0]-b[0][0]),y=b[0][1]+rr()*(b[1][1]-b[0][1]);
+        ctx.save();ctx.translate(x,y);ctx.rotate(rr()*6.2832);ctx.scale(rr()<.5?-1:1,rr()<.5?-1:1);ctx.globalAlpha=.5+rr()*.3;ctx.drawImage(tc,-D/2,-D/2);ctx.restore();
+      }
+    }
+    for(let i=0;i<n;i++){
+      const x=b[0][0]+rr()*(b[1][0]-b[0][0]),y=b[0][1]+rr()*(b[1][1]-b[0][1]),R=S2*(.035+rr()*rr()*.3),h2=d3.hcl(base.h+(rr()-.5)*76,Math.max(4,base.c*(.6+rr()*.95)),Math.max(10,Math.min(96,base.l+(rr()-.5)*44))),a0=.28+rr()*.34;
+      const gr=ctx.createRadialGradient(x,y,0,x,y,R);
+      gr.addColorStop(0,h2.copy({opacity:a0}).formatRgb());gr.addColorStop(.55,h2.copy({opacity:a0*.45}).formatRgb());gr.addColorStop(1,h2.copy({opacity:0}).formatRgb());
+      ctx.globalAlpha=glJit(id);ctx.fillStyle=gr;ctx.fillRect(x-R,y-R,R*2,R*2);
+    }
+    ctx.restore();
+  }
   if(tag.indexOf("~")<0){   // (borderless mode draws no per-country rim)
     if(!shown){ctx.lineWidth=rimW*GL_INK;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
     ctx.globalAlpha=shown?.25:.4+((+id*13)%7)/45;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW*(.85+((+id*7)%5)/16);ctx.stroke();   // a hand-laid edge: no two countries get quite the same rim

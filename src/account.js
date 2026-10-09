@@ -99,7 +99,7 @@ function cloudStats(){
 }
 function cloudDailyRows(){
   const out=[],lim=new Date(Date.now()-15*864e5).toISOString().slice(0,10);
-  Object.entries(S.daily.results||{}).forEach(([day,r])=>{if(day>=lim&&r)out.push({day,kind:"ten",marks:(r.marks||[]).join(""),score:r.firsts||0,time_ms:r.time||null})});
+  Object.entries(S.daily.results||{}).forEach(([day,r])=>{if(day>=lim&&r)out.push({day,kind:"ten",marks:(r.marks||[]).join(""),score:Math.round(r.firsts||0),time_ms:r.time?Math.round(r.time):null})});
   Object.entries(S.daily.hot||{}).forEach(([day,r])=>{if(day>=lim&&r)out.push({day,kind:"hot",marks:String(r.marks||""),score:r.win?Math.max(0,100-(r.n||0)):0,time_ms:null})});
   return out.slice(-30);
 }

@@ -138,7 +138,7 @@ function finishRace(){
   const rec=REC[reg]||(REC[reg]={best:null,runs:[]});
   rec.runs.push({t:tot,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total});
   rec.runs=rec.runs.slice(-20);if(isBest)rec.best=tot;saveRec();save();
-  if(R.chal){const ch=R.chal;R.chal=null;try{if(typeof cloudOn==="function"&&cloudOn()&&CLOUD.sb&&CLOUD.user)CLOUD.sb.rpc("submit_challenge_result",{p_id:ch.id,p_ms:tot}).then(r=>toast(r.error?"\u26A0\uFE0F":"\u{1F3C1}",r.error?"Challenge result not sent":"Challenge result sent",r.error?cloudMsg(r.error):"See how you compare under Friends, then Challenges.",4200))}catch(e){}}
+  if(R.chal){const ch=R.chal;R.chal=null;try{if(typeof cloudOn==="function"&&cloudOn()&&CLOUD.sb&&CLOUD.user)CLOUD.sb.rpc("submit_challenge_result",{p_id:ch.id,p_ms:Math.round(tot)}).then(r=>toast(r.error?"\u26A0\uFE0F":"\u{1F3C1}",r.error?"Challenge result not sent":"Challenge result sent",r.error?cloudMsg(r.error):"See how you compare under Friends, then Challenges.",4200))}catch(e){}}
   setTimeout(()=>{if(R.phase==="done"&&S.mode==="speed")showResults(tot,isBest,prev)},1400);
   setTimeout(checkAch,2200);
 }

@@ -52,8 +52,9 @@ function showStartSheet(){
   if(S.region!=="United States")usStop();
   closeModal();stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);   // the camera settles on the region while the countdown runs
   R.region=S.region;R.found=new Set();R.pen=0;R.skips=0;R.wrong=0;R.times={};R.streak=0;R.riser=false;
-  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.pausedAt=null;R.ended=false;R.queue=shuffle(regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap));R.total=R.queue.length;R.cur=null;R.phase="count";
-  if(S.region==="United States"){R.variant=["country","capital","name"].includes(S.rv)?S.rv:"country";R.queue=shuffle(US.names.map(n=>"us:"+n));R.total=R.queue.length;usEnter(false)}
+  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.pausedAt=null;R.ended=false;R.chal=CH.pending;CH.pending=null;const chRng=R.chal?seeded("ch-"+R.chal.seed):null;   // a challenge shuffles from the shared seed, so both players get the same order
+  {const pool=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap);R.queue=chRng?shuffle(pool.slice().sort(),chRng):shuffle(pool)}R.total=R.queue.length;R.cur=null;R.phase="count";
+  if(S.region==="United States"){R.variant=["country","capital","name"].includes(S.rv)?S.rv:"country";R.queue=chRng?shuffle(US.names.map(n=>"us:"+n),chRng):shuffle(US.names.map(n=>"us:"+n));R.total=R.queue.length;usEnter(false)}
   paint();updateProgress();syncSpeedUI();
   $("sTarget").textContent="";$("sHint").textContent="";$("sTime").textContent="0:00.0";$("sPen").textContent="";
   const cn=$("count");let n=3;const ck=R.cdTok={};
@@ -137,6 +138,7 @@ function finishRace(){
   const rec=REC[reg]||(REC[reg]={best:null,runs:[]});
   rec.runs.push({t:tot,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total});
   rec.runs=rec.runs.slice(-20);if(isBest)rec.best=tot;saveRec();save();
+  if(R.chal){const ch=R.chal;R.chal=null;try{if(typeof cloudOn==="function"&&cloudOn()&&CLOUD.sb&&CLOUD.user)CLOUD.sb.rpc("submit_challenge_result",{p_id:ch.id,p_ms:tot}).then(r=>toast(r.error?"\u26A0\uFE0F":"\u{1F3C1}",r.error?"Challenge result not sent":"Challenge result sent",r.error?cloudMsg(r.error):"See how you compare under Friends, then Challenges.",4200))}catch(e){}}
   setTimeout(()=>{if(R.phase==="done"&&S.mode==="speed")showResults(tot,isBest,prev)},1400);
   setTimeout(checkAch,2200);
 }
@@ -159,7 +161,7 @@ function showEndRace(){
 function endRace(){
   if(R.phase!=="run")return;
   const t=raceTotals();R.pausedAt=null;closeModal();
-  silHide();hlSet(null);R.phase="done";R.cur=null;R.ended=true;
+  silHide();hlSet(null);R.phase="done";R.cur=null;R.ended=true;R.chal=null;
   stopMusic(true);syncSpeedUI();$("sTime").textContent=fmtT(t.adj);
   const reg=rkey(R.region,R.variant,R.nb),rec=REC[reg]||(REC[reg]={best:null,runs:[]});
   rec.ended=(Array.isArray(rec.ended)?rec.ended:[]).concat({t:t.adj,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total,found:R.found.size}).slice(-20);

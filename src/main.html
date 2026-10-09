@@ -76,10 +76,10 @@ let WIPED=false;
 const csOf=id=>S.cs[id]||(S.cs[id]={a:0,f:0});
 if(!S.daily.hot||typeof S.daily.hot!=="object"||Array.isArray(S.daily.hot))S.daily.hot={};   // per-country record: times asked, first-try finds, last seen, best race time
 const nbNow=()=>S.mode==="hot"?false:S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
-function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,cs:S.cs,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vib:S.vib,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,cs:S.cs,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vib:S.vib,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}if(typeof cloudPushSoon==="function")cloudPushSoon()}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
-const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
+const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}if(typeof cloudPushSoon==="function")cloudPushSoon()};
 const bestOf=r=>(REC[r]&&REC[r].best)||Infinity;
 const rkey=(r,v,nb)=>{v=v||S.rv;nb=nb===undefined?S.nb:nb;return (v==="country"?r:r+"|"+v)+(nb?"|nb":"")};   // race records are kept per region and per variant
 
@@ -245,6 +245,9 @@ const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
   document.addEventListener("focusin",e=>{const t=e.target;if(t&&t.matches&&t.matches("input[type=text],input[type=search],input:not([type])")&&t.closest("#sheet"))setTimeout(()=>{try{t.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){}},350)});
 })();
 /*@include hot.js*/
+/*@include config.js*/
+/*@include account.js*/
+/*@include friends.js*/
 const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
 /* the word for what is being found: states when the map is the United States, countries everywhere else */
 const isUS=()=>S.region==="United States";

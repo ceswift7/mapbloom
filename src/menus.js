@@ -86,6 +86,8 @@ function renderMenu(){
   const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
   sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
     el("div",{class:"qcard mrows"},
+      cloudOn()?row("user","Account","Sign in to keep your map in the cloud.",()=>renderAccount()):null,
+      cloudOn()?row("people","Friends","Friends, leaderboards and challenges.",()=>renderFriends()):null,
       row("sparkle","How to play","A quick tour of the game and everything in it.",renderTour),
       row("home","Home","Back to Explore with the whole globe in view.",goHome),
       row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
@@ -155,6 +157,7 @@ function renderAbout(){
       el("p",{},"Maritime zones of the Pacific island countries: Flanders Marine Institute (2024), Union of the ESRI Country shapefile and the Exclusive Economic Zones (v4), CC BY 4.0, doi.org/10.14284/698, simplified."),
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
+    cloudOn()?el("div",{class:"qcard"},el("h3",{},"Accounts and privacy"),el("p",{},"Accounts are optional and you must be 13 or older. Signing in uses your email address only to send you a code; other players never see it. We store your save, your username and the stats you choose to share with friends. You can hide your progress from friends, or delete your account and all its data, under Menu, then Account."),el("p",{},"Without an account, everything stays on this device.")):null,
     el("div",{class:"qcard"},el("h3",{},"A note on the maps"),
       el("p",{},"All areas, borders and maritime zones in Mapbloom are illustrations made for learning. They are simplified and may not accurately represent real geography. Coastlines, borders and sea zones are approximate, some are disputed, and none should be used for navigation, legal or official purposes.")),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));
@@ -242,6 +245,8 @@ const ICONS={
   compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   timer:'<circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V9.5M9.5 3h5"/>',
   star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  user:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
+  people:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3 19c0-3.2 2.7-5.3 6-5.3s6 2.1 6 5.3"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.2c2.8 0 4.7 1.7 4.7 4.3"/>',
   sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   chevd:'<path d="M6 9l6 6 6-6"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',

@@ -340,6 +340,38 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .themetip p{margin:0 0 8px;color:var(--ink-soft)}.themetip b{color:var(--ink)}
 .themetip .tipx{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--panel-line);background:none;color:var(--ink);cursor:pointer}
 .themetip .tipx:hover{border-color:var(--ink)}
+/* accounts and friends */
+.acctin{display:block;width:100%;box-sizing:border-box;margin:12px 0 4px;padding:11px 14px;font:inherit;font-size:16px;color:var(--ink);background:var(--panel);border:1.5px solid var(--panel-line);border-radius:12px}
+.acctin:focus{outline:none;border-color:var(--ink)}
+.acctin.code{text-align:center;letter-spacing:.35em;font-size:22px;font-family:var(--mono)}
+.acctnote{min-height:1.2em;margin:6px 0 0;font-size:13px;color:var(--hot,#c4452f)}
+.acctnote.ok{color:#3f8a5f}
+.acctfine{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-faint)}
+.acctcard{display:flex;align-items:center;gap:14px;margin:6px 0 12px}
+.acctname{display:block;font:500 22px var(--serif)}.acctcard small{color:var(--ink-faint);font-size:12.5px}
+.avatar{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:600 15px var(--sans)}
+.avatar.lg{width:52px;height:52px;font-size:22px}
+.acctfoot{flex-wrap:wrap}
+.acctdanger{margin-top:18px;border-top:1px dashed var(--panel-line);padding-top:10px}
+.acctdanger summary{cursor:pointer;font-size:13px;color:var(--ink-faint)}
+.acctdanger p{font-size:13px;color:var(--ink-soft)}
+.ftabs{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 12px}
+.ftab{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--panel-line);background:none;color:var(--ink-soft);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ftab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fbadge{font-style:normal;font-size:11px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:var(--hot,#e0802f);color:#fff;display:inline-grid;place-items:center}
+.fbody{min-height:120px}
+.frow,.frank{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px dashed var(--panel-line)}
+.frow:first-child,.frank:first-of-type{border-top:0}
+.fmain{flex:1;min-width:0}.fmain b{display:block;font-size:15px}.fmain small{display:block;font-size:12.5px;color:var(--ink-faint)}
+.fmain small.marks{letter-spacing:.06em}
+.fempty{text-align:center;padding:22px 8px}.fempty b{display:block;font:500 18px var(--serif)}.fempty small{display:block;color:var(--ink-faint);margin:4px 0 12px}
+.faddrow{display:flex;gap:8px;align-items:center}.faddrow .acctin{margin:0;flex:1}
+.fregion{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:13px;color:var(--ink-soft)}
+.csel{font:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1.5px solid var(--panel-line);border-radius:10px;padding:8px 10px;max-width:100%}
+.fboard{margin-top:10px}.fboard h3{margin:0 0 6px}
+.frank .pos{width:20px;text-align:center;font:600 13px var(--sans);color:var(--ink-faint)}
+.frank b{flex:1;font-weight:500}.frank .val{font:600 14px var(--mono);font-variant-numeric:tabular-nums}
+.frank.me{background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:10px;padding-left:8px;padding-right:8px}
 .tourbtn{position:absolute;left:16px;top:46px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 13px 0 10px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--panel-line));background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .9s ease}
 .tourbtn svg{width:15px;height:15px;flex:none}
 .tourbtn:hover{border-color:var(--ink);background:color-mix(in srgb,var(--paper) 95%,transparent)}
@@ -1532,10 +1564,10 @@ let WIPED=false;
 const csOf=id=>S.cs[id]||(S.cs[id]={a:0,f:0});
 if(!S.daily.hot||typeof S.daily.hot!=="object"||Array.isArray(S.daily.hot))S.daily.hot={};   // per-country record: times asked, first-try finds, last seen, best race time
 const nbNow=()=>S.mode==="hot"?false:S.mode==="wander"?!!S.nbx:!!S.nb;   // Quiz and Race share one Borderless switch; Explore has its own
-function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,cs:S.cs,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vib:S.vib,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}}
+function save(){if(WIPED)return;try{localStorage.setItem(KEY,JSON.stringify({found:[...S.found],shown:[...S.shown],learned:[...S.learned],jr:S.jr,returnQ:S.returnQ,weak:S.weak,ach:S.ach,counts:S.counts,daily:S.daily,expDone:S.expDone,cs:S.cs,bestStreak:S.bestStreak,turn:S.turn,sound:S.sound,sfx:S.sfx,music:S.music,vib:S.vib,vol:S.vol,quiz:S.quiz,rv:S.rv,nb:S.nb,nbx:S.nbx,undisc:S.undisc,rlen:S.rlen,seen:S.seen,hints:S.hints,theme:S.theme,fx:S.fx,autoNext:S.autoNext,engine2:S.engine2,unit:S.unit,view:(typeof projection!=="undefined"&&typeof zoomK!=="undefined")?{r:projection.rotate(),k:zoomK}:S.view}))}catch(e){}if(typeof cloudPushSoon==="function")cloudPushSoon()}
 let REC={};try{REC=JSON.parse(localStorage.getItem(RKEY)||"{}")||{}}catch(e){}
 let OLD={};try{OLD=JSON.parse(localStorage.getItem("mapbloom-records-v3")||localStorage.getItem("tidewash-records-v3")||localStorage.getItem("tidewash-records")||"{}")||{}}catch(e){}   // times from the earlier 172-country list
-const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}};
+const saveRec=()=>{if(WIPED)return;try{localStorage.setItem(RKEY,JSON.stringify(REC))}catch(e){}if(typeof cloudPushSoon==="function")cloudPushSoon()};
 const bestOf=r=>(REC[r]&&REC[r].best)||Infinity;
 const rkey=(r,v,nb)=>{v=v||S.rv;nb=nb===undefined?S.nb:nb;return (v==="country"?r:r+"|"+v)+(nb?"|nb":"")};   // race records are kept per region and per variant
 
@@ -3424,8 +3456,9 @@ function showStartSheet(){
   if(S.region!=="United States")usStop();
   closeModal();stopDrift();flyTo(REGION_VIEW[S.region],1300,REGION_ZOOM[S.region]);   // the camera settles on the region while the countdown runs
   R.region=S.region;R.found=new Set();R.pen=0;R.skips=0;R.wrong=0;R.times={};R.streak=0;R.riser=false;
-  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.pausedAt=null;R.ended=false;R.queue=shuffle(regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap));R.total=R.queue.length;R.cur=null;R.phase="count";
-  if(S.region==="United States"){R.variant=["country","capital","name"].includes(S.rv)?S.rv:"country";R.queue=shuffle(US.names.map(n=>"us:"+n));R.total=R.queue.length;usEnter(false)}
+  R.ret=null;R.nb=S.nb;R.variant=S.rv;R.pausedAt=null;R.ended=false;R.chal=CH.pending;CH.pending=null;const chRng=R.chal?seeded("ch-"+R.chal.seed):null;   // a challenge shuffles from the shared seed, so both players get the same order
+  {const pool=regionPool().filter(id=>S.rv!=="capital"||FACTS[id].cap);R.queue=chRng?shuffle(pool.slice().sort(),chRng):shuffle(pool)}R.total=R.queue.length;R.cur=null;R.phase="count";
+  if(S.region==="United States"){R.variant=["country","capital","name"].includes(S.rv)?S.rv:"country";R.queue=chRng?shuffle(US.names.map(n=>"us:"+n),chRng):shuffle(US.names.map(n=>"us:"+n));R.total=R.queue.length;usEnter(false)}
   paint();updateProgress();syncSpeedUI();
   $("sTarget").textContent="";$("sHint").textContent="";$("sTime").textContent="0:00.0";$("sPen").textContent="";
   const cn=$("count");let n=3;const ck=R.cdTok={};
@@ -3509,6 +3542,7 @@ function finishRace(){
   const rec=REC[reg]||(REC[reg]={best:null,runs:[]});
   rec.runs.push({t:tot,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total});
   rec.runs=rec.runs.slice(-20);if(isBest)rec.best=tot;saveRec();save();
+  if(R.chal){const ch=R.chal;R.chal=null;try{if(typeof cloudOn==="function"&&cloudOn()&&CLOUD.sb&&CLOUD.user)CLOUD.sb.rpc("submit_challenge_result",{p_id:ch.id,p_ms:tot}).then(r=>toast(r.error?"\u26A0\uFE0F":"\u{1F3C1}",r.error?"Challenge result not sent":"Challenge result sent",r.error?cloudMsg(r.error):"See how you compare under Friends, then Challenges.",4200))}catch(e){}}
   setTimeout(()=>{if(R.phase==="done"&&S.mode==="speed")showResults(tot,isBest,prev)},1400);
   setTimeout(checkAch,2200);
 }
@@ -3531,7 +3565,7 @@ function showEndRace(){
 function endRace(){
   if(R.phase!=="run")return;
   const t=raceTotals();R.pausedAt=null;closeModal();
-  silHide();hlSet(null);R.phase="done";R.cur=null;R.ended=true;
+  silHide();hlSet(null);R.phase="done";R.cur=null;R.ended=true;R.chal=null;
   stopMusic(true);syncSpeedUI();$("sTime").textContent=fmtT(t.adj);
   const reg=rkey(R.region,R.variant,R.nb),rec=REC[reg]||(REC[reg]={best:null,runs:[]});
   rec.ended=(Array.isArray(rec.ended)?rec.ended:[]).concat({t:t.adj,date:todayStr(),pen:R.pen,skips:R.skips,wrong:R.wrong,n:R.total,found:R.found.size}).slice(-20);
@@ -4063,6 +4097,8 @@ function renderMenu(){
   const row=(ic,title,sub,fn)=>el("button",{type:"button",class:"mrow",onclick:()=>{sndTick();fn()}},crIcon(ic),el("span",{class:"mt"},el("b",{},title),el("small",{},sub)),el("span",{class:"mgo","aria-hidden":"true"},"›"));
   sh.append(closeBtn(),el("h2",{},"Menu"),el("p",{},"Where would you like to go?"),
     el("div",{class:"qcard mrows"},
+      cloudOn()?row("user","Account","Sign in to keep your map in the cloud.",()=>renderAccount()):null,
+      cloudOn()?row("people","Friends","Friends, leaderboards and challenges.",()=>renderFriends()):null,
       row("sparkle","How to play","A quick tour of the game and everything in it.",renderTour),
       row("home","Home","Back to Explore with the whole globe in view.",goHome),
       row("book","Journal","Atlas, stamps, expeditions and mastery.",()=>{closeModal();renderAtlas()}),
@@ -4132,6 +4168,7 @@ function renderAbout(){
       el("p",{},"Maritime zones of the Pacific island countries: Flanders Marine Institute (2024), Union of the ESRI Country shapefile and the Exclusive Economic Zones (v4), CC BY 4.0, doi.org/10.14284/698, simplified."),
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
+    cloudOn()?el("div",{class:"qcard"},el("h3",{},"Accounts and privacy"),el("p",{},"Accounts are optional and you must be 13 or older. Signing in uses your email address only to send you a code; other players never see it. We store your save, your username and the stats you choose to share with friends. You can hide your progress from friends, or delete your account and all its data, under Menu, then Account."),el("p",{},"Without an account, everything stays on this device.")):null,
     el("div",{class:"qcard"},el("h3",{},"A note on the maps"),
       el("p",{},"All areas, borders and maritime zones in Mapbloom are illustrations made for learning. They are simplified and may not accurately represent real geography. Coastlines, borders and sea zones are approximate, some are disputed, and none should be used for navigation, legal or official purposes.")),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));
@@ -4219,6 +4256,8 @@ const ICONS={
   compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   timer:'<circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V9.5M9.5 3h5"/>',
   star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  user:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
+  people:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3 19c0-3.2 2.7-5.3 6-5.3s6 2.1 6 5.3"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.2c2.8 0 4.7 1.7 4.7 4.3"/>',
   sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   chevd:'<path d="M6 9l6 6 6-6"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
@@ -5544,7 +5583,337 @@ function showHotDailyResult(day){
     el("p",{style:"margin-top:10px"},`Streak: ${S.daily.hotStreak||0} day${(S.daily.hotStreak||0)===1?"":"s"}. A new mystery arrives tomorrow.`),
     el("div",{class:"row"},el("button",{class:"btn primary",onclick:ev=>{copyText(hotShare(day),ev.currentTarget)}},"Copy result"),el("button",{class:"btn",onclick:closeModal},"Close")));
   openModal();
-}const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
+}/* ======================================================================
+   CLOUD SETTINGS: accounts, cloud save and friends are switched on by filling these two values in
+   (Supabase project URL and the public "anon" key: Project Settings -> API). Both are safe to publish: the database is protected
+   by the row level security in supabase/schema.sql. Never put the "service_role" key here.
+   Left empty, the game is exactly as before: no sign-in, nothing leaves the device.
+   ====================================================================== */
+const MB_CLOUD={url:"",key:""};
+/* ======================================================================
+   ACCOUNT: email sign-in with a one-time code (or the link in the same email), a username, and a cloud copy of the save.
+   Offline-first: nothing here loads until someone opens Account or Friends, and the game plays exactly the same signed out.
+   All cross-player data goes through database functions (supabase/schema.sql); the browser never reads other players' rows.
+   ====================================================================== */
+const CLOUD={sb:null,user:null,profile:null,loading:null,pushT:0,pushing:false,status:"",synced:false};
+const cloudOn=()=>!!(MB_CLOUD.url&&MB_CLOUD.key);
+const CLOUD_SDK="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+function cloudLoad(){
+  if(CLOUD.loading)return CLOUD.loading;
+  CLOUD.loading=new Promise((res,rej)=>{
+    if(window.supabase)return res(window.supabase);
+    const s=document.createElement("script");s.src=CLOUD_SDK;s.onload=()=>res(window.supabase);s.onerror=()=>{s.remove();rej(new Error("offline"))};document.head.append(s);
+  }).then(lib=>{
+    const sb=lib.createClient(MB_CLOUD.url,MB_CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"mb-auth"}});
+    CLOUD.sb=sb;
+    sb.auth.onAuthStateChange((ev,session)=>{
+      const was=CLOUD.user&&CLOUD.user.id;CLOUD.user=session?session.user:null;
+      if(!CLOUD.user){CLOUD.profile=null;CLOUD.synced=false;return}
+      if(ev==="SIGNED_IN"&&CLOUD.user.id!==was)setTimeout(cloudAfterSignIn,0);
+    });
+    return sb;
+  }).catch(e=>{CLOUD.loading=null;throw e});
+  return CLOUD.loading;
+}
+// someone who signed in before gets the session restored quietly once the game is idle (the library loads only then)
+if(cloudOn()){try{if(localStorage.getItem("mb-auth"))setTimeout(()=>cloudLoad().then(sb=>sb.auth.getSession()).catch(()=>{}),4000)}catch(e){}}
+
+const cloudMsg=e=>{const m=String((e&&e.message)||e||"");return /Failed to fetch|NetworkError|offline|Load failed/i.test(m)?"Could not reach the server. Check your connection and try again.":m||"Something went wrong."};
+async function cloudProfile(){
+  const sb=CLOUD.sb;if(!sb||!CLOUD.user)return null;
+  const {data,error}=await sb.from("profiles").select("username,share_progress").eq("id",CLOUD.user.id).maybeSingle();
+  if(error)throw error;
+  CLOUD.profile=data||null;return CLOUD.profile;
+}
+
+/* ---------- merging a cloud save with this device's save (never throws progress away) ---------- */
+const mUnion=(a,b)=>[...new Set([...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])])];
+const mNumMax=(a,b)=>{const o=Object.assign({},a||{});Object.keys(b||{}).forEach(k=>{if(typeof b[k]==="number")o[k]=Math.max(typeof o[k]==="number"?o[k]:0,b[k]);else if(!(k in o))o[k]=b[k]});return o};
+function mergeMain(L,C){
+  L=L||{};C=C||{};const M=Object.assign({},C,L);   // settings and anything else: this device wins
+  ["found","shown","learned"].forEach(k=>M[k]=mUnion(L[k],C[k]));
+  M.weak=mNumMax(L.weak,C.weak);M.ach=Object.assign({},C.ach||{},L.ach||{});M.expDone=Object.assign({},C.expDone||{},L.expDone||{});
+  M.counts=mNumMax(L.counts,C.counts);
+  const hb=Object.assign({},(C.counts||{}).hotBest||{});Object.keys((L.counts||{}).hotBest||{}).forEach(r=>{const v=L.counts.hotBest[r];hb[r]=typeof hb[r]==="number"?Math.min(hb[r],v):v});M.counts.hotBest=hb;
+  M.bestStreak=Math.max(L.bestStreak||0,C.bestStreak||0);M.turn=Math.max(L.turn||0,C.turn||0);
+  // journal: per country, keep every step either side has done
+  const jr=Object.assign({},C.jr||{});Object.keys(L.jr||{}).forEach(id=>{const a=jr[id]||{},b=L.jr[id]||{},o=Object.assign({},a,b);["s","p","g"].forEach(k=>{if(a[k]||b[k])o[k]=mUnion(a[k],b[k])});o.c=!!(a.c||b.c);o.f=!!(a.f||b.f);jr[id]=o});M.jr=jr;
+  const cs=Object.assign({},C.cs||{});Object.keys(L.cs||{}).forEach(id=>{const a=cs[id]||{},b=L.cs[id]||{},o=Object.assign({},a,b);o.a=Math.max(a.a||0,b.a||0);o.f=Math.max(a.f||0,b.f||0);if(a.bt!=null&&b.bt!=null)o.bt=Math.min(a.bt,b.bt);cs[id]=o});M.cs=cs;
+  // daily results are final once recorded; streaks follow whichever side played most recently
+  const dl=L.daily||{},dc=C.daily||{},D=Object.assign({},dc,dl);D.results=Object.assign({},dc.results||{},dl.results||{});D.hot=Object.assign({},dc.hot||{},dl.hot||{});
+  D.streak=(dl.last||"")>=(dc.last||"")?(dl.streak||0):(dc.streak||0);D.last=(dl.last||"")>=(dc.last||"")?dl.last:dc.last;
+  D.hotStreak=(dl.hotLast||"")>=(dc.hotLast||"")?(dl.hotStreak||0):(dc.hotStreak||0);D.hotLast=(dl.hotLast||"")>=(dc.hotLast||"")?dl.hotLast:dc.hotLast;
+  M.daily=D;return M;
+}
+function mergeRecs(L,C){
+  const o=Object.assign({},C||{});
+  Object.keys(L||{}).forEach(k=>{
+    const a=o[k]||{},b=L[k]||{},r=Object.assign({},a,b);
+    r.best=(a.best!=null&&b.best!=null)?Math.min(a.best,b.best):(a.best!=null?a.best:b.best);
+    const seen=new Set(),runs=[...(a.runs||[]),...(b.runs||[])].filter(x=>{const id=x.date+"|"+x.t;if(seen.has(id))return false;seen.add(id);return true}).sort((p,q)=>String(p.date).localeCompare(String(q.date))).slice(-20);
+    r.runs=runs;if(a.ended||b.ended)r.ended=[...(a.ended||[]),...(b.ended||[])].slice(-20);
+    o[k]=r;
+  });
+  return o;
+}
+const cloudBlob=()=>({main:localStorage.getItem(KEY),records:localStorage.getItem(RKEY)});
+
+/* ---------- pull on sign-in, push after saves ---------- */
+async function cloudAfterSignIn(){
+  const sb=CLOUD.sb;if(!sb||!CLOUD.user)return;
+  try{
+    await cloudProfile();
+    if(!CLOUD.profile)return;   // a new player: the Account screen asks for a username first, then calls this again
+    const {data,error}=await sb.from("saves").select("data").eq("user_id",CLOUD.user.id).maybeSingle();
+    if(error)throw error;
+    if(data&&data.data&&data.data.main&&!sessionStorage.getItem("mb-merged")){
+      save();const loc=cloudBlob(),cm=JSON.parse(data.data.main||"{}"),lm=JSON.parse(loc.main||"{}");
+      const mm=mergeMain(lm,cm),mr=mergeRecs(JSON.parse(loc.records||"{}"),JSON.parse(data.data.records||"{}"));
+      const a=JSON.stringify(mm),b=loc.main,c2=JSON.stringify(mr),d=loc.records||"{}";
+      if(a!==b||c2!==d){
+        sessionStorage.setItem("mb-merged","1");
+        try{localStorage.setItem(KEY,a);localStorage.setItem(RKEY,c2)}catch(e){}
+        WIPED=true;   // stop the page from saving its old state over the merged one while it reloads
+        location.reload();return;
+      }
+    }
+    CLOUD.synced=true;cloudPush(true);
+  }catch(e){CLOUD.status=cloudMsg(e)}
+}
+function cloudPushSoon(){
+  if(!CLOUD.user||!CLOUD.profile)return;
+  clearTimeout(CLOUD.pushT);CLOUD.pushT=setTimeout(()=>cloudPush(),6000);
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&CLOUD.pushT){clearTimeout(CLOUD.pushT);CLOUD.pushT=0;cloudPush()}});
+function cloudStats(){
+  const ids=playable.map(f=>f.id);
+  return {found:S.found.size,studied:ids.filter(id=>jrLevel(id)>=2).length,mastered:ids.filter(id=>jrLevel(id)===3).length,stamps:ACH.filter(a=>S.ach[a.id]).length,streak:S.daily.streak||0,best_streak:S.bestStreak||0};
+}
+function cloudDailyRows(){
+  const out=[],lim=new Date(Date.now()-15*864e5).toISOString().slice(0,10);
+  Object.entries(S.daily.results||{}).forEach(([day,r])=>{if(day>=lim&&r)out.push({day,kind:"ten",marks:(r.marks||[]).join(""),score:r.firsts||0,time_ms:r.time||null})});
+  Object.entries(S.daily.hot||{}).forEach(([day,r])=>{if(day>=lim&&r)out.push({day,kind:"hot",marks:String(r.marks||""),score:r.win?Math.max(0,100-(r.n||0)):0,time_ms:null})});
+  return out.slice(-30);
+}
+function cloudRecordRows(){
+  const out=[];Object.entries(REC).forEach(([k,r])=>{if(r&&r.best>0)out.push({key:"race:"+k,best:Math.round(r.best)})});
+  Object.entries((S.counts&&S.counts.hotBest)||{}).forEach(([reg,n])=>{if(n>0)out.push({key:"hot:"+reg,best:n})});
+  return out.slice(0,80);
+}
+async function cloudPush(force){
+  const sb=CLOUD.sb;if(!sb||!CLOUD.user||!CLOUD.profile||CLOUD.pushing)return;
+  CLOUD.pushing=true;CLOUD.pushT=0;
+  try{
+    const blob=cloudBlob();
+    const r1=await sb.from("saves").upsert({user_id:CLOUD.user.id,data:blob,updated_at:new Date().toISOString()});if(r1.error)throw r1.error;
+    const r2=await sb.rpc("sync_stats",{p:cloudStats()});if(r2.error)throw r2.error;
+    const rr=cloudRecordRows();if(rr.length){const r3=await sb.rpc("submit_records",{p:rr});if(r3.error)throw r3.error}
+    const dd=cloudDailyRows();if(dd.length){const r4=await sb.rpc("sync_daily",{p:dd});if(r4.error)throw r4.error}
+    CLOUD.status="Saved to your account "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  }catch(e){CLOUD.status=cloudMsg(e)}
+  CLOUD.pushing=false;
+}
+
+/* ---------- the Account screen ---------- */
+function acctShell(title){const sh=$("sheet");sh.innerHTML="";sh.append(closeBtn(),el("h2",{},title||"Account"));return sh}
+function acctBack(sh){sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",type:"button",onclick:renderMenu},"‹ Back to the menu")))}
+function renderAccount(step,email,note){
+  if(!cloudOn()){const sh=acctShell();sh.append(el("p",{},"Accounts are not set up in this copy of Mapbloom."));acctBack(sh);openModal();return}
+  const sh=acctShell();sh.append(el("p",{class:"modesub"},"Loading…"));openModal();
+  cloudLoad().then(async sb=>{
+    const {data}=await sb.auth.getSession();CLOUD.user=data&&data.session?data.session.user:null;
+    if(CLOUD.user&&!CLOUD.profile)await cloudProfile();
+    if(!CLOUD.user)return acctSignIn(step||"email",email||"",note);
+    if(!CLOUD.profile)return acctUsername(note);
+    acctHome();
+  }).catch(e=>{const s2=acctShell();s2.append(el("p",{},cloudMsg(e)),el("div",{class:"sheetfoot"},el("button",{class:"btn primary",type:"button",onclick:()=>renderAccount()},"Try again")));openModal()});
+}
+function acctSignIn(step,email,note){
+  const sh=acctShell("Sign in");
+  const err=el("p",{class:"acctnote",role:"alert"},note||"");
+  if(step==="code"){
+    const code=el("input",{type:"text",inputmode:"numeric",autocomplete:"one-time-code",maxlength:"8",placeholder:"123456",class:"acctin code","aria-label":"Code from your email"});
+    const go=async()=>{
+      const t=code.value.replace(/\s/g,"");if(t.length<6){err.textContent="Enter the code from the email.";return}
+      go.b.disabled=true;err.textContent="";
+      const {error}=await CLOUD.sb.auth.verifyOtp({email,token:t,type:"email"});
+      if(error){go.b.disabled=false;err.textContent=/expired|invalid/i.test(error.message)?"That code did not work. It may have expired: go back and ask for a new one.":cloudMsg(error);return}
+      sndTick();await cloudProfile().catch(()=>{});
+      if(CLOUD.profile)acctHome("Signed in.");else acctUsername();
+    };
+    sh.append(el("p",{},"We sent a 6-digit code to ",el("b",{},email),". Type it here, or just tap the link in that email."),code,err,
+      el("div",{class:"sheetfoot"},el("button",{class:"btn",type:"button",onclick:()=>acctSignIn("email",email)},"‹ Different email"),el("span",{class:"grow"}),(go.b=el("button",{class:"btn primary",type:"button",onclick:go},"Sign in"))));
+    openModal();code.addEventListener("keydown",e=>{if(e.key==="Enter")go()});setTimeout(()=>code.focus({preventScroll:true}),80);return;
+  }
+  const em=el("input",{type:"email",autocomplete:"email",inputmode:"email",placeholder:"you@example.com",class:"acctin",value:email||"","aria-label":"Email address"});
+  const send=async()=>{
+    const v=em.value.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){err.textContent="Enter a valid email address.";return}
+    send.b.disabled=true;err.textContent="";
+    const {error}=await CLOUD.sb.auth.signInWithOtp({email:v,options:{shouldCreateUser:true,emailRedirectTo:location.href.split("#")[0].split("?")[0]}});
+    if(error){send.b.disabled=false;err.textContent=/rate|seconds|too many/i.test(error.message)?"Please wait a minute before asking for another code.":cloudMsg(error);return}
+    sndTick();acctSignIn("code",v);
+  };
+  sh.append(el("p",{},"Sign in to keep your map safe in the cloud and play with friends. No password: we email you a one-time code."),em,err,
+    el("p",{class:"acctfine"},"You must be 13 or older. Your email is never shown to other players. Playing without an account always works."),
+    el("div",{class:"sheetfoot"},el("button",{class:"btn",type:"button",onclick:renderMenu},"Not now"),el("span",{class:"grow"}),(send.b=el("button",{class:"btn primary",type:"button",onclick:send},"Email me a code"))));
+  openModal();em.addEventListener("keydown",e=>{if(e.key==="Enter")send()});setTimeout(()=>em.focus({preventScroll:true}),80);
+}
+function acctUsername(note){
+  const sh=acctShell("Choose a username");
+  const err=el("p",{class:"acctnote",role:"alert"},note||"");
+  const nm=el("input",{type:"text",autocomplete:"off",autocapitalize:"none",spellcheck:"false",maxlength:"20",placeholder:"username",class:"acctin","aria-label":"Username"});
+  const go=async()=>{
+    const v=nm.value.trim().toLowerCase();if(!/^[a-z0-9_]{3,20}$/.test(v)){err.textContent="Use 3 to 20 letters, numbers or underscores.";return}
+    go.b.disabled=true;err.textContent="";
+    const {error}=await CLOUD.sb.rpc("claim_username",{p:v});
+    if(error){go.b.disabled=false;err.textContent=cloudMsg(error);return}
+    sndTick();await cloudProfile();await cloudAfterSignIn();if(CLOUD.profile)acctHome("Welcome, "+CLOUD.profile.username+".");
+  };
+  nm.addEventListener("input",()=>{nm.value=nm.value.toLowerCase().replace(/[^a-z0-9_]/g,"")});
+  sh.append(el("p",{},"Friends find you by this name. Letters, numbers and underscores, 3 to 20 characters. Your email stays private."),nm,err,
+    el("div",{class:"sheetfoot"},el("span",{class:"grow"}),(go.b=el("button",{class:"btn primary",type:"button",onclick:go},"Save username"))));
+  openModal();nm.addEventListener("keydown",e=>{if(e.key==="Enter")go()});setTimeout(()=>nm.focus({preventScroll:true}),80);
+}
+function acctHome(note){
+  const sh=acctShell("Account"),p=CLOUD.profile||{};
+  sh.append(el("div",{class:"acctcard"},el("span",{class:"avatar lg",style:avatarStyle(p.username||"?")},(p.username||"?").charAt(0).toUpperCase()),el("div",{},el("b",{class:"acctname"},p.username||""),el("small",{},CLOUD.user&&CLOUD.user.email||""))),
+    note?el("p",{class:"acctnote ok"},note):null,
+    el("div",{class:"qcard"},
+      opt("Share my progress with friends","Friends see your found, studied and mastered counts, streak, records and daily results. Turn off to hide them.",toggle(p.share_progress!==false,async v=>{sndTick();const {error}=await CLOUD.sb.rpc("set_sharing",{p:v});if(!error)CLOUD.profile.share_progress=v;else toast("⚠️","Could not change that",cloudMsg(error),3200);acctHome()},"Share my progress with friends"))),
+    el("p",{class:"acctfine",id:"acctStatus"},CLOUD.status||"Your map is saved to your account whenever you play."));
+  sh.append(el("div",{class:"sheetfoot acctfoot"},el("button",{class:"btn primary",type:"button",onclick:()=>renderFriends()},"Friends"),el("button",{class:"btn",type:"button",onclick:async e=>{e.target.disabled=true;await cloudPush(true);acctHome()}},"Sync now"),el("span",{class:"grow"}),el("button",{class:"btn",type:"button",onclick:acctSignOut},"Sign out")));
+  sh.append(el("details",{class:"acctdanger"},el("summary",{},"Delete my account"),el("p",{},"This permanently deletes your account, your cloud save and all your friends data. The map on this device stays."),
+    (()=>{const t=el("input",{type:"text",class:"acctin",placeholder:"Type your username to confirm","aria-label":"Type your username to confirm",autocomplete:"off"});const b=el("button",{class:"btn danger",type:"button",onclick:async()=>{if(t.value.trim().toLowerCase()!==p.username){t.focus();return}b.disabled=true;const {error}=await CLOUD.sb.rpc("delete_account");if(error){b.disabled=false;toast("⚠️","Could not delete",cloudMsg(error),3600);return}await CLOUD.sb.auth.signOut().catch(()=>{});CLOUD.user=null;CLOUD.profile=null;toast("✅","Account deleted","Your cloud data is gone.",3600);renderMenu()}},"Delete forever");return el("div",{},t,b)})()));
+  openModal();
+}
+async function acctSignOut(){
+  try{await cloudPush(true)}catch(e){}
+  await CLOUD.sb.auth.signOut().catch(()=>{});CLOUD.user=null;CLOUD.profile=null;CLOUD.synced=false;try{sessionStorage.removeItem("mb-merged")}catch(e){}
+  toast("\u{1F44B}","Signed out","Your map stays on this device.",3000);renderMenu();
+}
+const avatarStyle=n=>{let h=0;for(const ch of String(n))h=(h*31+ch.charCodeAt(0))%360;return `background:hsl(${h} 45% 52%)`};
+/* ======================================================================
+   FRIENDS: your friends and their stats, requests, adding by username, friends-only leaderboards, today's results, and Race challenges.
+   Everything goes through the database functions in supabase/schema.sql, so you only ever see what a friend chooses to share.
+   ====================================================================== */
+const FR={tab:"friends",region:"World",reqIn:0};
+const CH={pending:null};   // a challenge waiting to be raced: {id, seed}
+const FR_TABS=[["friends","Friends"],["requests","Requests"],["add","Add"],["board","Leaderboard"],["today","Today"],["chal","Challenges"]];
+async function frReady(){
+  if(!cloudOn())throw new Error("Friends are not set up in this copy of Mapbloom.");
+  const sb=await cloudLoad();
+  if(!CLOUD.user){const {data}=await sb.auth.getSession();CLOUD.user=data&&data.session?data.session.user:null}
+  if(!CLOUD.user){renderAccount();return null}
+  if(!CLOUD.profile)await cloudProfile();
+  if(!CLOUD.profile){renderAccount();return null}
+  return sb;
+}
+async function frCall(name,args){const {data,error}=await CLOUD.sb.rpc(name,args||{});if(error)throw error;return data}
+function frShell(tab){
+  const sh=$("sheet");sh.innerHTML="";
+  sh.append(closeBtn(),el("h2",{},"Friends"),
+    el("div",{class:"ftabs",role:"tablist"},...FR_TABS.map(([k,l])=>el("button",{type:"button",role:"tab",class:"ftab","aria-selected":String(k===tab),onclick:()=>{sndTick();renderFriends(k)}},l,k==="requests"&&FR.reqIn?el("i",{class:"fbadge"},String(FR.reqIn)):null))));
+  const body=el("div",{class:"fbody"},el("p",{class:"acctfine"},"Loading…"));sh.append(body);
+  sh.append(el("div",{class:"sheetfoot"},el("button",{class:"btn",type:"button",onclick:()=>renderAccount()},"‹ Account"),el("span",{class:"grow"})));
+  openModal();return body;
+}
+async function renderFriends(tab){
+  tab=tab||FR.tab||"friends";FR.tab=tab;
+  let body;
+  try{if(!(await frReady()))return;body=frShell(tab);
+    const rq=await frCall("my_requests");FR.reqIn=rq.filter(r=>r.direction==="in").length;
+    const tb=[...$("sheet").querySelectorAll(".ftab")].find(b=>b.textContent.startsWith("Requests"));if(tb&&FR.reqIn&&!tb.querySelector(".fbadge"))tb.append(el("i",{class:"fbadge"},String(FR.reqIn)));
+    ({friends:frFriends,requests:frRequests,add:frAdd,board:frBoard,today:frToday,chal:frChal})[tab](body,rq);
+  }catch(e){(body||frShell(tab)).replaceChildren(el("p",{class:"acctnote"},cloudMsg(e)),el("button",{class:"btn",type:"button",onclick:()=>renderFriends(tab)},"Try again"))}
+}
+const frInitial=n=>el("span",{class:"avatar",style:avatarStyle(n)},String(n).charAt(0).toUpperCase());
+function frEmpty(t,sub){return el("div",{class:"fempty"},el("b",{},t),sub?el("small",{},sub):null)}
+
+async function frFriends(body){
+  const list=await frCall("my_friends");body.replaceChildren();
+  if(!list.length){body.append(frEmpty("No friends yet","Add a friend by their username and they will show up here."),el("button",{class:"btn primary",type:"button",onclick:()=>renderFriends("add")},"Add a friend"));return}
+  list.forEach(f=>body.append(el("div",{class:"frow"},frInitial(f.username),
+    el("div",{class:"fmain"},el("b",{},f.username),
+      f.shared?el("small",{},`${f.found} found · ${f.studied} studied · ${f.mastered} mastered${f.streak?` · ${f.streak} day streak`:""}`):el("small",{},"Keeping their progress private")),
+    el("button",{class:"tbtn",type:"button",title:"Challenge "+f.username,onclick:()=>{FR.to=f.friend_id;renderFriends("chal")}},"Challenge"),
+    el("button",{class:"tbtn fdel",type:"button","aria-label":"Remove "+f.username,onclick:async()=>{if(!confirm("Remove "+f.username+" from your friends?"))return;await frCall("remove_friend",{p:f.friend_id}).catch(e=>toast("⚠️","Could not remove",cloudMsg(e),3000));renderFriends("friends")}},"Remove"))));
+}
+async function frRequests(body,rq){
+  body.replaceChildren();
+  if(!rq.length){body.append(frEmpty("No requests","Friend requests you send or receive appear here."));return}
+  rq.forEach(r=>body.append(el("div",{class:"frow"},frInitial(r.username),el("div",{class:"fmain"},el("b",{},r.username),el("small",{},r.direction==="in"?"wants to be your friend":"request sent")),
+    r.direction==="in"?el("button",{class:"btn primary",type:"button",onclick:async()=>{sndTick();await frCall("respond_request",{p_requester:r.user_id,p_accept:true}).catch(e=>toast("⚠️","Could not accept",cloudMsg(e),3000));renderFriends("requests")}},"Accept"):null,
+    el("button",{class:"tbtn",type:"button",onclick:async()=>{await frCall(r.direction==="in"?"respond_request":"remove_friend",r.direction==="in"?{p_requester:r.user_id,p_accept:false}:{p:r.user_id}).catch(()=>{});renderFriends("requests")}},r.direction==="in"?"Decline":"Cancel"))));
+}
+function frAdd(body){
+  body.replaceChildren();
+  const note=el("p",{class:"acctnote",role:"status"},""),nm=el("input",{type:"text",class:"acctin",placeholder:"Their username",autocomplete:"off",autocapitalize:"none",spellcheck:"false","aria-label":"Friend's username"});
+  nm.addEventListener("input",()=>{nm.value=nm.value.toLowerCase().replace(/[^a-z0-9_]/g,"")});
+  const go=async()=>{
+    const v=nm.value.trim();if(v.length<3){note.className="acctnote";note.textContent="Type their full username.";return}
+    go.b.disabled=true;note.textContent="";
+    try{const r=await frCall("send_request",{p:v});sndTick();note.className="acctnote ok";note.textContent=r==="accepted"?"You are now friends.":r==="already"?"You have already sent them a request.":"Request sent to "+v+".";nm.value=""}
+    catch(e){note.className="acctnote";note.textContent=cloudMsg(e)}
+    go.b.disabled=false;
+  };
+  body.append(el("p",{},"Ask your friend for their username (it is on their Account screen), then type it exactly."),el("div",{class:"faddrow"},nm,(go.b=el("button",{class:"btn primary",type:"button",onclick:go},"Send request"))),note,
+    el("p",{class:"acctfine"},"You can find your own username under Menu, then Account. Players cannot be searched or listed, so only people who know the name can find each other."));
+  nm.addEventListener("keydown",e=>{if(e.key==="Enter")go()});
+}
+async function frBoard(body){
+  body.replaceChildren();
+  const regs=ALLR.filter(r=>r!=="United States").concat(["United States"]),sel=el("select",{class:"csel","aria-label":"Region"},...regs.map(r=>el("option",{value:r},regionLabel(r))));sel.value=FR.region;
+  const out=el("div",{});body.append(el("div",{class:"fregion"},el("span",{},"Region"),sel),out);
+  const load=async()=>{
+    FR.region=sel.value;out.replaceChildren(el("p",{class:"acctfine"},"Loading…"));
+    try{
+      const [race,hot]=await Promise.all([frCall("leaderboard",{p_key:"race:"+FR.region}),FR.region==="United States"?Promise.resolve([]):frCall("leaderboard",{p_key:"hot:"+FR.region})]);
+      out.replaceChildren(frBoardBlock("Race · Locate",race,v=>fmtT(v,0)),FR.region==="United States"?null:frBoardBlock("Hot & cold",hot,v=>v+(v===1?" guess":" guesses")));
+    }catch(e){out.replaceChildren(el("p",{class:"acctnote"},cloudMsg(e)))}
+  };
+  sel.onchange=()=>{sndTick();load()};load();
+}
+function frBoardBlock(title,rows,fmt){
+  const b=el("div",{class:"qcard fboard"},el("h3",{},title));
+  if(!rows.length){b.append(el("p",{class:"acctfine"},"No results here yet. Play a game in this region to put yours on the board."));return b}
+  rows.forEach((r,i)=>b.append(el("div",{class:"frank"+(r.is_me?" me":"")},el("span",{class:"pos"},String(i+1)),frInitial(r.username),el("b",{},r.is_me?r.username+" (you)":r.username),el("span",{class:"val"},fmt(r.best)))));
+  return b;
+}
+async function frToday(body){
+  const day=todayStr(),rows=await frCall("friends_daily",{p_day:day});body.replaceChildren(el("p",{class:"modesub"},"Everyone's Today's ten and Daily mystery for "+day+"."));
+  if(!rows.length){body.append(frEmpty("Nothing yet today","Play Today's ten or the Daily mystery and your result shows here for your friends."));return}
+  const block=(kind,title)=>{const rs=rows.filter(r=>r.kind===kind);if(!rs.length)return;const b=el("div",{class:"qcard fboard"},el("h3",{},title));
+    rs.forEach(r=>b.append(el("div",{class:"frank"+(r.is_me?" me":"")},frInitial(r.username),el("div",{class:"fmain"},el("b",{},r.is_me?r.username+" (you)":r.username),el("small",{class:"marks"},r.marks||"")),el("span",{class:"val"},kind==="ten"?`${r.score}/10`+(r.time_ms?" · "+fmtT(r.time_ms):""):(r.score?`${100-r.score} guess${100-r.score===1?"":"es"}`:"gave up")))));body.append(b)};
+  block("ten","Today's ten");block("hot","Daily mystery");
+}
+const frCfgText=c=>`${regionLabel(c.region)} · ${({country:"Locate",flag:"Flag",capital:"Capital",name:"Name it",sil:"Silhouette"})[c.variant]||"Locate"}${c.nb?" · borderless":""}`;
+async function frChal(body){
+  const [friends,list]=await Promise.all([frCall("my_friends"),frCall("my_challenges")]);body.replaceChildren();
+  const cfg={region:S.region,variant:S.region==="United States"&&!["country","capital","name"].includes(S.rv)?"country":S.rv,nb:!!S.nb};
+  if(!friends.length)body.append(frEmpty("Add a friend first","Challenges are sent to friends."));
+  else{
+    const sel=el("select",{class:"csel","aria-label":"Friend"},...friends.map(f=>el("option",{value:f.friend_id},f.username)));if(FR.to)sel.value=FR.to;
+    body.append(el("div",{class:"qcard"},el("h3",{},"Send a Race challenge"),el("p",{class:"acctfine"},"Same countries in the same order, so the times compare fairly. Setup: "+frCfgText(cfg)+". Change it in Race first if you want a different one."),
+      el("div",{class:"faddrow"},sel,el("button",{class:"btn primary",type:"button",onclick:async e=>{e.target.disabled=true;try{await frCall("send_challenge",{p_to:sel.value,p_config:Object.assign({seed:Math.random().toString(36).slice(2,10)},cfg)});sndTick();toast("\u{1F3C1}","Challenge sent","They will see it under Challenges.",3200);renderFriends("chal")}catch(er){e.target.disabled=false;toast("⚠️","Could not send",cloudMsg(er),3400)}}},"Send"))));
+  }
+  if(!list.length){body.append(frEmpty("No challenges yet"));return}
+  const mine=n=>n===CLOUD.profile.username;
+  list.forEach(c=>{
+    const other=c.incoming?c.from_name:c.to_name,done=c.mine_ms!=null,sub=c.theirs_ms!=null?(done?(c.mine_ms<c.theirs_ms?"You won by "+fmtT(c.theirs_ms-c.mine_ms):c.mine_ms>c.theirs_ms?other+" won by "+fmtT(c.mine_ms-c.theirs_ms):"A tie"):other+" has finished"):done?"Waiting for "+other:(c.incoming?"Your turn":"Waiting for "+other);
+    body.append(el("div",{class:"frow"},frInitial(other),el("div",{class:"fmain"},el("b",{},(c.incoming?"From ":"To ")+other),el("small",{},frCfgText(c.config)+" · "+sub),
+      (done||c.theirs_ms!=null)?el("small",{class:"marks"},"You "+(c.mine_ms!=null?fmtT(c.mine_ms):"—")+"  ·  "+other+" "+(c.theirs_ms!=null?fmtT(c.theirs_ms):"—")):null),
+      !done?el("button",{class:"btn primary",type:"button",onclick:()=>frPlayChallenge(c)},"Play"):null));
+  });
+}
+/* a challenge sets up the same race (region, style, borders) and shuffles the countries from the shared seed; the result goes back when you finish */
+function frPlayChallenge(c){
+  if(guardRace())return;const k=c.config||{};
+  if(!ALLR.includes(k.region)||!["country","flag","capital","name","sil"].includes(k.variant)){toast("⚠️","Cannot play this one","It uses a setup this version does not have.",3200);return}
+  closeModal();S.region=k.region;S.rv=k.variant;S.nb=!!k.nb;save();syncChips();
+  const go=()=>{CH.pending={id:c.id,seed:String(k.seed||c.id)};if(S.region==="United States"&&!US.data){usLoad().then(()=>startRace()).catch(()=>{});return}startRace()};
+  if(S.mode!=="speed"){setMode("speed");setTimeout(go,700)}else go();
+}
+const US_RAW="Alabama:AL:Montgomery;Alaska:AK:Juneau;Arizona:AZ:Phoenix;Arkansas:AR:Little Rock;California:CA:Sacramento;Colorado:CO:Denver;Connecticut:CT:Hartford;Delaware:DE:Dover;Florida:FL:Tallahassee;Georgia:GA:Atlanta;Hawaii:HI:Honolulu;Idaho:ID:Boise;Illinois:IL:Springfield;Indiana:IN:Indianapolis;Iowa:IA:Des Moines;Kansas:KS:Topeka;Kentucky:KY:Frankfort;Louisiana:LA:Baton Rouge;Maine:ME:Augusta;Maryland:MD:Annapolis;Massachusetts:MA:Boston;Michigan:MI:Lansing;Minnesota:MN:Saint Paul;Mississippi:MS:Jackson;Missouri:MO:Jefferson City;Montana:MT:Helena;Nebraska:NE:Lincoln;Nevada:NV:Carson City;New Hampshire:NH:Concord;New Jersey:NJ:Trenton;New Mexico:NM:Santa Fe;New York:NY:Albany;North Carolina:NC:Raleigh;North Dakota:ND:Bismarck;Ohio:OH:Columbus;Oklahoma:OK:Oklahoma City;Oregon:OR:Salem;Pennsylvania:PA:Harrisburg;Rhode Island:RI:Providence;South Carolina:SC:Columbia;South Dakota:SD:Pierre;Tennessee:TN:Nashville;Texas:TX:Austin;Utah:UT:Salt Lake City;Vermont:VT:Montpelier;Virginia:VA:Richmond;Washington:WA:Olympia;West Virginia:WV:Charleston;Wisconsin:WI:Madison;Wyoming:WY:Cheyenne";
 /* the word for what is being found: states when the map is the United States, countries everywhere else */
 const isUS=()=>S.region==="United States";
 const unitW=(n,cap)=>{const w=isUS()?(n===1?"state":"states"):(n===1?"country":"countries");return cap?w.charAt(0).toUpperCase()+w.slice(1):w};
@@ -6364,6 +6733,226 @@ if(GLWANT&&CANVAS){
     }
   }catch(e){console.warn("GPU globe unavailable, using the canvas engine",e);GLX.hasGL=false;GLX.on=false}
 }
+
+/* =====================================================================
+   TEMPORARY DEV MENU. Left out of release builds (build.ps1 -Release).
+   Open with the ` key, ?dev in the address, or the little DEV tab.
+   ===================================================================== */
+(function devMenu(){
+  const qs=new URLSearchParams(location.search);
+  const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const css=`
+.dvTab{position:fixed;left:8px;bottom:8px;z-index:90;font:600 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.08em;padding:6px 9px;border-radius:8px;border:1px solid rgba(0,0,0,.25);background:rgba(20,24,30,.78);color:#9fe6ff;cursor:pointer}
+.dvPanel{position:fixed;left:8px;bottom:40px;z-index:90;width:330px;max-height:calc(100vh - 60px);overflow:auto;padding:10px 12px 12px;border-radius:12px;background:rgba(14,18,24,.94);color:#dfe8ee;font:12px/1.45 ui-monospace,Consolas,monospace;box-shadow:0 12px 40px rgba(0,0,0,.45);display:none}
+.dvPanel.on{display:block}
+.dvPanel h4{margin:12px 0 5px;font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#9fe6ff}
+.dvPanel h4:first-child{margin-top:0}
+.dvPanel button{font:inherit;color:#dfe8ee;background:#243040;border:1px solid #3a4a5e;border-radius:6px;padding:4px 8px;margin:2px 4px 2px 0;cursor:pointer}
+.dvPanel button:hover{background:#2f4058}
+.dvPanel button.hot{background:#7a3b2e;border-color:#b5604a}
+.dvPanel label{display:flex;align-items:center;gap:6px;margin:2px 0}
+.dvPanel select,.dvPanel input[type=range]{font:inherit;background:#1b2430;color:#dfe8ee;border:1px solid #3a4a5e;border-radius:5px;max-width:100%}
+.dvPanel canvas{display:block;width:100%;height:56px;background:#0b0f14;border-radius:6px}
+.dvPanel table{width:100%;border-collapse:collapse;margin-top:4px}
+.dvPanel td,.dvPanel th{padding:1px 4px;text-align:right;border-top:1px solid #243040}
+.dvPanel td:first-child,.dvPanel th:first-child{text-align:left}
+.dvKV{display:grid;grid-template-columns:1fr auto;gap:0 10px}
+.dvWarn{color:#ffb86b}
+.dvBig{font-size:16px;font-weight:700;color:#9fe6ff}
+`;
+  const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);
+
+  /* ---------- measurement: frames, marks, phase timers ---------- */
+  const FR=[],MK=[],PH={render:0,paint:0,bloom:0,tile:0,clickSync:0,rpf:0,rpfMax:0,renders:0,flyToVisual:0};
+  let lastF=performance.now(),rpfWin=[];
+  const mark=n=>{MK.push({t:performance.now(),n});if(MK.length>80)MK.shift()};
+  function frameLoop(t){
+    const dt=t-lastF;lastF=t;
+    FR.push({dt,t});if(FR.length>600)FR.shift();
+    rpfWin.push(PH.renders);if(rpfWin.length>60)rpfWin.shift();PH.rpf=PH.renders;PH.rpfMax=Math.max(...rpfWin);PH.renders=0;
+    if(panel.classList.contains("on"))drawHud();
+    requestAnimationFrame(frameLoop);
+  }
+  const _render=renderNow;renderNow=function(){const t=performance.now();_render();PH.render=performance.now()-t;PH.renders++};
+  const _paint=paint;paint=function(){const t=performance.now();_paint();PH.paint=performance.now()-t};
+  const _pb=placeBloom;placeBloom=function(b){const t=performance.now();_pb(b);PH.bloom=performance.now()-t};
+  const _ea=ensureArt;ensureArt=function(id){const had=artDone[artKey(id)],t=performance.now();const r=_ea(id);if(!had)PH.tile=performance.now()-t;return r};
+  const _fly=flyTo;flyTo=function(...a){mark("fly");const p=_fly(...a);p.then(()=>mark("flyEnd"));return p};
+  const _sr=startReveal;startReveal=function(...a){mark("reveal");const d=a[3],op=a[6];a[3]=function(){mark("done");d&&d()};if(op)a[6]=function(){mark("payoff");op()};return _sr(...a)};
+  const _guess=guess;guess=function(...a){const t=performance.now();mark("click");const r=_guess(...a);PH.clickSync=performance.now()-t;return r};
+  let devFilled=false;const _save=save;save=function(){if(devFilled)return;_save()};
+
+  const stats=(arr)=>{
+    if(!arr.length)return {n:0,avg:0,p95:0,worst:0,o16:0,o33:0,o50:0,fps:0};
+    const s=arr.slice().sort((a,b)=>a-b),sum=arr.reduce((a,b)=>a+b,0);
+    return {n:arr.length,avg:sum/arr.length,p95:s[Math.min(s.length-1,Math.floor(s.length*.95))],worst:s[s.length-1],o16:arr.filter(x=>x>17).length,o33:arr.filter(x=>x>33).length,o50:arr.filter(x=>x>50).length,fps:1000/(sum/arr.length)};
+  };
+  const f1=x=>(+x).toFixed(1);
+
+  /* ---------- UI ---------- */
+  const tab=el("button",{class:"dvTab",title:"Dev menu (` key)"},"DEV");
+  const panel=el("div",{class:"dvPanel"});
+  document.body.append(tab,panel);
+  const toggle=()=>{panel.classList.toggle("on");LS("mb-dev",panel.classList.contains("on")?"1":"0")};
+  tab.onclick=toggle;
+  document.addEventListener("keydown",e=>{if(e.key==="`"&&!/input|textarea|select/i.test((document.activeElement||{}).tagName||"")){e.preventDefault();toggle()}});
+  if(qs.has("dev")||LS("mb-dev")==="1")panel.classList.add("on");
+
+  const hud=el("canvas",{width:300,height:56});
+  const hudTxt=el("div",{class:"dvKV"});
+  const ph=el("div",{class:"dvKV"});
+  const warn=el("div",{class:"dvWarn"});
+  function drawHud(){
+    const ctx=hud.getContext("2d"),w=hud.width,h=hud.height,n=Math.min(FR.length,150),fr=FR.slice(-n);
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle="#1b2430";[16.7,33.3].forEach(m=>ctx.fillRect(0,h-h*m/66,w,1));
+    fr.forEach((f,i)=>{const bh=Math.min(h,h*f.dt/66);ctx.fillStyle=f.dt<=17.5?"#4fd18b":f.dt<=33.5?"#f0b44c":"#ef5b5b";ctx.fillRect(i*2,h-bh,1.6,bh)});
+    const t0=fr.length?fr[0].t:0,t1=fr.length?fr[fr.length-1].t:1;
+    const col={click:"#ffffff",fly:"#7cc4ff",flyEnd:"#7cc4ff",reveal:"#ff9ad5",payoff:"#ffe28a",done:"#b8ffb0"};
+    MK.forEach(m=>{if(m.t<t0||m.t>t1)return;const x=2*fr.findIndex(f=>f.t>=m.t);if(x<0)return;ctx.fillStyle=col[m.n]||"#fff";ctx.fillRect(x,0,1,12)});
+    const s=stats(FR.slice(-120).map(f=>f.dt));
+    hudTxt.innerHTML=`<span>fps</span><span class="dvBig">${f1(s.fps)}</span><span>avg / p95 / worst ms</span><span>${f1(s.avg)} / ${f1(s.p95)} / ${f1(s.worst)}</span><span>frames &gt;17 / &gt;33 / &gt;50 ms</span><span>${s.o16} / ${s.o33} / ${s.o50}</span>`;
+    ph.innerHTML=`<span>render()</span><span>${f1(PH.render)} ms</span><span>renders per frame (max 1s)</span><span>${PH.rpfMax}</span><span>paint()</span><span>${f1(PH.paint)} ms</span><span>placeBloom</span><span>${f1(PH.bloom)} ms</span><span>last tile build</span><span>${f1(PH.tile)} ms</span><span>last click handler</span><span>${f1(PH.clickSync)} ms</span><span>DOM nodes / defs</span><span>${document.getElementsByTagName("*").length} / ${document.querySelector("#globe defs").children.length}</span><span>LOD level / zoom</span><span>${lodLvl} / ${zoomK.toFixed(2)}</span>${performance.memory?`<span>JS heap</span><span>${(performance.memory.usedJSHeapSize/1048576).toFixed(0)} MB</span>`:""}`;
+    warn.textContent=document.visibilityState!=="visible"?"Page is hidden: the browser pauses animation frames, so numbers are not valid.":"";
+  }
+
+  /* ---------- fill controls ---------- */
+  let snap=null,gradTimer=null;
+  const order=()=>{const by={};playable.forEach(f=>(by[FACTS[f.id].r]=by[FACTS[f.id].r]||[]).push(f.id));const out=[];let more=true,i=0;while(more){more=false;REGIONS.forEach(r=>{if(by[r]&&by[r][i]){out.push(by[r][i]);more=true}});i++}return out};
+  const ORDER=order();
+  const fillLab=el("span",{},"");
+  function fillTo(n){
+    if(!snap)snap={found:[...S.found],shown:[...S.shown]};
+    devFilled=true;S.found.clear();S.shown.clear();ORDER.slice(0,n).forEach(id=>S.found.add(id));
+    paint();updateProgress();fillLab.textContent=` ${n}/${ORDER.length} (not saved)`;slider.value=Math.round(n/ORDER.length*100);
+  }
+  function restore(){
+    clearInterval(gradTimer);if(!snap){fillLab.textContent="";return}
+    S.found.clear();S.shown.clear();snap.found.forEach(id=>S.found.add(id));snap.shown.forEach(id=>S.shown.add(id));snap=null;devFilled=false;
+    paint();updateProgress();fillLab.textContent=" restored";
+  }
+  const slider=el("input",{type:"range",min:"0",max:"100",value:"0"});
+  slider.oninput=()=>fillTo(Math.round(slider.value/100*ORDER.length));
+  function fillGradually(){clearInterval(gradTimer);let n=0;fillTo(0);gradTimer=setInterval(()=>{n++;fillTo(n);if(n>=ORDER.length)clearInterval(gradTimer)},50)}
+
+  /* ---------- benchmarks ---------- */
+  let lastReport=null;
+  const out=el("div",{});
+  function showTable(title,rows,keys){
+    out.innerHTML="";out.append(el("h4",{},title));
+    const t=el("table",{});t.append(el("tr",{},keys.map(k=>el("th",{},k))));
+    rows.forEach(r=>t.append(el("tr",{},keys.map(k=>el("td",{},String(r[k]))))));out.append(t);
+  }
+  async function benchClicks(n){
+    if(S.mode!=="find"||S.qIdle){toast("T","Dev","Start a Quiz (free play) first");return}
+    const rows=[];stopDrift();
+    for(let i=0;i<n;i++){
+      const ids=playable.map(f=>f.id).filter(()=>true),id=ids[Math.floor(Math.random()*ids.length)];
+      S.found.delete(id);S.shown.delete(id);S.target=id;S.done=false;S.tries=0;
+      projection.rotate([-(Math.random()*340-170),-(Math.random()*60-30),0]);zoomK=1;syncZoom();render();
+      await sleep(350);
+      const start=FR.length;guess(id,LL(id));await sleep(3300);
+      const d=FR.slice(start).map(f=>f.dt),s=stats(d);
+      rows.push({country:FACTS[id].n.slice(0,16),clickMs:f1(PH.clickSync),worst:f1(s.worst),p95:f1(s.p95),">33":s.o33,avg:f1(s.avg)});
+      S.done=false;hideCard();clearMissed();
+    }
+    const all=rows.reduce((a,r)=>a.concat(+r.worst),[]);
+    lastReport={kind:"clicks",rows,worstOverall:Math.max(...all),meanWorst:all.reduce((a,b)=>a+b,0)/all.length};
+    showTable(`Click-to-pan test (${n} clicks), mean worst ${f1(lastReport.meanWorst)} ms`,rows,["country","clickMs","worst","p95",">33","avg"]);
+  }
+  function setZoomTo(z){let g=0;while(Math.abs(zoomK-z)/z>.04&&g++<90){svg.node().dispatchEvent(new WheelEvent("wheel",{deltaY:zoomK<z?-120:120,bubbles:true,cancelable:true,clientX:W/2,clientY:cy()}))}render();return zoomK}
+  async function benchTour(){
+    const rows=[];stopDrift();
+    for(const z of [1,2.2,4,8]){
+      setZoomTo(z);await sleep(400);
+      const start=FR.length;
+      for(let i=0;i<70;i++){svg.node().dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));await new Promise(r=>requestAnimationFrame(r))}
+      const s=stats(FR.slice(start+3).map(f=>f.dt));
+      rows.push({zoom:z,fps:f1(s.fps),avg:f1(s.avg),p95:f1(s.p95),worst:f1(s.worst),">33":s.o33});
+    }
+    setZoomTo(1);lastReport={kind:"tour",rows};
+    showTable("Drag test (arrow-key drag at each zoom)",rows,["zoom","fps","avg","p95","worst",">33"]);
+  }
+  function report(){
+    const o={report:lastReport,hud:stats(FR.slice(-120).map(f=>f.dt)),phases:PH,fx:FX,env:{ua:navigator.userAgent,dpr:devicePixelRatio,vw:innerWidth,vh:innerHeight,cores:navigator.hardwareConcurrency,found:S.found.size,mode:S.mode,audio:(typeof actx!=="undefined"&&actx&&actx.state)||"none"}};
+    const txt=JSON.stringify(o,null,1);
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("🛠","Dev","Report copied"),()=>{console.log(txt);toast("🛠","Dev","Report printed to the console")});
+  }
+
+  /* ---------- isolation toggles ---------- */
+  const chk=(label,get,set)=>{const i=el("input",{type:"checkbox"});i.checked=get();i.onchange=()=>set(i.checked);return el("label",{},i,label)};
+  const bodyCls=(c,on)=>document.body.classList.toggle(c,on);
+  const disp=(sel,on)=>sel.style("display",on?null:"none");
+  const sel=(opts,get,set)=>{const s=el("select",{},opts.map(([v,l])=>el("option",{value:v},l)));s.value=String(get());s.onchange=()=>set(s.value);return s};
+  let noDrift=false;const _sd=scheduleDrift;scheduleDrift=function(){if(noDrift)return;_sd()};
+
+  const targetSel=el("select",{},[el("option",{value:""},"force next target…"),...playable.map(f=>FACTS[f.id].n).sort().map(n=>el("option",{value:n},n))]);
+  targetSel.onchange=()=>{const n=targetSel.value;if(!n)return;const id=playable.find(f=>FACTS[f.id].n===n).id;if(S.mode!=="find"){setMode("find",true,true)}S.qIdle=false;S.target=id;S.done=false;S.tries=0;warmArt(id);showPrompt(id);$("showBtn").hidden=false;$("nextBtn").hidden=true;hideCard();swell($("hint"),"Dev: target forced.")};
+  const regionSel=sel([["","jump to region…"],["World","World"],...REGIONS.map(r=>[r,r])],()=>"",v=>{if(!v)return;const c=document.querySelector(`.chip[data-r="${v}"]`);c&&c.click()});
+
+  panel.append(
+    el("h4",{},"Frame rate"),hud,hudTxt,warn,
+    el("div",{style:"font-size:10px;color:#7d8da0;margin-top:3px"},"green ≤17ms · amber ≤33ms · red slower · ticks: white click, blue fly, pink reveal, yellow payoff, green done"),
+    el("h4",{},"Phase timers"),ph,
+    el("h4",{},"Fill countries (never saved)"),
+    el("div",{},el("button",{class:"hot",onclick:()=>fillTo(ORDER.length)},"Fill every country"),el("button",{onclick:fillGradually},"Fill gradually"),el("button",{onclick:restore},"Restore mine"),fillLab),
+    el("div",{},slider),
+    el("h4",{},"Benchmarks"),
+    el("div",{},el("button",{onclick:()=>benchClicks(8)},"Click-to-pan ×8"),el("button",{onclick:benchTour},"Drag at zoom 1-8"),el("button",{onclick:report},"Copy report")),
+    out,
+    el("h4",{},"Isolate what costs frames"),
+    chk("paint filter (#wc)",()=>FX.wc,v=>{FX.wc=v;gPaint.attr("filter",v?"url(#wc)":null)}),
+    chk("bloom mask filter",()=>FX.bloomFx,v=>FX.bloomFx=v),
+    chk("painting tiles (off = flat colour)",()=>FX.tiles,v=>{FX.tiles=v;paint()}),
+    chk("globe shadow / lift",()=>true,v=>{disp(gShadow,v);disp(gLift,v)}),
+    chk("graticule",()=>true,v=>disp(grat,v)),
+    chk("pills, rings, labels",()=>true,v=>{disp(gBeacon,v);labelsEl.style.display=v?"":"none"}),
+    chk("viewport clipping",()=>FX.clip,v=>{FX.clip=v;render()}),
+    chk("off-screen culling",()=>FX.cull,v=>{FX.cull=v;render()}),
+    chk("auto-drift",()=>true,v=>{noDrift=!v;if(!v)stopDrift();else scheduleDrift()}),
+    el("label",{},"LOD",sel([["auto","auto"],[0,"110m lo"],[1,"simplified mid"],[2,"50m full"]],()=>FX.lod,v=>{FX.lod=v==="auto"?"auto":+v;render()})),
+    el("label",{},"animation speed",sel([[1,"1x"],[2,"0.5x (2x slower)"],[4,"0.25x (4x slower)"]],()=>FX.ts,v=>FX.ts=+v)),
+    el("h4",{},"Utilities"),
+    el("div",{},el("button",{onclick:()=>{audioReady(()=>{sndIntroDrop();sndBloom(false)})}},"Play intro drop"),(()=>{setInterval(()=>{const e=document.getElementById("dvAudio");if(e)e.textContent="audio: "+((typeof actx!=="undefined"&&actx&&actx.state)||"none")},500);return el("span",{id:"dvAudio",style:"margin-left:8px"},"audio: -")})()),
+    el("div",{},targetSel),el("div",{},regionSel),
+    el("label",{},"zoom",(()=>{const z=el("input",{type:"range",min:"1",max:"8",step:".1",value:"1"});z.oninput=()=>setZoomTo(+z.value);return z})()),
+    chk("skip the opening next time",()=>LS("mb-skip-intro")==="1",v=>LS("mb-skip-intro",v?"1":"0")),
+    el("div",{},el("button",{onclick:()=>{if(confirm("Clear ALL saved Mapbloom data in this browser?")){["mapbloom","mapbloom-records-v3","tidewash","tidewash-records","tidewash-records-v3","slowatlas"].forEach(k=>localStorage.removeItem(k));location.reload()}}},"Wipe saved data"))
+  );
+  /* ---------- culprit finder + per-shape profile ---------- */
+  const ctoggles=[
+    ["paint filter (#wc)",()=>{FX.wc=false;gPaint.attr("filter",null)},()=>{FX.wc=true;gPaint.attr("filter","url(#wc)")}],
+    ["painting tiles (flat colour)",()=>{FX.tiles=false;paint()},()=>{FX.tiles=true;paint()}],
+    ["globe shadow / lift",()=>{disp(gShadow,false);disp(gLift,false)},()=>{disp(gShadow,true);disp(gLift,true)}],
+    ["graticule",()=>disp(grat,false),()=>disp(grat,true)],
+    ["pills, rings, labels",()=>{disp(gBeacon,false);labelsEl.style.display="none"},()=>{disp(gBeacon,true);labelsEl.style.display=""}],
+    ["viewport clipping",()=>{FX.clip=false;render(true)},()=>{FX.clip=true;render(true)}],
+    ["off-screen culling",()=>{FX.cull=false;render(true)},()=>{FX.cull=true;render(true)}],
+    ["detail forced to lowest",()=>{FX.lod=0;render(true)},()=>{FX.lod="auto";render(true)}]
+  ];
+  async function dragRun(n=50){const start=FR.length;for(let i=0;i<n;i++){svg.node().dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}));await new Promise(r=>requestAnimationFrame(r))}return stats(FR.slice(start+3).map(f=>f.dt))}
+  async function culprit(){
+    if(document.visibilityState!=="visible"){toast("🛠","Dev","Bring this tab to the front first");return}
+    stopDrift();out.innerHTML="";out.append(el("h4",{},"Running… (about 20 s, don't touch anything)"));
+    const base=await dragRun(),rows=[];
+    for(const [name,off,on] of ctoggles){off();await sleep(250);const r=await dragRun();on();await sleep(200);rows.push({test:"without "+name,avg:f1(r.avg),p95:f1(r.p95),fps:f1(r.fps),saved:+(base.avg-r.avg).toFixed(1)})}
+    rows.sort((a,b)=>b.saved-a.saved);
+    const all=[{test:"BASELINE (all on), zoom "+zoomK.toFixed(1)+", "+S.found.size+" painted",avg:f1(base.avg),p95:f1(base.p95),fps:f1(base.fps),saved:0},...rows];
+    lastReport={kind:"culprit",zoom:+zoomK.toFixed(2),painted:S.found.size,rows:all};
+    showTable("Culprit finder: biggest win first",all,["test","avg","p95","fps","saved"]);
+  }
+  function featureProfile(){
+    const lvl=typeof FX.lod==="number"?FX.lod:lodLvl,cen=projection.invert([W/2,cy()]),rows=[];
+    features.forEach(f=>{const g=lvl===2?f:lvl===1?(f._mid||f._lo):f._lo;if(!g)return;const t=performance.now();for(let i=0;i<3;i++)drawFeature(g,cen,1.6);
+      rows.push({country:(FACTS[f.id]?FACTS[f.id].n:(f.properties&&f.properties.name)||String(f.id)).slice(0,18),ms:+((performance.now()-t)/3).toFixed(2),parts:g.geometry.type==="MultiPolygon"?g.geometry.coordinates.length:1})});
+    rows.sort((a,b)=>b.ms-a.ms);
+    lastReport={kind:"shapes",lod:lvl,top:rows.slice(0,15),total:+rows.reduce((a,r)=>a+r.ms,0).toFixed(1)};
+    showTable(`Slowest shapes to draw (detail level ${lvl}, all together ${lastReport.total} ms)`,rows.slice(0,10),["country","ms","parts"]);
+  }
+  panel.insertBefore(el("div",{},el("button",{class:"hot",onclick:culprit},"Find the culprit"),el("button",{onclick:featureProfile},"Slowest shapes")),out);
+  requestAnimationFrame(frameLoop);
+})();
 
 })();
 </script>

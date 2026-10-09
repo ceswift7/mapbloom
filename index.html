@@ -5479,7 +5479,7 @@ let finRun=null;
   .fin.full{background:radial-gradient(ellipse at 50% 50%,rgba(14,10,28,.52) 0,rgba(4,3,10,.9) 82%)}
   .fin.stamps{background:var(--paper,#E7D9B9);background-image:var(--paper-img);color:var(--ink,#3A2F22)}
   .fin .ftitle{font-family:var(--serif,Georgia,serif);font-style:italic;font-weight:400;line-height:1.05;letter-spacing:-.02em;position:relative;z-index:2;margin:0}
-  .fin .ftitle{filter:drop-shadow(0 3px 14px rgba(0,0,0,.7))}.fin.stamps .ftitle{filter:none}.fin .fsub{text-shadow:0 1px 10px rgba(0,0,0,.8)}.fin.stamps .fsub{text-shadow:none}.fin .ftitle span{display:inline-block;opacity:0;white-space:pre;background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+  .fin .ftitle{filter:drop-shadow(0 3px 14px rgba(0,0,0,.7))}.fin.stamps .ftitle{filter:none}.fin .fsub{text-shadow:0 1px 10px rgba(0,0,0,.8)}.fin.stamps .fsub{text-shadow:none}.fin .ftitle span{display:inline-block;padding:.08em .14em;margin:-.08em -.14em;opacity:0;white-space:pre;background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
   .fin .fsub{position:relative;z-index:2;margin:14px 20px 0;font-size:clamp(14px,2.1vw,19px);letter-spacing:.02em;opacity:0;max-width:34em;line-height:1.5}
   .fin.stamps .fgo{position:absolute;left:50%;bottom:7vh;margin:0 0 0 -52px;min-width:104px}.fin .fgo{position:relative;z-index:3;margin-top:26px;opacity:0;pointer-events:none;transition:opacity .6s ease}
   .fin .fgo.on{opacity:1;pointer-events:auto}
@@ -5576,7 +5576,7 @@ function finPaint(){
     finBurst(R_,x,y,70,{cols,paint:true,pow:1.15});finBurst(R_,x,y,26,{cols:["#FFF3C4","#F2D27A"],pow:.9});
     finSnd(t=>sndFlourish(r))})});
   at(6200,()=>{
-    finTitleText(box,"Every country,",{size:"clamp(40px,9.5vw,104px)",delay:0,step:42});
+    finTitleText(box,"Every country",{size:"clamp(40px,9.5vw,104px)",delay:0,step:42});
     finTitleText(box,"painted.",{size:"clamp(52px,12.5vw,138px)",delay:700,step:60});
     finSnd(t=>{finChord(t,FIN_D,.06);bell(1174.66,t+.3,.03,3.6,.8)});
     for(let i=0;i<6;i++)at(6300+i*220,()=>finBurst(R_,w*(.18+Math.random()*.64),h*(.2+Math.random()*.5),48,{paint:i%2===0,pow:1.1}));

@@ -453,7 +453,8 @@ function outlineFig(id){
     const own=svgO.append("path").attr("class","ol-c"+(drawn?" still":"")).attr("pathLength",1).attr("d",p(feat)).style("fill",`url(#af-${key})`);
     {   // islands too small to see at this scale are marked, so the island itself is always visible
       const polys=feat.geometry.type==="MultiPolygon"?feat.geometry.coordinates:[feat.geometry.coordinates],mk=svgO.append("g").attr("class","ol-pts");
-      polys.forEach(co=>{const b=p.bounds({type:"Polygon",coordinates:co});if(!isFinite(b[0][0]))return;if(b[1][0]-b[0][0]<7&&b[1][1]-b[0][1]<7)mk.append("circle").attr("class","ol-pt").attr("cx",(b[0][0]+b[1][0])/2).attr("cy",(b[0][1]+b[1][1])/2).attr("r",3.6)});
+      const bs=polys.map(co=>p.bounds({type:"Polygon",coordinates:co})).filter(b=>isFinite(b[0][0])),sz=b=>Math.max(b[1][0]-b[0][0],b[1][1]-b[0][1]);
+      if(bs.length&&Math.max(...bs.map(sz))<7)bs.sort((x,y)=>sz(y)-sz(x)).slice(0,12).forEach(b=>mk.append("circle").attr("class","ol-pt").attr("cx",(b[0][0]+b[1][0])/2).attr("cy",(b[0][1]+b[1][1])/2).attr("r",3.6));   // only a country with nothing big enough to see gets markers (a nation of small islands), and never a scatter of every islet
     }
     drawn++;
     cap.textContent="Outline of "+f.n;

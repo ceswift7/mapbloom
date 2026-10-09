@@ -358,7 +358,7 @@ function showExamQ(){
   const q=mq.qs[mq.i],sh=$("sheet"),id=mq.id;sh.innerHTML="";
   sh.append(closeBtn(),el("button",{class:"chip sback",onclick:()=>renderMastery(id,mqFrom)},"\u2039 Back"),el("h2",{style:"font-size:22px"},mq.title),el("small",{style:"color:var(--ink-faint)"},mq.qs.length>1?`Question ${mq.i+1} of ${mq.qs.length} \u00B7 type your answer`:"Type your answer"));
   sh.append(el("p",{class:"mq"},q.q));
-  const inp=el("input",{type:"text",placeholder:q.year?"A year, e.g. 1776":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
+  const inp=el("input",{type:"text",placeholder:q.year?"Type a year":"Type your answer","aria-label":"Your answer",autocomplete:"off",autocapitalize:"off",spellcheck:"false",enterkeyhint:"go"});
   const form=el("form",{class:"silform",style:"margin-top:6px"},inp,el("button",{class:"btn primary",type:"submit"},"Check")),nx=el("div",{});
   let locked=false;
   const exNum=t=>{let s=String(t).toLowerCase().replace(/,/g,"").replace(/km²|km2|sq\.?\s*km|\bkm\b|sq\.?\s*mi(les?)?|\bmiles?\b/g,"");const m=s.match(/-?\d+(\.\d+)?/);if(!m)return null;let v=parseFloat(m[0]);if(/billion|bn/.test(s))v*=1e9;else if(/million|\d\s*m\b/.test(s))v*=1e6;else if(/thousand|k\b/.test(s))v*=1e3;return v};

@@ -161,6 +161,11 @@ body.introing .reef{opacity:0}
 .intro.out::before{opacity:0}
 /* the word itself is drawn on the canvas; the page text only keeps its place and size */
 .intro.cv .intro-word{opacity:0}
+.learn .kf{margin:14px 0 4px;padding:10px 14px 12px;border-radius:12px;background:color-mix(in srgb,var(--p,#888) 13%,transparent);border-left:3px solid var(--p,#888)}
+.learn .kf h4{margin:0 0 6px;font:600 11px/1.2 var(--sans,system-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.learn .kf dl{display:grid;grid-template-columns:max-content 1fr;gap:5px 14px;margin:0;font-size:14px;line-height:1.4}
+.learn .kf dt{color:var(--ink-faint)}.learn .kf dd{margin:0;color:var(--ink)}
+@media (max-width:520px){.learn .kf dl{grid-template-columns:1fr;gap:0}.learn .kf dd{margin-bottom:6px}}
 /* the title does not cut away: it lifts and softens while the globe is already rising behind it, and the brush stroke is the last thing to go */
 .intro-stage{transition:transform 1.3s cubic-bezier(.3,.6,.2,1);will-change:transform}   /* no blur here: filtering a big layer while the globe spins costs frames */
 .intro.out .intro-stage{transform:translateY(-18px) scale(1.015)}

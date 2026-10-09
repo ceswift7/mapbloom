@@ -463,8 +463,28 @@ function outlineFig(id){
   setTimeout(()=>{draw(big?null:topo10);if(!big&&!topo10)load10().then(t=>{if(t&&fig.isConnected&&(cardId===id||fig.dataset.rd))draw(t)})},40);   // drawn just after the page opens, so the click itself stays quick
   return fig;
 }
-function renderLearn(id,rootArg,nav){
-  const L=LEARN[id],f=FACTS[id],root=rootArg||$("learn");root.innerHTML="";
+/* "Worth remembering": the facts the quizzes and exams for a page ask about, laid out under that page so every question can be answered from what was read */
+const KF_LAB={
+  g:[["hi","Highest point"],["riv","Rivers"],["sea","Seas and oceans"],["rng","Ranges and highlands"],["wond","Natural wonders"],["lm","Landmarks"],["cli","Climate"]],
+  c:[["pers","Famous people"],["rel","Main religion"],["grp","Peoples"],["hol","Holidays"],["spt","Popular sport"],["art","Art, music and culture"]],
+  f:[["dish","Dishes"],["drk","Drinks"],["stp","Staple foods"],["des","Desserts"],["snk","Snacks"],["ing","Key ingredients"]],
+  h:[["ind","Independence"],["frm","Gained independence from"],["emp","Civilisations and empires"],["ldr","Leaders"],["evt","Key dates"]],
+  n:[["off","Official name"],["lng","Language of the name"],["mng","Meaning"],["who","Named after"],["old","Former names"]]
+};
+function keyFacts(id,k){
+  const q=(typeof QZ!=="undefined"&&QZ[id]||{})[k];if(!q)return null;
+  const dl=el("dl");let n=0;
+  (KF_LAB[k]||[]).forEach(([t,lab])=>{
+    let v=q[t];if(v==null)return;
+    if(t==="evt")v=(Array.isArray(v)?v:[v]).map(e=>fmtY(e.y)+": "+e.t.replace(/^./,c=>c.toUpperCase()));
+    else if(t==="ind")v=[fmtY(v)];
+    else v=Array.isArray(v)?v:[v];
+    const txt=t==="evt"?v.join("; "):v.join(", ");
+    if(!txt)return;dl.append(el("dt",{},lab),el("dd",{},txt));n++;
+  });
+  return n?el("div",{class:"kf"},el("h4",{},"Worth remembering"),dl):null;
+}
+function renderLearn(id,rootArg,nav){  const L=LEARN[id],f=FACTS[id],root=rootArg||$("learn");root.innerHTML="";
   root.style.setProperty("--p",`var(--c-${f.r})`);
   if(!L){root.append(el("p",{},"No reading page for this country yet."));return}
   const fig=outlineFig(id);if(fig){if(rootArg)fig.dataset.rd="1";root.append(fig)}
@@ -479,12 +499,12 @@ function renderLearn(id,rootArg,nav){
   add("Density",L.p?densTxt(L.p,f.a):null);
   add("Capital",f.cap);add("Drives on the",L.d);
   sec("Quick data",dl);
-  if(L.g)sec("The land",P("g",L.g));
-  if(L.c)sec("People and culture",P("c",L.c));
+  if(L.g)sec("The land",P("g",L.g),keyFacts(id,"g"));
+  if(L.c)sec("People and culture",P("c",L.c),keyFacts(id,"c"));
   const fd=typeof FOOD!=="undefined"?FOOD[id]:null;
-  if(fd&&fd.x)sec("Food and dishes",P("f",fd.x));
-  if(L.h)sec("A short history",P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:"");
-  if(L.n)sec("Where the name comes from",P("n",L.n));
+  if(fd&&fd.x)sec("Food and dishes",P("f",fd.x),keyFacts(id,"f"));
+  if(L.h)sec("A short history",P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:"",keyFacts(id,"h"));
+  if(L.n)sec("Where the name comes from",P("n",L.n),keyFacts(id,"n"));
   sec("Did you know",el("ul",{},funFacts(id).map(t=>el("li",{},t))));
   const nb=el("div",{class:"nchips"});
   f.b.forEach(nm=>{const nid=nameId[nm];nb.append(nid?el("button",{onclick:()=>{sndTick();if(nav){nav(nid);return}showCard(nid,true);flyTo(LL(nid),1100,Math.max(zoomK,FACTS[nid].a<30000?2.4:1.3))}},nm):el("span",{},nm))});

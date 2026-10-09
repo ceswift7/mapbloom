@@ -7089,11 +7089,12 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.beginPath();pgen(f);
   ctx.globalAlpha=pat?(shown?.5:glJit(id)):(shown?.4:1);
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
-  if(pat&&!shown&&S2>140&&isFinite(cx+cy+S2)){   // a vast country (Russia, Canada...): the paper tile repeats many times across it, so seeded washes of lighter, darker and slightly shifted colour are laid over it to break the repetition
-    const rr=seeded("mv-"+id),n=Math.min(44,5+Math.floor(S2/55)),base=d3.hcl(d3.color(CV.p[fa.r])||"#888");
+  const wb=pgen===glPath?b:glAnchor(f),W2=Math.max(wb[1][0]-wb[0][0],wb[1][1]-wb[0][1])*1.05;   // size on the world map, so a zoomed-in detail bake does not treat every country as vast
+  if(pat&&!shown&&W2>140&&isFinite(cx+cy+S2)){   // a vast country (Russia, Canada...): the paper tile repeats many times across it, so seeded washes of lighter, darker and slightly shifted colour are laid over it to break the repetition
+    const rr=seeded("mv-"+id),n=Math.min(pgen===glPath?44:12,5+Math.floor(W2/55)),base=d3.hcl(d3.color(CV.p[fa.r])||"#888");
     ctx.save();ctx.beginPath();pgen(f);ctx.clip();
-    {   // soft-edged copies of the paper tile at its natural scale, turned and mirrored, give the fine detail the stretched tile has lost
-      const rs=pgen===glPath?1:(pgen.projection().scale()/glPeq.scale()),D=Math.round(sp.N*1.7*rs),m=Math.min(16,3+Math.floor(S2/110)),tc=document.createElement("canvas");tc.width=tc.height=D;const tx=tc.getContext("2d");
+    if(pgen===glPath){   // soft-edged copies of the paper tile at its natural scale, turned and mirrored, give the fine detail the stretched tile has lost
+      const rs=pgen===glPath?1:(pgen.projection().scale()/glPeq.scale()),D=Math.round(sp.N*1.7*rs),m=Math.min(16,3+Math.floor(W2/110)),tc=document.createElement("canvas");tc.width=tc.height=D;const tx=tc.getContext("2d");
       for(let i=0;i<m;i++){
         tx.globalCompositeOperation="source-over";tx.clearRect(0,0,D,D);tx.drawImage(tile,0,0,D,D);
         tx.globalCompositeOperation="destination-in";const mg=tx.createRadialGradient(D/2,D/2,0,D/2,D/2,D/2);mg.addColorStop(0,"rgba(0,0,0,1)");mg.addColorStop(.55,"rgba(0,0,0,.7)");mg.addColorStop(1,"rgba(0,0,0,0)");tx.fillStyle=mg;tx.fillRect(0,0,D,D);

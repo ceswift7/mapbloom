@@ -1644,11 +1644,11 @@ function jrDone(id){
 function jrTotal(id){return 3+3*jrQSecs(id).length}
 /* Found: located. Studied: every page read. Mastered: capital, flag and a perfect 5/5 on every page quiz. */
 function jrLevel(id){
-  if(!S.found.has(id))return 0;
-  const j=S.jr[id]||{},g=j.g||[],r=j.s||[];
+  const fnd=S.found.has(id),j=S.jr[id]||{},g=j.g||[],r=j.s||[];   // Start over (repaint) blanks the map but keeps the journal: what you studied and mastered still shows
+  if(!fnd&&!(g.length||r.length||j.c||j.f))return 0;
   if(j.c&&j.f&&jrQSecs(id).every(k=>g.includes(k)))return 3;
   const secs=jrSecs(id);
-  return secs.length&&secs.every(k=>r.includes(k))?2:1;
+  return secs.length&&secs.every(k=>r.includes(k))?2:(fnd?1:0);
 }
 const jrGlyph=id=>["\u25CB ","\u25CF ","\u25D1 ","\u2605 "][jrLevel(id)];
 /* mastery shows as a drop of paint that fills: an outlined drop = found, half full = studied, full with a gold rim = mastered */

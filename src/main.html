@@ -250,8 +250,8 @@ const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
    ====================================================================== */
 /* the on-screen keyboard: the menu sheet shrinks to the space above it, and a focused box is scrolled into view */
 (function(){const vv=window.visualViewport;if(!vv)return;
-  const upd=()=>{const kb=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty("--kb",kb>80?kb+"px":"0px")};
-  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);
+  const upd=()=>{const kb=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty("--kb",kb>80?kb+"px":"0px");const typing=document.activeElement&&document.activeElement.id==="silIn";document.documentElement.style.setProperty("--kbb",kb>80?(kb+6)+"px":typing?"6px":"84px")};   // a browser that shrinks the page for the keyboard reports no keyboard height, so a focused answer box simply sits at the bottom edge
+  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);document.addEventListener("focusin",upd);document.addEventListener("focusout",()=>setTimeout(upd,60));
   document.addEventListener("focusin",e=>{const t=e.target;if(t&&t.matches&&t.matches("input[type=text],input[type=search],input:not([type])")&&t.closest("#sheet"))setTimeout(()=>{try{t.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){}},350)});
 })();
 /*@include hot.js*/

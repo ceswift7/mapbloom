@@ -858,7 +858,7 @@ details.fold[open]>summary::after{content:"\2013"}
 .sil{position:absolute;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;padding:44px 12px 12px;transition:opacity .5s ease}
 .sil[hidden]{display:none}
 .sil.out{opacity:0}
-.silcard{pointer-events:auto;width:min(94%,470px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:20px;padding:14px 18px 16px;text-align:center;box-shadow:0 24px 50px -24px var(--paper-shadow);position:relative;animation:silin .6s ease both}
+.silcard{pointer-events:auto;width:min(94%,470px);background:var(--sheet);border:1px solid var(--panel-line);border-radius:20px;padding:14px 18px 16px;text-align:center;box-shadow:0 24px 50px -24px var(--paper-shadow);position:relative;animation:silin .6s ease backwards}
 @keyframes silin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 #silSvg{display:block;width:100%;height:auto;max-height:40vh}
 #silSvg path{fill:var(--ink);stroke:var(--ink);stroke-width:.6;stroke-linejoin:round}
@@ -1097,7 +1097,15 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
 .card dt{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);align-self:center}
 .card .learned{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--sans);letter-spacing:.08em;padding:2px 10px;background:color-mix(in srgb,var(--c-Americas-d) 10%,transparent)}
 .sp-time,.sp-pen,.dclock,.sp-lab{font-variant-numeric:tabular-nums}
-</style>
+/* typing modes on phones and tablets: the answer box is a thin bar that rides just above the on-screen keyboard (or the foot of the screen when it is closed), with the suggestions right above it */
+@media (max-width:899px),(pointer:coarse){
+  .sil .silform{position:fixed;z-index:9;left:50%;bottom:calc(var(--kbb,84px) + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(94vw,520px);gap:6px;pointer-events:auto;transition:bottom .18s ease-out}
+  .sil .silform input{padding:5px 13px;font-size:16px;line-height:1.25;box-shadow:0 8px 20px -10px rgba(0,0,0,.5)}
+  .sil .silform .btn{padding:5px 14px;font-size:14px;min-height:0;line-height:1.25;box-shadow:0 8px 20px -10px rgba(0,0,0,.5)}
+  .sil .silsug{position:fixed;z-index:9;left:50%;transform:translateX(-50%);width:min(94vw,520px);margin:0;bottom:calc(var(--kbb,84px) + env(safe-area-inset-bottom,0px) + 40px);pointer-events:none;transition:bottom .18s ease-out}
+  .sil .silsug li{pointer-events:auto}
+  .sil .silsug li button{box-shadow:0 6px 16px -10px rgba(0,0,0,.5)}
+}</style>
 </head>
 <body class="introing">
 <div class="speedbg" aria-hidden="true"></div>
@@ -5847,8 +5855,8 @@ $("silIn").addEventListener("input",()=>{sndKey();
    ====================================================================== */
 /* the on-screen keyboard: the menu sheet shrinks to the space above it, and a focused box is scrolled into view */
 (function(){const vv=window.visualViewport;if(!vv)return;
-  const upd=()=>{const kb=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty("--kb",kb>80?kb+"px":"0px")};
-  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);
+  const upd=()=>{const kb=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty("--kb",kb>80?kb+"px":"0px");const typing=document.activeElement&&document.activeElement.id==="silIn";document.documentElement.style.setProperty("--kbb",kb>80?(kb+6)+"px":typing?"6px":"84px")};   // a browser that shrinks the page for the keyboard reports no keyboard height, so a focused answer box simply sits at the bottom edge
+  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);document.addEventListener("focusin",upd);document.addEventListener("focusout",()=>setTimeout(upd,60));
   document.addEventListener("focusin",e=>{const t=e.target;if(t&&t.matches&&t.matches("input[type=text],input[type=search],input:not([type])")&&t.closest("#sheet"))setTimeout(()=>{try{t.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){}},350)});
 })();
 /* ======================================================================

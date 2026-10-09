@@ -6445,7 +6445,8 @@ function glPump(){
   glPumpOn=false;
   const t0=performance.now();
   while(glJobs.length&&performance.now()-t0<9){
-    const j=glJobs[0];let done=true;
+    const j=glJobs[0];if(j.low&&(moving||animating))break;   // background bakes wait while a drag or flight is running, so they never steal frame time
+    let done=true;
     try{done=j.step(j)}catch(e){console.error("gl job",e);done=true}
     if(done){glJobs.shift();try{if(j.finish)j.finish()}catch(e){console.error("gl finish",e)}}
   }
@@ -6574,6 +6575,7 @@ function glStartLand(bgMode){   // bgMode: bake that look quietly into the cache
       cx.strokeStyle=c0.darker(.75).copy({opacity:.2}).formatRgb();cx.lineWidth=GL_WET2*k;cx.stroke();cx.restore()}}
     return st.i>=st.list.length;
   },null);
+  job.low=!!bgMode;
   job.finish=()=>{
     if(job.st){const tex=glTexNew(1,1);glUploadFull(tex,job.st.c);job.st=null;if(!bgMode||vk===glLandVK()){glDropLand();glT.land=tex}
       if(glLandVK(mode)===vk){glLandCache.set(vk,tex);while(glLandCache.size>4){const k0=glLandCache.keys().next().value,old=glLandCache.get(k0);glLandCache.delete(k0);if(old!==glT.land)GLc.deleteTexture(old)}}}
@@ -6802,6 +6804,7 @@ function glPatchBake(pl){
     }
     return false;
   },null);
+  job.low=true;
   job.finish=()=>{
     const st=job.st;GP.busy=false;
     if(!st||gen!==GP.gen||!GLX.on||glLost)return;                // the picture changed while baking: the next tick starts over

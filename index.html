@@ -5663,7 +5663,7 @@ async function cloudAfterSignIn(){
   const sb=CLOUD.sb;if(!sb||!CLOUD.user)return;
   try{
     await cloudProfile();
-    if(!CLOUD.profile)return;   // a new player: the Account screen asks for a username first, then calls this again
+    if(!CLOUD.profile){renderAccount();return}   // a new player (for instance back from the email link): ask for a username first, then this runs again
     const {data,error}=await sb.from("saves").select("data").eq("user_id",CLOUD.user.id).maybeSingle();
     if(error)throw error;
     if(data&&data.data&&data.data.main&&!sessionStorage.getItem("mb-merged")){

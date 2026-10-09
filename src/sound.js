@@ -32,8 +32,7 @@ function AC(kind){                                   // kind: "mus" for music/dr
       actx=actxPre||new (window.AudioContext||window.webkitAudioContext)();actxPre=null;
       master=actx.createGain();master.gain.value=.9*S.vol;
       const comp=actx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.01;comp.release.value=.25;
-      const hp=actx.createBiquadFilter();hp.type="highpass";hp.frequency.value=38;hp.Q.value=.5;const lim=actx.createDynamicsCompressor();lim.threshold.value=-3;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.12;lim.knee.value=0;
-      master.connect(hp).connect(comp).connect(lim).connect(actx.destination);
+      master.connect(comp).connect(actx.destination);
       dryBus=actx.createGain();dryBus.connect(master);
       const conv=actx.createConvolver();conv.buffer=irFromPrep()||makeIR(2.6);
       wetBus=actx.createGain();wetBus.gain.value=.5;wetBus.connect(conv).connect(master);
@@ -45,26 +44,22 @@ function AC(kind){                                   // kind: "mus" for music/dr
       src.connect(bp).connect(brushG);send(brushG,.15);src.start();
     }
     if(actx.state==="suspended")actx.resume();
-    applyVol();setTimeout(loadSamples,1500);
+    applyVol();
     return actx;
-  }catch(e){try{console.warn("audio init failed",e)}catch(_){}return null}
+  }catch(e){return null}
 }
-let voiceN=0,voiceT=0;   // note-voice limiter: a burst of notes never piles up past what the mix can carry
-function voiceOK(){const n=performance.now();if(n-voiceT>1500){voiceT=n;voiceN=0}return ++voiceN<=40}
 function applyVol(){if(actx&&master){master.gain.cancelScheduledValues(actx.currentTime);master.gain.setTargetAtTime(S.sound?.9*S.vol:0,actx.currentTime,.05)}}
 function send(node,wet){node.connect(dryBus);if(wet){const g=actx.createGain();g.gain.value=wet;node.connect(g).connect(wetBus)}}
 function env(g,t,peak,attack,dur){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+attack);g.gain.exponentialRampToValueAtTime(.0001,t+dur)}
-function pluck(f,t,vol,dur=1.5,wet=.4){            // soft mallet note: the sampled xylophone once it has loaded, otherwise a synthesised marimba
-  if(SAMP.xylophone&&sampPlay("xylophone",f,t,vol,Math.min(dur,1.1),wet))return;if(!voiceOK())return;const hum=1+(Math.random()-.5)*.007;
+function pluck(f,t,vol,dur=1.5,wet=.4){            // soft marimba-like note
   [[1,1,dur],[2,.3,dur*.5],[4.02,.14,.18]].forEach(([m,a,d])=>{
-    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m*hum;
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
     env(g,t,vol*a,.005,d);o.connect(g);send(g,wet);o.start(t);o.stop(t+d+.05);
   });
 }
 function bell(f,t,vol,dur=2.4,wet=.6){               // glassy bell, inharmonic partials
-  if(!voiceOK())return;const hum=1+(Math.random()-.5)*.007;
   [[1,1,1],[2.76,.35,.5],[5.4,.12,.25]].forEach(([m,a,d])=>{
-    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m*hum;
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
     env(g,t,vol*a,.008,dur*d);o.connect(g);send(g,wet);o.start(t);o.stop(t+dur*d+.05);
   });
 }
@@ -87,29 +82,6 @@ function crackle(t,dur,vol){                         // paper rustle
   for(let x=0;x<dur;x+=.014)g.gain.setValueAtTime(Math.random()<.45?Math.random()*vol:0,t+x);
   g.gain.setValueAtTime(0,t+dur);
   s.connect(hp).connect(g);send(g,.18);s.start(t,Math.random()*1.5);s.stop(t+dur+.02);
-}
-/* ---------- sampled instruments (xylophone and harp from tonejs-instruments, CC BY 3.0). They load quietly after the opening; until then, and if a file is missing or the game runs offline from a single file, the synthesised voices below play instead ---------- */
-const SAMPDEF={xylophone:{dir:"audio/xylophone/",n:{G4:392,C5:523.25,G5:783.99,C6:1046.5,G6:1567.98,C7:2093}},harp:{dir:"audio/harp/",n:{D4:293.66,A4:440,B5:987.77,D6:1174.66}}};
-const SAMP={};let sampStarted=false;
-function loadSamples(){
-  if(sampStarted||!actx)return;
-  if(typeof introState!=="undefined"&&introState!=="done"){setTimeout(loadSamples,2000);return}
-  if(!/^https?:/.test(location.protocol))return;
-  sampStarted=true;
-  Object.keys(SAMPDEF).forEach(name=>{const def=SAMPDEF[name];
-    Promise.all(Object.keys(def.n).map(k=>fetch(def.dir+k+".ogg").then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>actx.decodeAudioData(ab)).then(buf=>{
-      const d=buf.getChannelData(0);let pk=.001;for(let i=0;i<d.length;i+=7){const a=Math.abs(d[i]);if(a>pk)pk=a}
-      return {f:def.n[k],buf,g:1/pk}})))
-    .then(list=>{SAMP[name]=list.sort((a,b)=>a.f-b.f)}).catch(()=>{})});
-}
-function sampPlay(name,f,t,vol,dur,wet,bus){   // true when a sample voice played; false means the caller should use its synthesised fallback
-  const L=SAMP[name];if(!L||!voiceOK())return L?true:false;
-  let best=L[0],bd=1e9;for(const s of L){const d=Math.abs(Math.log(f/s.f));if(d<bd){bd=d;best=s}}
-  if(bd>.36)return false;   // more than about five semitones from any sample: not worth stretching
-  const src=actx.createBufferSource();src.buffer=best.buf;src.playbackRate.value=f/best.f*(1+(Math.random()-.5)*.004);
-  const g=actx.createGain(),pk=Math.min(.5,vol*best.g*1.5),end=t+Math.max(.3,Math.min(dur,best.buf.duration));
-  g.gain.setValueAtTime(pk,t);g.gain.setTargetAtTime(0,Math.max(t,end-.25),.09);
-  src.connect(g);if(bus)g.connect(bus);else send(g,wet);src.start(t);src.stop(end+.6);return true;
 }
 const ROOT={Africa:293.66,Americas:293.66,Asia:293.66,Europe:293.66,Oceania:587.33};   // one key for the whole game: D major pentatonic (D E F# A B), the same as the Race music
 const PENT=[0,2,4,7,9,12,14,16,19];
@@ -180,11 +152,11 @@ function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,s
 function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
 function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
 function sndFlourish(region){
-  duck();buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
-  [0,1,2,3,4,6].forEach((n,i)=>{const f=note(region,n);if(!(SAMP.harp&&sampPlay("harp",f,t+i*.09,.075,2.2,.6)))pluck(f,t+i*.09,.06,1.8,.6)});
+  buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
+  [0,1,2,3,4,6].forEach((n,i)=>pluck(note(region,n),t+i*.09,.06,1.8,.6));
   bell(note(region,8),t+.6,.04,3.2);
 }
-function sndBadge(){duck();buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
+function sndBadge(){buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
 function sndPencil(sec){const c=AC();if(!c)return;const t=c.currentTime;noise(t,Math.max(.5,sec),{f0:2600,f1:4300,q:1.5,vol:.016,attack:.18,wet:.15})}
 function sndPage(){const c=AC();if(!c)return;crackle(c.currentTime,.4,.035);noise(c.currentTime,.5,{f0:900,f1:2600,q:.8,vol:.012,attack:.2,wet:.2});bell(587.33,c.currentTime+.05,.02,1.6)}
 function brushKick(mag){if(!brushG)return;brushTarget=Math.max(brushTarget,Math.min(.02,mag*.0014))}
@@ -227,7 +199,6 @@ function mArp(f,t,open){
   env(g,t,.05,.003,.17);o.connect(fl).connect(g).connect(MUS.bus);o.start(t);o.stop(t+.2);
 }
 function mLead(f,t,len){
-  if(SAMP.xylophone&&sampPlay("xylophone",f,t,.16,len+.25,0,MUS.bus))return;
   [[1,"triangle",.1],[2,"sine",.035]].forEach(([m,ty,v])=>{
     const o=actx.createOscillator(),g=actx.createGain();o.type=ty;o.frequency.value=f*m;
     env(g,t,v,.004,len);o.connect(g).connect(MUS.bus);o.start(t);o.stop(t+len+.03);
@@ -275,9 +246,7 @@ function musUpdate(){
     noise(t,5,{type:"bandpass",f0:400,f1:7000,q:1.2,vol:.06,attack:4,wet:.4});
   }
 }
-/* the Race music sits back for a moment under the note of a find, then swells back: the stingers are always heard clearly */
-function duck(){if(!MUS.on||!MUS.bus||!actx)return;const g=MUS.bus.gain,t=actx.currentTime;if(g.value<.7)return;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.setTargetAtTime(.55,t,.025);g.setTargetAtTime(.9,t+.4,.22)}
-function sndSpeedHit(){duck();
+function sndSpeedHit(){
   const c=AC();if(!c)return;
   const sc=[587.33,659.25,739.99,880,987.77,1174.66,1318.51,1479.98],f=sc[R.streak%8];
   const t=MUS.on?Math.max(MUS.t,c.currentTime+.01):c.currentTime+.01;

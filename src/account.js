@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    ACCOUNT: email sign-in with a one-time code (or the link in the same email), a username, and a cloud copy of the save.
    Offline-first: nothing here loads until someone opens Account or Friends, and the game plays exactly the same signed out.
    All cross-player data goes through database functions (supabase/schema.sql); the browser never reads other players' rows.
@@ -24,7 +24,7 @@ function cloudLoad(){
   return CLOUD.loading;
 }
 // someone who signed in before gets the session restored quietly once the game is idle (the library loads only then)
-if(cloudOn()){try{if(localStorage.getItem("mb-auth"))setTimeout(()=>cloudLoad().then(sb=>sb.auth.getSession()).catch(()=>{}),4000)}catch(e){}}
+if(cloudOn()){try{if(localStorage.getItem("mb-auth")){const restore=()=>{if(typeof introState!=="undefined"&&introState!=="done"){setTimeout(restore,1000);return}setTimeout(()=>cloudLoad().then(sb=>sb.auth.getSession()).catch(()=>{}),3000)};setTimeout(restore,4000)}}catch(e){}}   // restore a saved sign-in only once the game is on screen
 
 const cloudMsg=e=>{const m=String((e&&e.message)||e||"");return /Failed to fetch|NetworkError|offline|Load failed/i.test(m)?"Could not reach the server. Check your connection and try again.":m||"Something went wrong."};
 async function cloudProfile(){

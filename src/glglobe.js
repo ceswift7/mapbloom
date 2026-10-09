@@ -637,7 +637,7 @@ function glBegin(){
   glDoSync();
   // flag completion of the first land/lines bake
   const wait=()=>{
-    if(!glLandRun&&glJobs.length===0&&!glArtRun){GLX.landDone=true;GLX.linesDone=true;GLX.baking=false;glMaybeReady();setTimeout(()=>{if(!glLandRun&&!glJobs.length)glStartLand(S.mode==="wander"?"find":"wander")},2500);return}
+    if(!glLandRun&&glJobs.length===0&&!glArtRun){GLX.landDone=true;GLX.linesDone=true;GLX.baking=false;glMaybeReady();(function pre(){if(typeof introState!=="undefined"&&introState!=="done"){setTimeout(pre,1000);return}setTimeout(()=>{if(!glLandRun&&!glJobs.length)glStartLand(S.mode==="wander"?"find":"wander")},2500)})();return}
     setTimeout(wait,60);
   };
   setTimeout(wait,120);

@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    SOUND: everything is synthesised (no audio files). One warm reverb.
    The calm drone sits on D major (D-A-D-F#); speed music is in D major too,
    so switching modes is seamless: the beat fades in over the same drone.
@@ -10,20 +10,34 @@ function makeIR(sec){
     for(let i=0;i<len;i++){const x=(Math.random()*2-1)*Math.pow(1-i/len,2.6);p=p*.55+x*.45;d[i]=p}}
   return b;
 }
+/* the reverb impulse (2.6 s stereo) and the noise buffer are generated before the first tap, off the main thread, so the tap itself does no number crunching */
+let AUDIO_PREP=null,actxPre=null;
+function audioPrep(){
+  if(AUDIO_PREP||!S.sound)return;AUDIO_PREP={};
+  try{actxPre=new (window.AudioContext||window.webkitAudioContext)()}catch(e){actxPre=null}   // created early (it stays suspended until the first tap); the impulse must be built at its sample rate
+  const SR=actxPre?actxPre.sampleRate:48000,src=`onmessage=e=>{const SR=e.data,len=Math.floor(SR*2.6),ir=[new Float32Array(len),new Float32Array(len)];
+    for(let c=0;c<2;c++){const d=ir[c];let p=0;for(let i=0;i<len;i++){const x=(Math.random()*2-1)*Math.pow(1-i/len,2.6);p=p*.55+x*.45;d[i]=p}}
+    const nz=new Float32Array(SR*2);for(let i=0;i<nz.length;i++)nz[i]=Math.random()*2-1;
+    postMessage({ir:ir,nz:nz,SR:SR},[ir[0].buffer,ir[1].buffer,nz.buffer])}`;
+  try{const w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));w.onmessage=e=>{AUDIO_PREP=e.data;w.terminate()};w.postMessage(SR)}catch(e){AUDIO_PREP=null}
+}
+const irFromPrep=()=>{if(!AUDIO_PREP||!AUDIO_PREP.ir||AUDIO_PREP.SR!==actx.sampleRate)return null;const b=actx.createBuffer(2,AUDIO_PREP.ir[0].length,AUDIO_PREP.SR);b.copyToChannel(AUDIO_PREP.ir[0],0);b.copyToChannel(AUDIO_PREP.ir[1],1);return b};
+const noiseFromPrep=()=>{if(!AUDIO_PREP||!AUDIO_PREP.nz)return null;const b=actx.createBuffer(1,AUDIO_PREP.nz.length,AUDIO_PREP.SR);b.copyToChannel(AUDIO_PREP.nz,0);return b};
+audioPrep();
 function AC(kind){                                   // kind: "mus" for music/drone, otherwise sound effects
   if(!S.sound)return null;
   if(kind==="mus"?!S.music:!S.sfx)return null;
   try{
     if(!actx){
-      actx=new (window.AudioContext||window.webkitAudioContext)();
+      actx=actxPre||new (window.AudioContext||window.webkitAudioContext)();actxPre=null;
       master=actx.createGain();master.gain.value=.9*S.vol;
       const comp=actx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.01;comp.release.value=.25;
       master.connect(comp).connect(actx.destination);
       dryBus=actx.createGain();dryBus.connect(master);
-      const conv=actx.createConvolver();conv.buffer=makeIR(2.6);
+      const conv=actx.createConvolver();conv.buffer=irFromPrep()||makeIR(2.6);
       wetBus=actx.createGain();wetBus.gain.value=.5;wetBus.connect(conv).connect(master);
-      noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);
-      const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+      noiseBuf=noiseFromPrep();
+      if(!noiseBuf){noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);const nd=noiseBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1}
       const src=actx.createBufferSource();src.buffer=noiseBuf;src.loop=true;
       const bp=actx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=1500;bp.Q.value=.6;
       brushG=actx.createGain();brushG.gain.value=0;

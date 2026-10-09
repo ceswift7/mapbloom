@@ -53,13 +53,27 @@ function artCanvas(sp,motif,wash){
     x.globalAlpha=.55;x.fillStyle=T[2];x.fillRect(0,0,100,100);                                    // pale gesso so the colour stays luminous on any land
     const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,T[0]);g.addColorStop(.55,T[1]);g.addColorStop(1,T[2]);
     x.globalAlpha=.72;x.fillStyle=g;x.fillRect(0,0,100,100);                                        // the loose base wash
-    for(let k=0;k<5;k++){   // glazes: soft see-through pools, darker where the water dried at the edge, lighter in the middle
-      const col=[T[1],T[0],sp.pools[k%6].c,T[1],T[2]][k],cx=6+R()*88,cy=6+R()*88,rad=16+R()*28;
-      poly(cx,cy,rad,4,.2);x.globalAlpha=.34+R()*.16;x.fillStyle=rich(col);x.fill();
+    const jit=(c,hv,sv,lv)=>{const h=d3.hsl(c);h.h=(h.h+(R()-.5)*hv+360)%360;h.s=Math.max(0,Math.min(1,h.s+(R()-.5)*sv));h.l=Math.max(.4,Math.min(.95,h.l+(R()-.5)*lv));return h.formatRgb()};   // every pool of paint is a slightly different mix
+    const finger=(x0,y0,ang,len,wid,col,al,depth)=>{   // pigment bleeding out along the wet paper: a wandering, tapering finger with the odd side branch
+      let px=x0,py=y0,an=ang;const steps=Math.max(4,Math.round(len/1.7));x.lineCap="round";x.strokeStyle=col;
+      for(let i=0;i<steps;i++){
+        const f=1-i/steps;an+=(R()-.5)*.7;const nx=px+Math.cos(an)*1.7,ny=py+Math.sin(an)*1.7;
+        x.globalAlpha=al*f;x.lineWidth=Math.max(.14,wid*f);x.beginPath();x.moveTo(px,py);x.lineTo(nx,ny);x.stroke();
+        if(depth<2&&i>2&&i<steps-3&&R()<.22)finger(nx,ny,an+(R()<.5?-1:1)*(.5+R()*.5),len*(.3+R()*.25)*f+3,wid*.6,col,al*.85,depth+1);
+        px=nx;py=ny;
+      }
+    };
+    for(let k=0;k<7;k++){   // glazes: soft see-through pools, darker where the water dried at the edge, lighter in the middle
+      const base=[T[1],T[0],sp.pools[k%6].c,T[1],T[2],sp.pools[(k+2)%6].c,T[0]][k],col=jit(base,k>2?30:16,.2,.1),cx=4+R()*92,cy=4+R()*92,rad=14+R()*28;
+      poly(cx,cy,rad,4,.2);x.globalAlpha=.3+R()*.2;x.fillStyle=rich(col);x.fill();
       x.globalAlpha=.2;x.lineWidth=.6;x.strokeStyle=mix(col,sp.ink,.3);x.stroke();
       poly(cx,cy,rad*.6,3,.22);x.globalAlpha=.1;x.fillStyle="#fff";x.fill();
+      const nf=3+Math.floor(R()*6),fc=mix(col,sp.ink,.16);
+      for(let q=0;q<nf;q++){const u=R()*6.2832;finger(cx+Math.cos(u)*rad*.98,cy+Math.sin(u)*rad*.86,u+(R()-.5)*.8,12+R()*26,1.6+R()*1.5,fc,.4,0)}   // bleeding fingers reaching out of the pool
     }
-    for(let k=0;k<3;k++){   // blooms (backruns): clean water pushed into a wet wash leaves a pale, cauliflower-edged shape with a thin dark rim
+    {   // a couple of accent washes from the neighbouring palettes: unexpected colour dropped into the wet paint
+      const ac=[sp.tint,sp.pools[3].c];for(let k=0;k<2;k++){const cx=10+R()*80,cy=10+R()*80,rad=10+R()*16;poly(cx,cy,rad,5,.3);x.globalAlpha=.16+R()*.1;x.fillStyle=jit(ac[k],18,.15,.06);x.fill();for(let q=0;q<3;q++){const u=R()*6.2832;finger(cx+Math.cos(u)*rad,cy+Math.sin(u)*rad*.88,u,9+R()*14,1.4,mix(ac[k],sp.ink,.14),.34,1)}}
+    }    for(let k=0;k<3;k++){   // blooms (backruns): clean water pushed into a wet wash leaves a pale, cauliflower-edged shape with a thin dark rim
       const cx=12+R()*76,cy=12+R()*76,rad=9+R()*15;poly(cx,cy,rad,7,.2);
       x.globalAlpha=.4;x.fillStyle=mix(T[2],"#ffffff",.65);x.fill();
       x.globalAlpha=.17;x.lineWidth=.5;x.strokeStyle=mix(T[1],sp.ink,.3);x.stroke();

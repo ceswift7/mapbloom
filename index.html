@@ -6351,7 +6351,7 @@ function acctSignIn(step,email,note){
       sndTick();await cloudProfile().catch(()=>{});
       if(CLOUD.profile)acctHome("Signed in.");else acctUsername();
     };
-    sh.append(el("p",{},"We sent a 6-digit code to ",el("b",{},email),". Type it here, or just tap the link in that email."),code,err,
+    sh.append(el("p",{},"We emailed a sign-in link to ",el("b",{},email),". Open that email on this device and tap the link. If the email also shows a 6-digit code, you can type it here instead."),code,err,
       el("div",{class:"sheetfoot"},el("button",{class:"btn",type:"button",onclick:()=>acctSignIn("email",email)},"‹ Different email"),el("span",{class:"grow"}),(go.b=el("button",{class:"btn primary",type:"button",onclick:go},"Sign in"))));
     openModal();code.addEventListener("keydown",e=>{if(e.key==="Enter")go()});setTimeout(()=>code.focus({preventScroll:true}),80);return;
   }

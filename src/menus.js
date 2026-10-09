@@ -155,6 +155,7 @@ function renderAbout(){
     el("div",{class:"qcard"},el("h3",{},"Credits"),
       el("p",{},"Country texts are adapted from Wikipedia (CC BY-SA 4.0). Facts such as population come from Wikidata (CC0)."),
       el("p",{},"Maritime zones of the Pacific island countries: Flanders Marine Institute (2024), Union of the ESRI Country shapefile and the Exclusive Economic Zones (v4), CC BY 4.0, doi.org/10.14284/698, simplified."),
+      el("p",{},"Sampled xylophone and harp: tonejs-instruments by Nicholas Brosowsky (CC BY 3.0), github.com/nbrosowsky/tonejs-instruments."),
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
     cloudOn()?el("div",{class:"qcard"},el("h3",{},"Accounts and privacy"),el("p",{},"Accounts are optional and you must be 13 or older. Signing in uses your email address only to send you a code; other players never see it. We store your save, your username and the stats you choose to share with friends. You can hide your progress from friends, or delete your account and all its data, under Menu, then Account."),el("p",{},"Without an account, everything stays on this device.")):null,

@@ -160,8 +160,8 @@ body.introing .reef{opacity:0}
 .intro.out{pointer-events:none}
 .intro.out::before{opacity:0}
 /* the title does not cut away: it lifts and softens while the globe is already rising behind it, and the brush stroke is the last thing to go */
-.intro-stage{transition:transform 1.3s cubic-bezier(.3,.6,.2,1),filter 1s ease}
-.intro.out .intro-stage{transform:translateY(-18px) scale(1.015);filter:blur(5px)}
+.intro-stage{transition:transform 1.3s cubic-bezier(.3,.6,.2,1);will-change:transform}   /* no blur here: filtering a big layer while the globe spins costs frames */
+.intro.out .intro-stage{transform:translateY(-18px) scale(1.015)}
 .intro-word .guide,.intro-word .ink,.intro-sub,.intro-hint{transition:opacity .8s ease}
 .intro.out .intro-word .guide,.intro.out .intro-word .ink,.intro.out .intro-sub,.intro.out .intro-hint{opacity:0}
 .intro-brush{position:absolute;left:1%;right:1%;bottom:.03em;height:.075em;border-radius:50% 40% 55% 45%/100% 80% 100% 70%;pointer-events:none;opacity:.8;--p:0;

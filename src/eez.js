@@ -33,7 +33,7 @@ function eezDraw(c){
   if(!EEZ_R)return;
   if(EEZ_CTX!==c){EEZ_CTX=c;EEZ_PATH=d3.geoPath(projection,c)}
   const rt=projection.rotate(),cen=[-rt[0],-rt[1]],night=isDark()||S.mode==="speed",F=cf(),now=performance.now(),s=baseScale*zoomK,pa=typeof cvPA==="number"?cvPA:1;
-  let again=false;
+  let again=false;const mov=(typeof animating!=="undefined"&&animating)||(typeof moving!=="undefined"&&moving);
   c.save();c.lineJoin="round";
   for(let i=0;i<EEZ_R.length;i++){
     const z=EEZ_R[i],on=F.has(z.id),dt=Math.min(64,now-(z.t||now));z.t=now;
@@ -50,7 +50,7 @@ function eezDraw(c){
       }else{c.globalAlpha=.2*pa;c.fillStyle=col;c.fill()}
       c.restore();
     }
-    const done=z.p>=1;c.setLineDash(done?[]:[6,5]);c.lineWidth=done?1.3:1.1;
+    const done=z.p>=1;c.setLineDash(done||mov?[]:[6,5]);   // solid thin lines while the globe is turning: dashes are slower to drawc.lineWidth=done?1.3:1.1;
     c.strokeStyle=done?dk:(night?"rgba(235,240,255,.27)":"rgba(70,55,40,.32)");c.globalAlpha=done?.55:1;
     c.beginPath();EEZ_PATH(z.line);c.stroke();c.globalAlpha=1;
     if(cvHover===z.id){c.save();c.beginPath();EEZ_PATH(all);c.globalAlpha=.1;c.fillStyle=night?"#fff":"#000";c.fill();c.restore()}

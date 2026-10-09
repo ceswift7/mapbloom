@@ -32,6 +32,7 @@ function checkExp(silent){
 function checkAch(){
   checkExp();
   ACH.forEach(a=>{if(!S.ach[a.id]&&a.t()){S.ach[a.id]=Date.now();toast(a.i,"Stamp earned: "+a.n,a.d,4600,()=>{if(S.mode==="speed"&&(R.phase==="run"||R.phase==="count")){toast("⏱️","Race in progress","Check your stamps when the race is over.");return}sndTick();renderStamps()});sndBadge();save()}});
+  setTimeout(finCheck,300);
 }
 let toastTm=null;
 function toast(ic,title,text,ms=3800,onClick){
@@ -158,6 +159,7 @@ function renderAbout(){
       el("p",{},"Flags come from flagcdn.com. Country borders come from Natural Earth through the world-atlas data set, and the US states from us-atlas."),
       el("p",{},"Everything you do is saved on this device only.")),
     cloudOn()?el("div",{class:"qcard"},el("h3",{},"Accounts and privacy"),el("p",{},"Accounts are optional and you must be 13 or older. Signing in uses your email address only to send you a code; other players never see it. We store your save, your username and the stats you choose to share with friends. You can hide your progress from friends, or delete your account and all its data, under Menu, then Account."),el("p",{},"Without an account, everything stays on this device.")):null,
+    (S.expDone.fin_paint||S.expDone.fin_stamps||S.expDone.fin_full)?el("div",{class:"qcard"},el("h3",{},"Celebrations"),el("p",{},"The moments you have earned. Replay any of them."),el("div",{class:"row",style:"display:flex;gap:8px;flex-wrap:wrap"},...[["paint","Every country painted"],["stamps","Every stamp"],["full","100%"]].filter(([k])=>S.expDone[FIN_FLAG[k]]).map(([k,l])=>el("button",{class:"btn",type:"button",onclick:()=>finReplay(k)},"▶ "+l)))):null,
     el("div",{class:"qcard"},el("h3",{},"A note on the maps"),
       el("p",{},"All areas, borders and maritime zones in Mapbloom are illustrations made for learning. They are simplified and may not accurately represent real geography. Coastlines, borders and sea zones are approximate, some are disputed, and none should be used for navigation, legal or official purposes.")),
     el("div",{class:"sheetfoot"},el("button",{class:"btn",onclick:renderMenu},"‹ Back to the menu")));

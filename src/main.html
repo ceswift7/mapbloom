@@ -168,6 +168,7 @@ function jrMark(id,type,key){
   const after=jrLevel(id);
   if($("card").classList.contains("on")&&cardId===id)jrRow(id);
   if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and every star earned.":"Every page of its journal has been read.",3800);
+  if(after===3&&before!==3)setTimeout(finCheck,1200);
   if(after!==before)paint();
 }
 function jrRow(id){
@@ -242,6 +243,7 @@ const MV={projection,path,gPaint,gFx,get W(){return W},get H(){return H}};
 /*@include menus.js*/
 /*@include mastery.js*/
 /*@include intro.js*/
+/*@include finale.js*/
 /*@include silhouette.js*/
 /* ======================================================================
    UNITED STATES: the 50 states on their own map (Quiz and Race), loaded when first needed

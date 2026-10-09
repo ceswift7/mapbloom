@@ -244,11 +244,7 @@ function paintThumb(id,onclick){const cv=document.createElement("canvas");paintI
   $("cSwatch").style.background=`var(--c-${f.r})`;
   $("cWhere").textContent=f.s||f.r;
   $("cLearned").hidden=!S.learned.has(id);
-  const rows=[];
-  if(f.cap)rows.push(["Capital",f.cap]);
-  if(f.l.length)rows.push([f.l.length>1?"Languages":"Language",f.l.join(", ")]);
-  if(f.cur)rows.push(["Currency",f.cur]);
-  rows.push(["Area",areaTxt(f.a)]);
+  const rows=factRows(id);   // the same facts, in the same order, as the reading page and the journal book
   $("cList").innerHTML="";
   rows.forEach(([k,v])=>{const dt=document.createElement("dt");dt.textContent=k;const dd=document.createElement("dd");dd.textContent=v;$("cList").append(dt,dd)});
   let note="";
@@ -272,6 +268,17 @@ function paintThumb(id,onclick){const cv=document.createElement("canvas");paintI
 const mobCard=()=>innerWidth<720;
 function syncMore(){const p=$("card").classList.contains("peek"),b=$("cardMore");b.setAttribute("aria-expanded",String(!p));b.setAttribute("aria-label",p?"Show details":"Collapse details")}
 function setPeek(on){$("card").classList.toggle("peek",on);syncMore();if(!on)$("cBody").scrollTop=0;relayout()}
+function factRows(id){   // one list of quick facts for a country, used by the Explore card, the reading page and the journal book, so they always agree
+  const f=FACTS[id],L=LEARN[id]||{},rows=[];
+  if(f.cap)rows.push(["Capital",f.cap]);
+  if(L.p)rows.push(["Population",fmt(L.p)]);
+  rows.push(["Area",areaTxt(f.a)]);
+  if(L.p)rows.push(["Density",densTxt(L.p,f.a)]);
+  if(f.l&&f.l.length)rows.push([f.l.length>1?"Languages":"Language",f.l.join(", ")]);
+  if(f.cur)rows.push(["Currency",f.cur]);
+  if(L.d)rows.push(["Drives on the",L.d]);
+  return rows;
+}
 function list(a){a=a.map(article);return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
 function hideCard(){capMarkSet(null);const c=$("card");if(!c.classList.contains("on"))return;c.classList.remove("on");setExplore(false);sndCard(false);relayout()}
 $("cardMore").onclick=e=>{e.stopPropagation();setPeek(!$("card").classList.contains("peek"))};
@@ -494,10 +501,7 @@ function renderLearn(id,rootArg,nav){  const L=LEARN[id],f=FACTS[id],root=rootAr
   const P=(k,t)=>blocks(id,k,t);
   if(L.o)sec("At a glance",P("o",L.o));
   const dl=el("dl",{class:"kv"});
-  const add=(k,v)=>{if(v){dl.append(el("dt",{},k),el("dd",{},v))}};
-  add("Population",L.p?fmt(L.p):null);
-  add("Density",L.p?densTxt(L.p,f.a):null);
-  add("Capital",f.cap);add("Drives on the",L.d);
+  factRows(id).forEach(([k,v])=>{dl.append(el("dt",{},k),el("dd",{},v))});
   sec("Quick data",dl);
   if(L.g)sec("The land",P("g",L.g),keyFacts(id,"g"));
   if(L.c)sec("People and culture",P("c",L.c),keyFacts(id,"c"));

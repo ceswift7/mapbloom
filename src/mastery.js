@@ -294,13 +294,13 @@ let cbTimers=[];const cbPos={};
 function openCountryBook(id,from,opts){
   opts=opts||{};closeReader();cbTimers.forEach(clearTimeout);cbTimers=[];
   const f=FACTS[id],L=LEARN[id]||{},fd=typeof FOOD!=="undefined"?FOOD[id]:null,P=(k,t)=>blocks(id,k,t);
-  const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["g","The land",()=>L.g&&P("g",L.g)],["c","People and culture",()=>L.c&&P("c",L.c)],["f","Food and dishes",()=>fd&&fd.x&&P("f",fd.x)],
-    ["h","A short history",()=>L.h&&[P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:""]],["n","Where the name comes from",()=>L.n&&P("n",L.n)],["d","Did you know",()=>el("ul",{},funFacts(id).map(t=>el("li",{},t)))]];
+  const defs=[["o","At a glance",()=>L.o&&P("o",L.o)],["g","The land",()=>L.g&&[P("g",L.g),keyFacts(id,"g")]],["c","People and culture",()=>L.c&&[P("c",L.c),keyFacts(id,"c")]],["f","Food and dishes",()=>fd&&fd.x&&[P("f",fd.x),keyFacts(id,"f")]],
+    ["h","A short history",()=>L.h&&[P("h",L.h),L.m?[el("div",{class:"sub"},"More recently"),P("m",L.m)]:"",keyFacts(id,"h")]],["n","Where the name comes from",()=>L.n&&[P("n",L.n),keyFacts(id,"n")]],["d","Did you know",()=>el("ul",{},funFacts(id).map(t=>el("li",{},t)))]];
   const reading=defs.filter(d=>d[0]==="d"||d[2]()).map(([k,t,fn])=>({k,t,fn})),pages=[{k:"country",t:f.n},...reading],N=Math.ceil(pages.length/2);
   let cur=0;if(opts.key){const i=pages.findIndex(p=>p.k===opts.key);if(i>=0)cur=Math.floor(i/2)}else if(cbPos[id]!=null&&!opts.riffle)cur=Math.min(cbPos[id],N-1);
   const sh=$("sheet");sh.innerHTML="";
   const back=()=>{sndPage();cbTimers.forEach(clearTimeout);if(from==="book")renderBook("mastery",BK.spread);else closeModal()};
-  const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),el("b",{title:String(v)},String(v))))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Currency",f.cur||null);add("Drives on the",L.d);return g};
+  const quickDl=()=>{const g=el("div",{class:"cbfacts"});factRows(id).forEach(([k,v])=>g.append(el("span",{},el("i",{},k),el("b",{title:String(v)},String(v)))));return g};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
     if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Seek, Race, or Take me somewhere.",2600);return}

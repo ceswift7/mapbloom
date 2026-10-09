@@ -102,14 +102,14 @@ function loadSamples(){
       return {f:def.n[k],buf,g:1/pk}})))
     .then(list=>{SAMP[name]=list.sort((a,b)=>a.f-b.f)}).catch(()=>{})});
 }
-function sampPlay(name,f,t,vol,dur,wet){   // true when a sample voice played; false means the caller should use its synthesised fallback
+function sampPlay(name,f,t,vol,dur,wet,bus){   // true when a sample voice played; false means the caller should use its synthesised fallback
   const L=SAMP[name];if(!L||!voiceOK())return L?true:false;
   let best=L[0],bd=1e9;for(const s of L){const d=Math.abs(Math.log(f/s.f));if(d<bd){bd=d;best=s}}
   if(bd>.36)return false;   // more than about five semitones from any sample: not worth stretching
   const src=actx.createBufferSource();src.buffer=best.buf;src.playbackRate.value=f/best.f*(1+(Math.random()-.5)*.004);
   const g=actx.createGain(),pk=Math.min(.5,vol*best.g*1.5),end=t+Math.max(.3,Math.min(dur,best.buf.duration));
   g.gain.setValueAtTime(pk,t);g.gain.setTargetAtTime(0,Math.max(t,end-.25),.09);
-  src.connect(g);send(g,wet);src.start(t);src.stop(end+.6);return true;
+  src.connect(g);if(bus)g.connect(bus);else send(g,wet);src.start(t);src.stop(end+.6);return true;
 }
 const ROOT={Africa:293.66,Americas:293.66,Asia:293.66,Europe:293.66,Oceania:587.33};   // one key for the whole game: D major pentatonic (D E F# A B), the same as the Race music
 const PENT=[0,2,4,7,9,12,14,16,19];
@@ -180,11 +180,11 @@ function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,s
 function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
 function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
 function sndFlourish(region){
-  buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
+  duck();buzz([30,40,30,40,30,40,90]);const c=AC();if(!c)return;const t=c.currentTime+.05;
   [0,1,2,3,4,6].forEach((n,i)=>{const f=note(region,n);if(!(SAMP.harp&&sampPlay("harp",f,t+i*.09,.075,2.2,.6)))pluck(f,t+i*.09,.06,1.8,.6)});
   bell(note(region,8),t+.6,.04,3.2);
 }
-function sndBadge(){buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
+function sndBadge(){duck();buzz([60,40,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,150,68,.16,.08,.1);noise(t,.06,{type:"lowpass",f0:900,q:.7,vol:.04,wet:.1});[587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+.09+i*.09,.035,2.4))}   // an inked-stamp thud, then the sparkle
 function sndPencil(sec){const c=AC();if(!c)return;const t=c.currentTime;noise(t,Math.max(.5,sec),{f0:2600,f1:4300,q:1.5,vol:.016,attack:.18,wet:.15})}
 function sndPage(){const c=AC();if(!c)return;crackle(c.currentTime,.4,.035);noise(c.currentTime,.5,{f0:900,f1:2600,q:.8,vol:.012,attack:.2,wet:.2});bell(587.33,c.currentTime+.05,.02,1.6)}
 function brushKick(mag){if(!brushG)return;brushTarget=Math.max(brushTarget,Math.min(.02,mag*.0014))}
@@ -227,6 +227,7 @@ function mArp(f,t,open){
   env(g,t,.05,.003,.17);o.connect(fl).connect(g).connect(MUS.bus);o.start(t);o.stop(t+.2);
 }
 function mLead(f,t,len){
+  if(SAMP.xylophone&&sampPlay("xylophone",f,t,.16,len+.25,0,MUS.bus))return;
   [[1,"triangle",.1],[2,"sine",.035]].forEach(([m,ty,v])=>{
     const o=actx.createOscillator(),g=actx.createGain();o.type=ty;o.frequency.value=f*m;
     env(g,t,v,.004,len);o.connect(g).connect(MUS.bus);o.start(t);o.stop(t+len+.03);
@@ -274,7 +275,9 @@ function musUpdate(){
     noise(t,5,{type:"bandpass",f0:400,f1:7000,q:1.2,vol:.06,attack:4,wet:.4});
   }
 }
-function sndSpeedHit(){
+/* the Race music sits back for a moment under the note of a find, then swells back: the stingers are always heard clearly */
+function duck(){if(!MUS.on||!MUS.bus||!actx)return;const g=MUS.bus.gain,t=actx.currentTime;if(g.value<.7)return;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.setTargetAtTime(.55,t,.025);g.setTargetAtTime(.9,t+.4,.22)}
+function sndSpeedHit(){duck();
   const c=AC();if(!c)return;
   const sc=[587.33,659.25,739.99,880,987.77,1174.66,1318.51,1479.98],f=sc[R.streak%8];
   const t=MUS.on?Math.max(MUS.t,c.currentTime+.01):c.currentTime+.01;

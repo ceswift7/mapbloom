@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    ART PIECE: each country you find becomes a small painting. A drop lands,
    pigment bleeds outward through its shape, and once the wash settles a
    fine line motif (contours, waves, stipple, hatching or halftone) is drawn
@@ -42,13 +42,33 @@ function artSpec(id,spd){
 }
 function artCanvas(sp,motif,wash){
   const N=sp.N||ART_N,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.scale(N/100,N/100);
-  if(wash){   // just colour: a smooth three-tone gradient with two soft pools, no texture (the paper grain lives on the globe itself)
-    const a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
-    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,sp.tri[0]);g.addColorStop(.55,sp.tri[1]);g.addColorStop(1,sp.tri[2]);
-    x.fillStyle=g;x.fillRect(0,0,100,100);
-    sp.pools.slice(0,3).forEach(p=>{const col=d3.color(p.c),g2=x.createRadialGradient(p.cx,p.cy,0,p.cx,p.cy,p.rad+10);
-      g2.addColorStop(0,col.copy({opacity:p.o*.7}).formatRgb());g2.addColorStop(1,col.copy({opacity:0}).formatRgb());x.fillStyle=g2;x.fillRect(0,0,100,100)});
-  }  if(motif){
+  if(wash){   // watercolour: pale gesso, a loose wash, layered see-through glazes with pooled edges, blooms with feathered rims, water settling to one side, and pigment granules
+    const R=seeded("wc"+sp.gseed),T=sp.tri,a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
+    const rich=c=>{const h=d3.hsl(c);h.s=Math.min(1,h.s*1.14);h.l=Math.max(.42,h.l-.05);return h.formatRgb()};
+    const alpha=(c,o)=>d3.color(c).copy({opacity:o}).formatRgb();
+    const poly=(cx,cy,rad,harm,amp)=>{   // a closed, organic outline: a circle wobbled by a few harmonics
+      const ph=[],am=[];for(let h=0;h<harm;h++){ph.push(R()*6.2832);am.push(amp/(1+h*.45)*(.5+R()*.7))}
+      x.beginPath();for(let i=0;i<=72;i++){const u=i/72*6.2832;let r=1;for(let h=0;h<harm;h++)r+=am[h]*Math.sin((h+2)*u+ph[h]);const px=cx+Math.cos(u)*rad*r,py=cy+Math.sin(u)*rad*r*.88;i?x.lineTo(px,py):x.moveTo(px,py)}x.closePath();
+    };
+    x.globalAlpha=.55;x.fillStyle=T[2];x.fillRect(0,0,100,100);                                    // pale gesso so the colour stays luminous on any land
+    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,T[0]);g.addColorStop(.55,T[1]);g.addColorStop(1,T[2]);
+    x.globalAlpha=.72;x.fillStyle=g;x.fillRect(0,0,100,100);                                        // the loose base wash
+    for(let k=0;k<5;k++){   // glazes: soft see-through pools, darker where the water dried at the edge, lighter in the middle
+      const col=[T[1],T[0],sp.pools[k%6].c,T[1],T[2]][k],cx=6+R()*88,cy=6+R()*88,rad=16+R()*28;
+      poly(cx,cy,rad,4,.2);x.globalAlpha=.34+R()*.16;x.fillStyle=rich(col);x.fill();
+      x.globalAlpha=.2;x.lineWidth=.6;x.strokeStyle=mix(col,sp.ink,.3);x.stroke();
+      poly(cx,cy,rad*.6,3,.22);x.globalAlpha=.1;x.fillStyle="#fff";x.fill();
+    }
+    for(let k=0;k<3;k++){   // blooms (backruns): clean water pushed into a wet wash leaves a pale, cauliflower-edged shape with a thin dark rim
+      const cx=12+R()*76,cy=12+R()*76,rad=9+R()*15;poly(cx,cy,rad,7,.2);
+      x.globalAlpha=.4;x.fillStyle=mix(T[2],"#ffffff",.65);x.fill();
+      x.globalAlpha=.17;x.lineWidth=.5;x.strokeStyle=mix(T[1],sp.ink,.3);x.stroke();
+    }
+    const g3=x.createLinearGradient(50+dy*.7,50-dx*.7,50-dy*.7,50+dx*.7);   // pigment drifts and settles toward one side
+    g3.addColorStop(0,alpha(T[1],0));g3.addColorStop(1,alpha(mix(T[1],sp.ink,.28),.3));x.globalAlpha=1;x.fillStyle=g3;x.fillRect(0,0,100,100);
+    x.fillStyle=mix(T[1],sp.ink,.5);for(let i=0;i<N*1.5;i++){x.globalAlpha=.05+R()*.1;x.beginPath();x.arc(R()*100,R()*100,.22+R()*.45,0,6.2832);x.fill()}   // pigment granules
+    x.fillStyle="#fff";for(let i=0;i<N*.7;i++){x.globalAlpha=.1+R()*.22;x.beginPath();x.arc(R()*100,R()*100,.25+R()*.5,0,6.2832);x.fill()}   // paper tooth showing through
+    x.globalAlpha=1;  }  if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
     x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
     if(m.kind===0){for(let i=1;i<=11;i++){const rx=i*7+m.ph[i%13]*.6;x.beginPath();x.ellipse(m.cx,m.cy,rx,rx*m.sq,m.rot,0,6.2832);x.stroke()}}
@@ -67,13 +87,13 @@ function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
   const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?192:a>4e5?160:128;artSpecs[key]=sp;   // bigger countries get a finer tile
   const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
-  if(!CANVAS)defTile("af",key,cvs.toDataURL("image/jpeg",.9),sp.N);
+  if(!CANVAS)defTile("af",key,cvs.toDataURL("image/png"),sp.N);
   return key;
 }
 const svgAf={};
-function ensureArtSvg(key){if(svgAf[key]||!artCv[key])return;svgAf[key]=1;defTile("af",key,artCv[key].toDataURL("image/jpeg",.9),artSpecs[key].N)}
+function ensureArtSvg(key){if(svgAf[key]||!artCv[key])return;svgAf[key]=1;defTile("af",key,artCv[key].toDataURL("image/png"),artSpecs[key].N)}
 const washDone={};
-function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/jpeg",.9),artSpecs[key].N)}
+function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/png"),artSpecs[key].N)}
 function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>triFor(id,S.mode==="speed")[1];
 
 const blooms=[];let bloomSeq=0;

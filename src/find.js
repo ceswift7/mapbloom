@@ -257,7 +257,7 @@ function quizIdle(compact){idleView();if(compact)showQuizCompact();else showQuiz
 function showQuizCompact(){
   chainStop();
   const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" "+unitW(S.rlen);
-  modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
+  modeCompact({title:"Seek",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
     moreHint:"What to find, region, round length, daily challenges, records",startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
 }
 function beginFree(){
@@ -291,7 +291,7 @@ function showQuizSheet(){
   chainStop();
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
-  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
+  sh.append(closeBtn(),el("h2",{},"Seek"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
   const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
   const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how=(S.region==="United States"?{country:"Tap the named state on the map.",capital:"Tap the state with this capital.",name:"A state glows. Type its name."}:{country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."})[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),

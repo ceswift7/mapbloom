@@ -137,6 +137,17 @@ void main(){
   vec2 pgx=dFdx(puv),pgy=dFdy(puv);
   float pw=smoothstep(0.0,0.06,min(min(puv.x,1.0-puv.x),min(puv.y,1.0-puv.y)))*uPOn;
   if(pw>0.0){vec3 cp=layers(base,uPLand,uPArt,puv,pgx,pgy,uPA);col=mix(col,cp,pw);}
+  {   // pigment granulation: colour settles into the paper tooth. It is fixed to the map, and its finest detail fades in as you zoom so it never shimmers
+    float pa0=textureGrad(uArt,uv,gx,gy).a*uPA;
+    if(pa0>0.0){
+      float cp0=1.0/(uS*max(z,0.2));
+      float kB=clamp(1.0-cp0*340.0*0.9,0.0,1.0);
+      float gA=vnp(vec2(lon,lat)*110.0+vec2(1.7,9.1),691.0),gB=vnp(vec2(lon,lat)*340.0+vec2(4.2,2.3),2136.0);
+      float gz=gA*0.5+gB*0.5*kB+0.25*(1.0-kB)-0.5;
+      col*=1.0+gz*0.38*pa0;
+      col+=max(gz-0.14,0.0)*0.22*pa0;
+    }
+  }
   vec4 B2=textureGrad(uArt2,uv,gx,gy);
   float bm=uFade,bring=0.0;vec3 brc=vec3(0.0);bool anyD=false;
   for(int i=0;i<3;i++){
@@ -178,6 +189,7 @@ const GL_WET1=5.2,GL_WET2=2.2,GL_INK=1.7;   // pooled wet edge and ink rim, in b
 const glPeq=d3.geoEquirectangular().precision(.25),glPath=d3.geoPath(glPeq);
 let glArt=null,glArtCtx=null,glTmp=null,glTmpCtx=null;
 let glArtState=new Map();
+const glArtSlots={home:null,other:null};let glArtKind="home";
 let glJobs=[],glPumpOn=false,glBusy=0,glIdleCbs=[];
 let glLandRun=false,glLandAgain=false,glArtRun=false,glArtAgain=false,glSyncQ=false;
 const glFading=new Set(),glFadeQueue=[];
@@ -367,7 +379,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
   if(tag.indexOf("~")<0){   // (borderless mode draws no per-country rim)
     if(!shown){ctx.lineWidth=rimW*GL_INK;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
-    ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
+    ctx.globalAlpha=shown?.25:.4+((+id*13)%7)/45;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW*(.85+((+id*7)%5)/16);ctx.stroke();   // a hand-laid edge: no two countries get quite the same rim
   }
   if(!shown&&tag.slice(-2)==="|m"&&isFinite(cx+cy+S2)){   // mastered: a pearly foil sheen with a few glints instead of an outline
     ctx.save();ctx.beginPath();pgen(f);ctx.clip();ctx.globalAlpha=1;
@@ -402,10 +414,20 @@ function glDoSync(){
   if(!glReady&&!glArtRun&&!GLX.baking)return;
   if(glArtRun){glArtAgain=true;return}
   const want=glDesired();
+  /* two painting layers are kept: the saved map (Explore) and the working layer for Seek rounds, Race, Hot & cold and daily sessions.
+     Switching between them swaps a texture instead of repainting the whole world, so Explore never flashes its flat region colours */
+  const kind=cf()===S.found?"home":"other";let swapped=false;
+  if(kind!==glArtKind){
+    glArtSlots[glArtKind]={c:glArt,ctx:glArtCtx,state:glArtState,tex:glT.art};
+    const nx=glArtSlots[kind];
+    if(nx){glArt=nx.c;glArtCtx=nx.ctx;glArtState=nx.state;glT.art=nx.tex}
+    else{glArt=null;glArtCtx=null;glArtState=new Map();glT.art=glTexNew(1,1)}
+    glArtKind=kind;swapped=true;glPatchInvalidate();
+  }
   let full=false;const adds=[];
   glArtState.forEach((v,id)=>{if(want.get(id)!==v&&!(want.has(id)&&want.get(id).replace("|m","")===v.replace("|m","")))full=true});   // a country gaining its gold rim only needs a small redraw
   want.forEach((v,id)=>{if(glArtState.get(id)!==v)adds.push(id)});
-  if(!full&&!adds.length)return;
+  if(!full&&!adds.length){if(swapped)render(true);return}
   glEnsureArt()
   if(!full&&adds.length<=4){      // a country was just painted: draw it straight in
     adds.forEach(id=>{glDrawArt(glArtCtx,id,want.get(id));glArtState.set(id,want.get(id))});
@@ -628,7 +650,7 @@ if(GLWANT&&CANVAS){
     if(glInitGL()){
       GLX.hasGL=true;
       glC.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLX.on=false;document.body.classList.remove("gl");render(true)});
-      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glLandCache.clear();glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
+      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glLandCache.clear();glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glArtSlots.home=glArtSlots.other=null;glArtKind="home";glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
       GLX.resize();
       setTimeout(glBegin,50);
     }

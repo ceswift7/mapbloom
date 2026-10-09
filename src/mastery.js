@@ -303,7 +303,7 @@ function openCountryBook(id,from,opts){
   const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),el("b",{title:String(v)},String(v))))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Currency",f.cur||null);add("Drives on the",L.d);return g};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
-    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
+    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Seek, Race, or Take me somewhere.",2600);return}
     if(a==="cap"||a==="flg")return mqStart(id,a);
     const [k,t]=a.split(":");
     if(t==="r"){const pi=pages.findIndex(p=>p.k===k);if(pi>=0)moveTo(Math.floor(pi/2));return}
@@ -599,7 +599,7 @@ function renderSettings(){
     card("Look",opt("Theme","Auto follows your device.",themeSeg()),
       fsCan()?opt("Full screen","Hide the browser bars. Esc exits; F toggles.",toggle(!!fsEl(),v=>fsToggle(v),"Full screen")):"",opt("Visual effects","Lite trims textures and effects for slower devices. Auto uses Lite on phones and tablets.",fxSeg())),
     card("Play",opt("Auto next","Move on automatically after an answer. Tap or press Enter to skip ahead; hovering the card pauses.",autoSeg()),opt("Distance","For distances, areas and density.",unitSeg()),
-      opt("Borderless in Quiz and Race","Hide borders while you play. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Quiz and Race")),
+      opt("Borderless in Seek and Race","Hide borders while you play. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Seek and Race")),
       opt("Borderless in Explore","Hide borders while exploring. Press B to toggle.",toggle(S.nbx,v=>{S.nbx=v;save();applyNb();sndTick()},"Borderless in Explore"))));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
@@ -663,7 +663,7 @@ $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
   else if(R.phase==="done"||R.phase==="idle")speedEnter(true);
 };
-const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
+const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Seek",speed:"Race",hot:"Hot & cold"};
 const MODE_DESC={wander:"Discover the world at your own pace.",
   get find(){return isUS()?"Can you name the state?":"Can you name the country?"},
   get speed(){const r=S.region;return r==="United States"?"How fast can you name all 50 states?":r==="World"?"How fast can you name all the countries?":"How fast can you name all "+regionCount(r)+" countries in "+regionLabel(r)+"?"},

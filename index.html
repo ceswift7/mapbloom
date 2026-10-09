@@ -372,19 +372,20 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .frank .pos{width:20px;text-align:center;font:600 13px var(--sans);color:var(--ink-faint)}
 .frank b{flex:1;font-weight:500}.frank .val{font:600 14px var(--mono);font-variant-numeric:tabular-nums}
 .frank.me{background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:10px;padding-left:8px;padding-right:8px}
-/* growth marks: seed, bud, flower */
-svg.grow{width:1.2em;height:1.2em;display:inline-block;vertical-align:-.25em;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
-svg.grow .fl{fill:currentColor;fill-opacity:.28}svg.grow .ct{fill:currentColor;fill-opacity:.9}
-svg.grow.g1{color:var(--ink-faint)}svg.grow.g2{color:#5E9C79}svg.grow.g3{color:#D9825F}
-svg.grow.g1 .fl{fill-opacity:.7}
+/* mastery marks: a paint drop that fills (found = outline, studied = half, mastered = full with a gold rim) */
+svg.grow{width:1.2em;height:1.2em;display:inline-block;vertical-align:-.25em;fill:none;stroke:none;overflow:visible}
+svg.grow .ol{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round}
+svg.grow .fl{fill:currentColor;stroke:none}
+svg.grow .hl{fill:none;stroke:rgba(255,255,255,.85);stroke-width:1.3;stroke-linecap:round}
+svg.grow.g1{color:var(--ink-faint)}svg.grow.g2{color:#5E8FDB}
+svg.grow.g3{color:#E2B24A}svg.grow.g3 .ol{stroke:#A87A1C;stroke-width:1.7}
 .mtile .mlv svg.grow,.atile .alv svg.grow{width:15px;height:15px}
 .nchips .gw{display:inline-flex;margin-right:5px}
-.mtile.l3 .mlv svg.grow,.atile .alv svg.grow.g3{animation:growpop .9s var(--ease) both}
-@keyframes growpop{0%{transform:scale(.4)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
-#cJr svg .grow.g1{color:var(--ink-faint)}#cJr svg .grow.g2{color:#5E9C79}#cJr svg .grow.g3{color:#D9825F}
-#cJr svg .grow{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-#cJr svg .grow .fl{fill:currentColor;fill-opacity:.3}#cJr svg .grow .ct{fill:currentColor}
-.tourbtn{position:absolute;left:16px;top:46px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 13px 0 10px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--panel-line));background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .9s ease}
+#cJr svg .grow.g1{color:var(--ink-faint)}#cJr svg .grow.g2{color:#5E8FDB}#cJr svg .grow.g3{color:#E2B24A}
+#cJr svg .grow .ol{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
+#cJr svg .grow.g3 .ol{stroke:#A87A1C}
+#cJr svg .grow .fl{fill:currentColor;stroke:none}
+#cJr svg .grow .hl{fill:none;stroke:rgba(255,255,255,.85);stroke-width:1.8;stroke-linecap:round}.tourbtn{position:absolute;left:16px;top:46px;z-index:4;display:none;align-items:center;gap:7px;height:30px;padding:0 13px 0 10px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--panel-line));background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .9s ease}
 .tourbtn svg{width:15px;height:15px;flex:none}
 .tourbtn:hover{border-color:var(--ink);background:color-mix(in srgb,var(--paper) 95%,transparent)}
 body.newbie .app.wander .tourbtn{display:inline-flex}
@@ -1111,7 +1112,7 @@ body.lite #globe .country,body.lite #globe .graticule,body.lite #globe .sphere-e
     <div class="dock" id="dock" role="group" aria-label="Mode">
         <i class="dock-pill" id="dockPill"></i>
         <button id="modeWander" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Explore</span></button>
-        <button id="modeFind" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Quiz</span></button>
+        <button id="modeFind" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Seek</span></button>
         <button id="modeSpeed" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3h5M18.5 6l1.2-1.2"/></svg><span>Race</span></button>
         <button id="modeHot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.5V5a2 2 0 014 0v9.5a4 4 0 11-4 0z"/><path d="M12 9v7"/></svg><span>Hot &amp; cold</span></button>
     </div>
@@ -1648,14 +1649,14 @@ function jrLevel(id){
   return secs.length&&secs.every(k=>r.includes(k))?2:1;
 }
 const jrGlyph=id=>["\u25CB ","\u25CF ","\u25D1 ","\u2605 "][jrLevel(id)];
-/* a country grows as you learn it: found = a seed in the soil, studied = a budding stem, mastered = the flower open */
+/* mastery shows as a drop of paint that fills: an outlined drop = found, half full = studied, full with a gold rim = mastered */
+const DROP_D="M12 3.2c-3.7 4.3-6 7.3-6 10.5a6 6 0 0 0 12 0c0-3.2-2.3-6.2-6-10.5z";
 const GROW_SVG=[
   "",
-  '<path d="M5 19.5h14"/><path class="fl" d="M12 17c-2.3 0-3.5-1.6-3.5-3.5 0-2 2-4 3.5-5.2 1.5 1.2 3.5 3.2 3.5 5.2 0 1.9-1.2 3.5-3.5 3.5z"/>',
-  '<path d="M12 20.5V13"/><path class="fl" d="M12 13.6c-2.7 0-3.8-2.4-3.8-4.7 0-2.1 1.9-4 3.8-5.1 1.9 1.1 3.8 3 3.8 5.1 0 2.3-1.1 4.7-3.8 4.7z"/><path class="fl" d="M12 18c-3 0-4.6-1.5-5.1-3.7 2.7 0 4.6 1.1 5.1 3.7zM12 18c3 0 4.6-1.5 5.1-3.7-2.7 0-4.6 1.1-5.1 3.7z"/>',
-  '<path d="M12 21v-7"/><path class="fl" d="M12 18.4c-2.6 0-4-1.3-4.5-3.3 2.4 0 4.1 1 4.5 3.3zM12 18.4c2.6 0 4-1.3 4.5-3.3-2.4 0-4.1 1-4.5 3.3z"/><g class="fl" transform="translate(12 9)"><ellipse cx="0" cy="-4" rx="2.3" ry="3.2"/><ellipse cx="0" cy="-4" rx="2.3" ry="3.2" transform="rotate(72)"/><ellipse cx="0" cy="-4" rx="2.3" ry="3.2" transform="rotate(144)"/><ellipse cx="0" cy="-4" rx="2.3" ry="3.2" transform="rotate(216)"/><ellipse cx="0" cy="-4" rx="2.3" ry="3.2" transform="rotate(288)"/><circle r="1.9" class="ct"/></g>'
-];
-const jrIcon=id=>{const l=jrLevel(id);return l?`<svg class="grow g${l}" viewBox="0 0 24 24" aria-hidden="true">${GROW_SVG[l]}</svg>`:""};
+  `<path class="ol" d="${DROP_D}"/>`,
+  `<path class="fl" d="M6 13.7a6 6 0 0 0 12 0z"/><path class="ol" d="${DROP_D}"/>`,
+  `<path class="fl" d="${DROP_D}"/><path class="ol" d="${DROP_D}"/><path class="hl" d="M9 12.6c.1-1.4.8-2.6 1.9-3.6"/>`
+];const jrIcon=id=>{const l=jrLevel(id);return l?`<svg class="grow g${l}" viewBox="0 0 24 24" aria-hidden="true">${GROW_SVG[l]}</svg>`:""};
 function jrMark(id,type,key){
   if(!FACTS[id])return;
   const j=jrObj(id),before=jrLevel(id);
@@ -1667,7 +1668,7 @@ function jrMark(id,type,key){
   save();
   const after=jrLevel(id);
   if($("card").classList.contains("on")&&cardId===id)jrRow(id);
-  if(after>before&&after>=2)toast(after===3?"\u{1F338}":"\u{1F337}",(after===3?"In full bloom: ":"Budding: ")+FACTS[id].n,after===3?"Capital, flag and every star earned. It has flowered.":"Every page of its journal has been read. It is starting to bud.",3800);
+  if(after>before&&after>=2)toast(after===3?"\u{1F31F}":"\u{1F4D8}",(after===3?"Mastered: ":"Studied: ")+FACTS[id].n,after===3?"Capital, flag and every star earned.":"Every page of its journal has been read.",3800);
   if(after!==before)paint();
 }
 function jrRow(id){
@@ -2795,13 +2796,33 @@ function artSpec(id,spd){
 }
 function artCanvas(sp,motif,wash){
   const N=sp.N||ART_N,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.scale(N/100,N/100);
-  if(wash){   // just colour: a smooth three-tone gradient with two soft pools, no texture (the paper grain lives on the globe itself)
-    const a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
-    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,sp.tri[0]);g.addColorStop(.55,sp.tri[1]);g.addColorStop(1,sp.tri[2]);
-    x.fillStyle=g;x.fillRect(0,0,100,100);
-    sp.pools.slice(0,3).forEach(p=>{const col=d3.color(p.c),g2=x.createRadialGradient(p.cx,p.cy,0,p.cx,p.cy,p.rad+10);
-      g2.addColorStop(0,col.copy({opacity:p.o*.7}).formatRgb());g2.addColorStop(1,col.copy({opacity:0}).formatRgb());x.fillStyle=g2;x.fillRect(0,0,100,100)});
-  }  if(motif){
+  if(wash){   // watercolour: pale gesso, a loose wash, layered see-through glazes with pooled edges, blooms with feathered rims, water settling to one side, and pigment granules
+    const R=seeded("wc"+sp.gseed),T=sp.tri,a=sp.ang*Math.PI/180,dx=Math.cos(a)*70,dy=Math.sin(a)*70;
+    const rich=c=>{const h=d3.hsl(c);h.s=Math.min(1,h.s*1.14);h.l=Math.max(.42,h.l-.05);return h.formatRgb()};
+    const alpha=(c,o)=>d3.color(c).copy({opacity:o}).formatRgb();
+    const poly=(cx,cy,rad,harm,amp)=>{   // a closed, organic outline: a circle wobbled by a few harmonics
+      const ph=[],am=[];for(let h=0;h<harm;h++){ph.push(R()*6.2832);am.push(amp/(1+h*.45)*(.5+R()*.7))}
+      x.beginPath();for(let i=0;i<=72;i++){const u=i/72*6.2832;let r=1;for(let h=0;h<harm;h++)r+=am[h]*Math.sin((h+2)*u+ph[h]);const px=cx+Math.cos(u)*rad*r,py=cy+Math.sin(u)*rad*r*.88;i?x.lineTo(px,py):x.moveTo(px,py)}x.closePath();
+    };
+    x.globalAlpha=.55;x.fillStyle=T[2];x.fillRect(0,0,100,100);                                    // pale gesso so the colour stays luminous on any land
+    const g=x.createLinearGradient(50-dx,50-dy,50+dx,50+dy);g.addColorStop(0,T[0]);g.addColorStop(.55,T[1]);g.addColorStop(1,T[2]);
+    x.globalAlpha=.72;x.fillStyle=g;x.fillRect(0,0,100,100);                                        // the loose base wash
+    for(let k=0;k<5;k++){   // glazes: soft see-through pools, darker where the water dried at the edge, lighter in the middle
+      const col=[T[1],T[0],sp.pools[k%6].c,T[1],T[2]][k],cx=6+R()*88,cy=6+R()*88,rad=16+R()*28;
+      poly(cx,cy,rad,4,.2);x.globalAlpha=.34+R()*.16;x.fillStyle=rich(col);x.fill();
+      x.globalAlpha=.2;x.lineWidth=.6;x.strokeStyle=mix(col,sp.ink,.3);x.stroke();
+      poly(cx,cy,rad*.6,3,.22);x.globalAlpha=.1;x.fillStyle="#fff";x.fill();
+    }
+    for(let k=0;k<3;k++){   // blooms (backruns): clean water pushed into a wet wash leaves a pale, cauliflower-edged shape with a thin dark rim
+      const cx=12+R()*76,cy=12+R()*76,rad=9+R()*15;poly(cx,cy,rad,7,.2);
+      x.globalAlpha=.4;x.fillStyle=mix(T[2],"#ffffff",.65);x.fill();
+      x.globalAlpha=.17;x.lineWidth=.5;x.strokeStyle=mix(T[1],sp.ink,.3);x.stroke();
+    }
+    const g3=x.createLinearGradient(50+dy*.7,50-dx*.7,50-dy*.7,50+dx*.7);   // pigment drifts and settles toward one side
+    g3.addColorStop(0,alpha(T[1],0));g3.addColorStop(1,alpha(mix(T[1],sp.ink,.28),.3));x.globalAlpha=1;x.fillStyle=g3;x.fillRect(0,0,100,100);
+    x.fillStyle=mix(T[1],sp.ink,.5);for(let i=0;i<N*1.5;i++){x.globalAlpha=.05+R()*.1;x.beginPath();x.arc(R()*100,R()*100,.22+R()*.45,0,6.2832);x.fill()}   // pigment granules
+    x.fillStyle="#fff";for(let i=0;i<N*.7;i++){x.globalAlpha=.1+R()*.22;x.beginPath();x.arc(R()*100,R()*100,.25+R()*.5,0,6.2832);x.fill()}   // paper tooth showing through
+    x.globalAlpha=1;  }  if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
     x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
     if(m.kind===0){for(let i=1;i<=11;i++){const rx=i*7+m.ph[i%13]*.6;x.beginPath();x.ellipse(m.cx,m.cy,rx,rx*m.sq,m.rot,0,6.2832);x.stroke()}}
@@ -2820,13 +2841,13 @@ function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
   const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?192:a>4e5?160:128;artSpecs[key]=sp;   // bigger countries get a finer tile
   const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
-  if(!CANVAS)defTile("af",key,cvs.toDataURL("image/jpeg",.9),sp.N);
+  if(!CANVAS)defTile("af",key,cvs.toDataURL("image/png"),sp.N);
   return key;
 }
 const svgAf={};
-function ensureArtSvg(key){if(svgAf[key]||!artCv[key])return;svgAf[key]=1;defTile("af",key,artCv[key].toDataURL("image/jpeg",.9),artSpecs[key].N)}
+function ensureArtSvg(key){if(svgAf[key]||!artCv[key])return;svgAf[key]=1;defTile("af",key,artCv[key].toDataURL("image/png"),artSpecs[key].N)}
 const washDone={};
-function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/jpeg",.9),artSpecs[key].N)}
+function ensureWash(key){if(washDone[key]||!artSpecs[key])return;washDone[key]=1;defTile("aw",key,artCanvas(artSpecs[key],false,true).toDataURL("image/png"),artSpecs[key].N)}
 function ensureMotif(key){if(motifDone[key]||!artSpecs[key])return;motifDone[key]=1;defTile("am",key,artCanvas(artSpecs[key],true,false).toDataURL("image/png"),artSpecs[key].N)}const artColor=id=>triFor(id,S.mode==="speed")[1];
 
 const blooms=[];let bloomSeq=0;
@@ -3238,7 +3259,7 @@ function quizIdle(compact){idleView();if(compact)showQuizCompact();else showQuiz
 function showQuizCompact(){
   chainStop();
   const st=QUIZ_STYLES.find(x=>x[0]===S.quiz)||QUIZ_STYLES[0],len=S.rlen===0?"Whole region":S.rlen+" "+unitW(S.rlen);
-  modeCompact({title:"Quiz",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
+  modeCompact({title:"Seek",desc:MODE_DESC.find,chips:[[st[2],st[1]],["rall",regionLabel(S.region)],[S.rlen===0?"rall":S.rlen===10?"r10":"r20",len]],
     moreHint:"What to find, region, round length, daily challenges, records",startLabel:"Begin",start:()=>{if(!leaveDailyOk())return;sndTick();beginFree()},expand:()=>expandFrom(showQuizSheet)});
 }
 function beginFree(){
@@ -3272,7 +3293,7 @@ function showQuizSheet(){
   chainStop();
   const sh=$("sheet");sh.innerHTML="";
   const day=todayStr(),done=S.daily.results[day],wk=weakIds().length;
-  sh.append(closeBtn(),el("h2",{},"Quiz"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
+  sh.append(closeBtn(),el("h2",{},"Seek"),el("p",{},MODE_DESC.find+" Choose what to find and where, then begin."));
   const q=tiles(QUIZ_STYLES.map(([k,l,ic])=>tile({icon:ic,label:l,pressed:S.quiz===k,onclick:()=>{S.quiz=k;save();sndTick();showQuizSheet()}})),5);
   const rc=regionTiles(S.region,r=>{pickRegion(r);showQuizSheet()},r=>r==="United States"?"50 states":regionCount(r)+" countries");const how=(S.region==="United States"?{country:"Tap the named state on the map.",capital:"Tap the state with this capital.",name:"A state glows. Type its name."}:{country:"Tap the named country on the globe.",flag:"Tap the country whose flag you see.",capital:"Tap the country with this capital.",name:"A country glows. Type its name.",silhouette:"See a shape with no globe. Type its name."})[S.quiz];
   sh.append(el("div",{class:"qcard"},el("h3",{},"Free play"),
@@ -3340,7 +3361,7 @@ function chainRender(){
   const tg=$("target");tg.classList.add("small");tg.textContent=FACTS[C.start].n+" \u2192 "+FACTS[C.end].n;
   $("hint").textContent=C.path.map(id=>FACTS[id].n).join(" \u2192 ")+(C.done?"":" \u2192 \u2026");
   $("showBtn").hidden=C.done;syncHintBtn();
-  if(C.done){$("nextBtn").hidden=false;$("nextBtn").textContent="Quiz menu"}   // a finished chain always leaves a way back to the menu on screen
+  if(C.done){$("nextBtn").hidden=false;$("nextBtn").textContent="Seek menu"}   // a finished chain always leaves a way back to the menu on screen
   else{$("nextBtn").hidden=C.path.length<2;$("nextBtn").textContent="Undo"}
   $("dClock").classList.remove("on");
 }
@@ -3381,7 +3402,7 @@ function showChainResult(res,daily){
   sh.append(el("p",{},extra<=0?(res.assists?`Connected in ${res.n}, the shortest possible, with ${res.assists} hint${res.assists>1?"s":""}.`:`Perfect: ${res.n} countries is the shortest possible chain.`):`${res.n} countries, ${extra} more than the shortest chain (${res.par}).${res.wrong?` ${res.wrong} wrong tap${res.wrong>1?"s":""}.`:""}`));
   sh.append(el("h3",{},"Your chain"),el("p",{style:"font-family:var(--serif);font-size:16px;margin:0 0 8px"},nm(res.path)),
     el("h3",{},"Shortest chain"),el("p",{style:"font-family:var(--serif);font-size:16px;color:var(--ink-soft);margin:0"},nm(res.parPath)));
-  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();quizIdle()}},"Quiz menu")));
+  sh.append(el("div",{class:"row"},el("button",{class:"btn primary",onclick:()=>{closeModal();startChain(false)}},"Another chain"),el("button",{class:"btn",onclick:()=>{chainStop();quizIdle()}},"Seek menu")));
   openModal(true);
 }
 
@@ -4152,7 +4173,7 @@ function renderTour(){
         "Open any country, then “Explore this country” for its full page: the land, people, food, history and the story of its name.",
         "The capital is marked on the map, and the globe zooms to fit the whole country.",
         "Countries you have found are painted in, in their region’s colour."],true),
-      item("#E06F58","locate","Quiz","Find it, name it.",[
+      item("#E06F58","locate","Seek","Find it, name it.",[
         "Choose what to find: Locate, Flag, Capital, Name it (typos are forgiven) or Silhouette.",
         "Pick a region, from the whole Earth down to the Pacific Islands, the Antilles or the US states, and a round of 10, 20 or the whole region.",
         "Stuck? “Show me” gives a ladder of hints before it reveals the answer.",
@@ -4655,7 +4676,7 @@ function openCountryBook(id,from,opts){
   const quickDl=()=>{const g=el("div",{class:"cbfacts"}),add=(k,v)=>{if(v)g.append(el("span",{},el("i",{},k),el("b",{title:String(v)},String(v))))};add("Capital",f.cap);add("Population",L.p?fmt(L.p):null);add("Area",areaTxt(f.a));add("Density",L.p?densTxt(L.p,f.a):null);add("Currency",f.cur||null);add("Drives on the",L.d);return g};
   const onTree=e=>{
     const g=e.target.closest("[data-a]");if(!g)return;const a=g.dataset.a;sndTick();
-    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Quiz, Race, or Take me somewhere.",2600);return}
+    if(a==="lo"){toast("\u{1F9ED}","Located",S.found.has(id)?"You have found it.":"Find it in Seek, Race, or Take me somewhere.",2600);return}
     if(a==="cap"||a==="flg")return mqStart(id,a);
     const [k,t]=a.split(":");
     if(t==="r"){const pi=pages.findIndex(p=>p.k===k);if(pi>=0)moveTo(Math.floor(pi/2));return}
@@ -4951,7 +4972,7 @@ function renderSettings(){
     card("Look",opt("Theme","Auto follows your device.",themeSeg()),
       fsCan()?opt("Full screen","Hide the browser bars. Esc exits; F toggles.",toggle(!!fsEl(),v=>fsToggle(v),"Full screen")):"",opt("Visual effects","Lite trims textures and effects for slower devices. Auto uses Lite on phones and tablets.",fxSeg())),
     card("Play",opt("Auto next","Move on automatically after an answer. Tap or press Enter to skip ahead; hovering the card pauses.",autoSeg()),opt("Distance","For distances, areas and density.",unitSeg()),
-      opt("Borderless in Quiz and Race","Hide borders while you play. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Quiz and Race")),
+      opt("Borderless in Seek and Race","Hide borders while you play. Coastlines stay.",toggle(S.nb,v=>{S.nb=v;save();applyNb();sndTick()},"Borderless in Seek and Race")),
       opt("Borderless in Explore","Hide borders while exploring. Press B to toggle.",toggle(S.nbx,v=>{S.nbx=v;save();applyNb();sndTick()},"Borderless in Explore"))));
   const vol=el("input",{type:"range",min:"0",max:"1",step:".05","aria-label":"Master volume"});vol.value=S.vol;
   vol.oninput=()=>{S.vol=+vol.value;applyVol();save()};
@@ -5015,7 +5036,7 @@ $("skipBtn").onclick=()=>{
   if(R.phase==="run")speedSkip();
   else if(R.phase==="done"||R.phase==="idle")speedEnter(true);
 };
-const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Quiz",speed:"Race",hot:"Hot & cold"};
+const MODE_ACC={wander:"#6FA27E",find:"#E06F58",speed:"#2D86FF",hot:"#E0802F"},MODE_NAME={wander:"Explore",find:"Seek",speed:"Race",hot:"Hot & cold"};
 const MODE_DESC={wander:"Discover the world at your own pace.",
   get find(){return isUS()?"Can you name the state?":"Can you name the country?"},
   get speed(){const r=S.region;return r==="United States"?"How fast can you name all 50 states?":r==="World"?"How fast can you name all the countries?":"How fast can you name all "+regionCount(r)+" countries in "+regionLabel(r)+"?"},
@@ -5281,7 +5302,7 @@ function introHandoff(fast){
   stopDrift();scheduleDrift();render(true);
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   setTimeout(themeTip,2200);
-  if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
+  if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Seek to start painting.",6500),900);
 }
 /* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */
 let fpsHud=null;
@@ -6258,6 +6279,17 @@ void main(){
   vec2 pgx=dFdx(puv),pgy=dFdy(puv);
   float pw=smoothstep(0.0,0.06,min(min(puv.x,1.0-puv.x),min(puv.y,1.0-puv.y)))*uPOn;
   if(pw>0.0){vec3 cp=layers(base,uPLand,uPArt,puv,pgx,pgy,uPA);col=mix(col,cp,pw);}
+  {   // pigment granulation: colour settles into the paper tooth. It is fixed to the map, and its finest detail fades in as you zoom so it never shimmers
+    float pa0=textureGrad(uArt,uv,gx,gy).a*uPA;
+    if(pa0>0.0){
+      float cp0=1.0/(uS*max(z,0.2));
+      float kB=clamp(1.0-cp0*340.0*0.9,0.0,1.0);
+      float gA=vnp(vec2(lon,lat)*110.0+vec2(1.7,9.1),691.0),gB=vnp(vec2(lon,lat)*340.0+vec2(4.2,2.3),2136.0);
+      float gz=gA*0.5+gB*0.5*kB+0.25*(1.0-kB)-0.5;
+      col*=1.0+gz*0.38*pa0;
+      col+=max(gz-0.14,0.0)*0.22*pa0;
+    }
+  }
   vec4 B2=textureGrad(uArt2,uv,gx,gy);
   float bm=uFade,bring=0.0;vec3 brc=vec3(0.0);bool anyD=false;
   for(int i=0;i<3;i++){
@@ -6299,6 +6331,7 @@ const GL_WET1=5.2,GL_WET2=2.2,GL_INK=1.7;   // pooled wet edge and ink rim, in b
 const glPeq=d3.geoEquirectangular().precision(.25),glPath=d3.geoPath(glPeq);
 let glArt=null,glArtCtx=null,glTmp=null,glTmpCtx=null;
 let glArtState=new Map();
+const glArtSlots={home:null,other:null};let glArtKind="home";
 let glJobs=[],glPumpOn=false,glBusy=0,glIdleCbs=[];
 let glLandRun=false,glLandAgain=false,glArtRun=false,glArtAgain=false,glSyncQ=false;
 const glFading=new Set(),glFadeQueue=[];
@@ -6488,7 +6521,7 @@ function glDrawArt(ctx,id,tag,pgen,rimW){
   ctx.fillStyle=pat||CV.p[fa.r];ctx.fill();
   if(tag.indexOf("~")<0){   // (borderless mode draws no per-country rim)
     if(!shown){ctx.lineWidth=rimW*GL_INK;ctx.globalAlpha=.35;ctx.strokeStyle=CV.pd[fa.r];ctx.stroke()}   // one crisp ink rim
-    ctx.globalAlpha=shown?.25:.5;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW;ctx.stroke();
+    ctx.globalAlpha=shown?.25:.4+((+id*13)%7)/45;ctx.strokeStyle=CV.pd[fa.r];ctx.lineWidth=shown?rimW*.75:rimW*(.85+((+id*7)%5)/16);ctx.stroke();   // a hand-laid edge: no two countries get quite the same rim
   }
   if(!shown&&tag.slice(-2)==="|m"&&isFinite(cx+cy+S2)){   // mastered: a pearly foil sheen with a few glints instead of an outline
     ctx.save();ctx.beginPath();pgen(f);ctx.clip();ctx.globalAlpha=1;
@@ -6523,10 +6556,20 @@ function glDoSync(){
   if(!glReady&&!glArtRun&&!GLX.baking)return;
   if(glArtRun){glArtAgain=true;return}
   const want=glDesired();
+  /* two painting layers are kept: the saved map (Explore) and the working layer for Seek rounds, Race, Hot & cold and daily sessions.
+     Switching between them swaps a texture instead of repainting the whole world, so Explore never flashes its flat region colours */
+  const kind=cf()===S.found?"home":"other";let swapped=false;
+  if(kind!==glArtKind){
+    glArtSlots[glArtKind]={c:glArt,ctx:glArtCtx,state:glArtState,tex:glT.art};
+    const nx=glArtSlots[kind];
+    if(nx){glArt=nx.c;glArtCtx=nx.ctx;glArtState=nx.state;glT.art=nx.tex}
+    else{glArt=null;glArtCtx=null;glArtState=new Map();glT.art=glTexNew(1,1)}
+    glArtKind=kind;swapped=true;glPatchInvalidate();
+  }
   let full=false;const adds=[];
   glArtState.forEach((v,id)=>{if(want.get(id)!==v&&!(want.has(id)&&want.get(id).replace("|m","")===v.replace("|m","")))full=true});   // a country gaining its gold rim only needs a small redraw
   want.forEach((v,id)=>{if(glArtState.get(id)!==v)adds.push(id)});
-  if(!full&&!adds.length)return;
+  if(!full&&!adds.length){if(swapped)render(true);return}
   glEnsureArt()
   if(!full&&adds.length<=4){      // a country was just painted: draw it straight in
     adds.forEach(id=>{glDrawArt(glArtCtx,id,want.get(id));glArtState.set(id,want.get(id))});
@@ -6749,7 +6792,7 @@ if(GLWANT&&CANVAS){
     if(glInitGL()){
       GLX.hasGL=true;
       glC.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLX.on=false;document.body.classList.remove("gl");render(true)});
-      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glLandCache.clear();glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
+      glC.addEventListener("webglcontextrestored",()=>{glLost=false;try{glLandCache.clear();glPatchInvalidate();GB.ready=false;GB.slots=[null,null,null];glBusy=0;glFading.clear();glFadeQueue.length=0;glSyncQ=false}catch(e){}GLX.hasGL=false;try{GLX.hasGL=glInitGL()}catch(e){console.warn("GPU globe could not restart",e)}if(GLX.hasGL){glReady=false;GLX.on=false;GLX.landDone=false;GLX.linesDone=false;glArtState=new Map();glArt=null;glArtSlots.home=glArtSlots.other=null;glArtKind="home";glLandRun=false;glArtRun=false;glJobs=[];GLX.resize();glBegin()}});
       GLX.resize();
       setTimeout(glBegin,50);
     }

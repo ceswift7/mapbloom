@@ -126,7 +126,7 @@ function introHandoff(fast){
   stopDrift();scheduleDrift();render(true);
   setTimeout(()=>{introEl.remove();document.body.classList.remove("introout")},1400);
   setTimeout(themeTip,2200);
-  if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Quiz to start painting.",6500),900);
+  if(!S.found.size)setTimeout(()=>toast("\u{1F331}","Welcome to Mapbloom","Tap any country to read about it, or try Seek to start painting.",6500),900);
 }
 /* ---------- frame-rate readout: add ?fps to the address, or press Shift+F. Shows frames per second, the slowest recent frame, how long the game's own drawing code takes per frame, and which graphics chip the browser is really using ---------- */
 let fpsHud=null;

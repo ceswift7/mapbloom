@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    TEMPORARY DEV MENU. Left out of release builds (build.ps1 -Release).
    Open with the ` key, ?dev in the address, or the little DEV tab.
    ===================================================================== */
@@ -109,7 +109,7 @@
     rows.forEach(r=>t.append(el("tr",{},keys.map(k=>el("td",{},String(r[k]))))));out.append(t);
   }
   async function benchClicks(n){
-    if(S.mode!=="find"||S.qIdle){toast("T","Dev","Start a Quiz (free play) first");return}
+    if(S.mode!=="find"||S.qIdle){toast("T","Dev","Start Seek (free play) first");return}
     const rows=[];stopDrift();
     for(let i=0;i<n;i++){
       const ids=playable.map(f=>f.id).filter(()=>true),id=ids[Math.floor(Math.random()*ids.length)];

@@ -121,7 +121,7 @@ function renderTour(){
         "Open any country, then “Explore this country” for its full page: the land, people, food, history and the story of its name.",
         "The capital is marked on the map, and the globe zooms to fit the whole country.",
         "Countries you have found are painted in, in their region’s colour."],true),
-      item("#E06F58","locate","Quiz","Find it, name it.",[
+      item("#E06F58","locate","Seek","Find it, name it.",[
         "Choose what to find: Locate, Flag, Capital, Name it (typos are forgiven) or Silhouette.",
         "Pick a region, from the whole Earth down to the Pacific Islands, the Antilles or the US states, and a round of 10, 20 or the whole region.",
         "Stuck? “Show me” gives a ladder of hints before it reveals the answer.",

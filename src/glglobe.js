@@ -147,11 +147,13 @@ void main(){
     float ang=acos(clamp(sin(lat)*sin(d.y)+cos(lat)*cos(d.y)*cos(dlo),-1.0,1.0));
     vec2 q=vec2(dlo*cos(lat),lat-d.y)/max(d.z,1e-3)*d.w;
     float n=vn(q)*0.6+vn(q*2.3+7.0)*0.4;
+    float bil=1.0-abs(vn(q*4.2+3.0)*2.0-1.0),bil2=1.0-abs(vn(q*9.0+11.0)*2.0-1.0);   // billowy noise: round, cauliflower-shaped lobes, like paint that has bloomed into a wet wash
+    float lob=bil*0.7+bil2*0.3;
     float p=c.w,e=1.0-pow(1.0-p,2.2);
-    float front=d.z*(e*(0.6+0.9*n)+smoothstep(0.85,1.0,p)*1.6);
+    float front=d.z*(e*(0.6+0.9*n+0.42*(lob-0.5))+smoothstep(0.85,1.0,p)*1.6);
     float soft=d.z*0.05+1e-4;
     bm=max(bm,1.0-smoothstep(front-soft,front+soft,ang));
-    float rg=exp(-pow((ang-front)/(soft*1.7),2.0))*smoothstep(0.0,0.05,p)*(1.0-smoothstep(0.85,1.0,p));
+    float rg=exp(-pow((ang-front)/(soft*2.4),2.0))*smoothstep(0.0,0.05,p)*(1.0-smoothstep(0.88,1.0,p))*(0.5+0.9*bil2);   // the pigment gathers along the lobes of the edge
     if(rg>bring){bring=rg;brc=c.rgb;}
   }
   vec4 B=B2*bm;

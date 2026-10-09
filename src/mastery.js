@@ -429,7 +429,7 @@ function leafTurn(pg,dir,mkL,mkR,done){
 const BOOK_TABS=[["atlas","Atlas","#6FA27E"],["stamps","Stamps","#D9825F"],["exp","Expeditions","#6C8FD6"],["mastery","Mastery","#C9A24B"]];
 function masteryPageList(){
   const ids=playable.map(f=>f.id).sort((a,b)=>FACTS[a].n.localeCompare(FACTS[b].n));
-  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book",true)}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv"},jrLevel(id)?jrGlyph(id).trim():""));
+  const tile=id=>el("button",{class:"mtile l"+jrLevel(id),title:FACTS[id].n,onclick:()=>{sndTick();renderMastery(id,"book",true)}},FLAGS[id]?el("img",{src:FLAGS[id],alt:""}):el("span",{},FACTS[id].f||""),el("span",{class:"mn"},FACTS[id].n),el("i",{class:"mlv",html:jrIcon(id)}));
   const st=ids.filter(id=>jrLevel(id)>=2).length,ms=ids.filter(id=>jrLevel(id)===3).length,pages=[],labels=[];
   const first=18,per=24;let i=0;
   const head=[el("h2",{},"Mastery"),el("p",{style:"margin:2px 0 8px;color:var(--ink-soft);font-size:14px"},`${st} studied, ${ms} mastered. Tap a flag to open its path.`)];
@@ -440,7 +440,7 @@ function masteryPageList(){
 /* one fixed-size tile per country: its map (painted if found, a dashed ghost if not) with the name underneath */
 function atlasTile(id,onclick){
   const found=S.found.has(id),cv=document.createElement("canvas");paintInto(cv,id,112,84,[8,8]);
-  return el("button",{type:"button",class:"atile"+(found?" got":" dim"),title:FACTS[id].n+" · "+["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick},cv,el("span",{class:"an"},FACTS[id].n),found&&jrLevel(id)?el("i",{class:"alv"},jrGlyph(id).trim()):null);
+  return el("button",{type:"button",class:"atile"+(found?" got":" dim"),title:FACTS[id].n+" · "+["Not found yet","Found","Studied","Mastered"][jrLevel(id)],onclick},cv,el("span",{class:"an"},FACTS[id].n),found&&jrLevel(id)?el("i",{class:"alv",html:jrIcon(id)}):null);
 }
 function atlasPageList(){
   const [L]=atlasPages(),F=S.found,pages=[L],labels=["Overview"];
@@ -470,7 +470,7 @@ function expPageList(){
     const R=[el("h2",{},sel.name),el("p",{style:"margin:4px 0 12px;color:var(--ink-soft);font-size:14.5px"},sel.blurb),
       el("h3",{style:"margin:0 0 6px"},n===ids.length?"Complete":`${n} of ${ids.length} places`),
       el("div",{class:"ebar",style:"margin:0 0 14px"},el("span",{style:`width:${ids.length?n/ids.length*100:0}%`})),
-      el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},jrGlyph(id)+FACTS[id].n)))];
+      el("div",{class:"nchips"},ids.map(id=>el("button",{class:S.found.has(id)?"got":"dim",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(id)}},el("span",{class:"gw",html:jrIcon(id)}),FACTS[id].n)))];
     if(next)R.push(el("div",{class:"row",style:"margin-top:14px"},el("button",{class:"btn primary",onclick:()=>{closeModal();if(S.mode!=="wander")setMode("wander");openCountry(next)}},"Visit the next place")));
     pages.push(R);labels.push(sel.name);
   });

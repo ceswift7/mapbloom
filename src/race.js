@@ -479,17 +479,17 @@ const KF_LAB={
   n:[["off","Official name"],["lng","Language of the name"],["mng","Meaning"],["who","Named after"],["old","Former names"]]
 };
 function keyFacts(id,k){
-  const q=(typeof QZ!=="undefined"&&QZ[id]||{})[k];if(!q)return null;
+  const q=(typeof QZ!=="undefined"&&QZ[id]||{})[k]||{};
   const dl=el("dl");let n=0;
   (KF_LAB[k]||[]).forEach(([t,lab])=>{
-    let v=q[t];if(v==null)return;
+    let v=(t==="evt"||t==="ind")?q[t]:qV(id,k,t);if(v==null)return;
     if(t==="evt")v=(Array.isArray(v)?v:[v]).map(e=>fmtY(e.y)+": "+e.t.replace(/^./,c=>c.toUpperCase()));
     else if(t==="ind")v=[fmtY(v)];
     else v=Array.isArray(v)?v:[v];
     const txt=t==="evt"?v.join("; "):v.join(", ");
     if(!txt)return;dl.append(el("dt",{},lab),el("dd",{},txt));n++;
   });
-  return n?el("div",{class:"kf"},el("h4",{},"Worth remembering"),dl):null;
+  return n?el("div",{class:"kf"},el("h4",{},"Key facts"),dl):null;
 }
 function renderLearn(id,rootArg,nav){  const L=LEARN[id],f=FACTS[id],root=rootArg||$("learn");root.innerHTML="";
   root.style.setProperty("--p",`var(--c-${f.r})`);

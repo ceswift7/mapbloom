@@ -64,7 +64,8 @@ const Q_FIX={
 };
 const Q_FAM={"Tropical rainforest":"t","Savanna":"t","Monsoon":"t","Desert":"a","Semi-arid":"a","Mediterranean":"m","Oceanic":"m","Humid subtropical":"m","Temperate continental":"c","Cold continental":"c","Subarctic":"c","Highland / alpine":"h"};
 const Q_COMMON=new Set(["Rice","Bread","Potatoes","Maize","Corn","Wheat","Beans","Fish","Cheese","Meat","Mutton","Beef","Lamb","Pork","Tea","Coffee","Wine","Beer","Football","Christianity","Islam"]);
-const qV=(id,k,t)=>{const v=(QZ[id]||{})[k];const x=v&&v[t];return x==null?null:Array.isArray(x)?x:[x]};
+/* the written facts for a page, plus any extra true items kept for the reading panels (KFX): both count as correct answers and neither is ever offered as a wrong option */
+const qV=(id,k,t)=>{const v=(QZ[id]||{})[k];const x=v&&v[t],e=((typeof KFX!=="undefined"&&KFX[id]||{})[k]||{})[t];if(x==null&&e==null)return null;const a=x==null?[]:Array.isArray(x)?x.slice():[x];if(e){const nz=s=>String(s).toLowerCase().replace(/\s*\([^)]*\)/g,"").trim(),have=a.map(nz);e.forEach(s=>{const n=nz(s);if(!have.some(h=>h===n||(h.length>=5&&n.length>=5&&(h.includes(n)||n.includes(h))))){have.push(n);a.push(s)}})}return a};
 const qHas=(id,k,t)=>{const v=(QZ[id]||{})[k];return !!(v&&v[t]!=null)};
 const fmtY=y=>y<0?`${-y} BC`:String(y);
 function qYears(y,r){const old=Math.abs(y)<1800,out=new Set();let g=0;while(out.size<5&&g++<80){const d=Math.round(old?15+r()*170:3+r()*38)*(r()<.5?-1:1),v=y+d;if(v!==y&&(y<0?v<0:v>0)&&v<=2025)out.add(v)}return [...out]}

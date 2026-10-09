@@ -66,8 +66,6 @@ function artCanvas(sp,motif,wash){
     }
     const g3=x.createLinearGradient(50+dy*.7,50-dx*.7,50-dy*.7,50+dx*.7);   // pigment drifts and settles toward one side
     g3.addColorStop(0,alpha(T[1],0));g3.addColorStop(1,alpha(mix(T[1],sp.ink,.28),.3));x.globalAlpha=1;x.fillStyle=g3;x.fillRect(0,0,100,100);
-    x.fillStyle=mix(T[1],sp.ink,.5);for(let i=0;i<N*1.5;i++){x.globalAlpha=.05+R()*.1;x.beginPath();x.arc(R()*100,R()*100,.22+R()*.45,0,6.2832);x.fill()}   // pigment granules
-    x.fillStyle="#fff";for(let i=0;i<N*.7;i++){x.globalAlpha=.1+R()*.22;x.beginPath();x.arc(R()*100,R()*100,.25+R()*.5,0,6.2832);x.fill()}   // paper tooth showing through
     x.globalAlpha=1;  }  if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
     x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
@@ -85,7 +83,7 @@ function defTile(pid,key,url,N){
 }
 function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
-  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?192:a>4e5?160:128;artSpecs[key]=sp;   // bigger countries get a finer tile
+  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?256:a>4e5?224:176;artSpecs[key]=sp;   // bigger countries get a finer tile
   const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
   if(!CANVAS)defTile("af",key,cvs.toDataURL("image/png"),sp.N);
   return key;

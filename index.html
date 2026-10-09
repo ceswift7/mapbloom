@@ -2820,8 +2820,6 @@ function artCanvas(sp,motif,wash){
     }
     const g3=x.createLinearGradient(50+dy*.7,50-dx*.7,50-dy*.7,50+dx*.7);   // pigment drifts and settles toward one side
     g3.addColorStop(0,alpha(T[1],0));g3.addColorStop(1,alpha(mix(T[1],sp.ink,.28),.3));x.globalAlpha=1;x.fillStyle=g3;x.fillRect(0,0,100,100);
-    x.fillStyle=mix(T[1],sp.ink,.5);for(let i=0;i<N*1.5;i++){x.globalAlpha=.05+R()*.1;x.beginPath();x.arc(R()*100,R()*100,.22+R()*.45,0,6.2832);x.fill()}   // pigment granules
-    x.fillStyle="#fff";for(let i=0;i<N*.7;i++){x.globalAlpha=.1+R()*.22;x.beginPath();x.arc(R()*100,R()*100,.25+R()*.5,0,6.2832);x.fill()}   // paper tooth showing through
     x.globalAlpha=1;  }  if(motif){
     const m=sp.m,tc=d3.color(sp.tint);
     x.lineCap="round";x.lineWidth=.7;x.strokeStyle=tc.copy({opacity:.42}).formatRgb();
@@ -2839,7 +2837,7 @@ function defTile(pid,key,url,N){
 }
 function ensureArt(id){
   const spd=S.mode==="speed",key=artKey(id);if(artDone[key])return key;artDone[key]=1;
-  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?192:a>4e5?160:128;artSpecs[key]=sp;   // bigger countries get a finer tile
+  const sp=artSpec(id,spd),a=FACTS[id].a;sp.N=a>2.5e6?256:a>4e5?224:176;artSpecs[key]=sp;   // bigger countries get a finer tile
   const cvs=artCanvas(sp,false,true);artCv[key]=cvs;   // watercolour: a pure wash, no line motif
   if(!CANVAS)defTile("af",key,cvs.toDataURL("image/png"),sp.N);
   return key;
@@ -6282,12 +6280,9 @@ void main(){
   {   // pigment granulation: colour settles into the paper tooth. It is fixed to the map, and its finest detail fades in as you zoom so it never shimmers
     float pa0=textureGrad(uArt,uv,gx,gy).a*uPA;
     if(pa0>0.0){
-      float cp0=1.0/(uS*max(z,0.2));
-      float kB=clamp(1.0-cp0*340.0*0.9,0.0,1.0);
-      float gA=vnp(vec2(lon,lat)*110.0+vec2(1.7,9.1),691.0),gB=vnp(vec2(lon,lat)*340.0+vec2(4.2,2.3),2136.0);
-      float gz=gA*0.5+gB*0.5*kB+0.25*(1.0-kB)-0.5;
-      col*=1.0+gz*0.38*pa0;
-      col+=max(gz-0.14,0.0)*0.22*pa0;
+      float g1=textureGrad(uGrain,uv*32.0,gx*32.0,gy*32.0).r,g2=textureGrad(uGrain,uv*128.0+0.37,gx*128.0,gy*128.0).r,g3=textureGrad(uGrain,uv*512.0+0.71,gx*512.0,gy*512.0).r;   // white noise at three scales: each fades to flat by itself once it is finer than a pixel
+      float gz=(g1-0.5)*0.5+(g2-0.5)*0.5+(g3-0.5)*0.45;
+      col*=1.0+gz*0.34*pa0;
     }
   }
   vec4 B2=textureGrad(uArt2,uv,gx,gy);

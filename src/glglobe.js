@@ -140,12 +140,9 @@ void main(){
   {   // pigment granulation: colour settles into the paper tooth. It is fixed to the map, and its finest detail fades in as you zoom so it never shimmers
     float pa0=textureGrad(uArt,uv,gx,gy).a*uPA;
     if(pa0>0.0){
-      float cp0=1.0/(uS*max(z,0.2));
-      float kB=clamp(1.0-cp0*340.0*0.9,0.0,1.0);
-      float gA=vnp(vec2(lon,lat)*110.0+vec2(1.7,9.1),691.0),gB=vnp(vec2(lon,lat)*340.0+vec2(4.2,2.3),2136.0);
-      float gz=gA*0.5+gB*0.5*kB+0.25*(1.0-kB)-0.5;
-      col*=1.0+gz*0.38*pa0;
-      col+=max(gz-0.14,0.0)*0.22*pa0;
+      float g1=textureGrad(uGrain,uv*32.0,gx*32.0,gy*32.0).r,g2=textureGrad(uGrain,uv*128.0+0.37,gx*128.0,gy*128.0).r,g3=textureGrad(uGrain,uv*512.0+0.71,gx*512.0,gy*512.0).r;   // white noise at three scales: each fades to flat by itself once it is finer than a pixel
+      float gz=(g1-0.5)*0.5+(g2-0.5)*0.5+(g3-0.5)*0.45;
+      col*=1.0+gz*0.34*pa0;
     }
   }
   vec4 B2=textureGrad(uArt2,uv,gx,gy);

@@ -2513,7 +2513,8 @@ function AC(kind){                                   // kind: "mus" for music/dr
       actx=actxPre||new (window.AudioContext||window.webkitAudioContext)();actxPre=null;
       master=actx.createGain();master.gain.value=.9*S.vol;
       const comp=actx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.01;comp.release.value=.25;
-      master.connect(comp).connect(actx.destination);
+      const hp=actx.createBiquadFilter();hp.type="highpass";hp.frequency.value=38;hp.Q.value=.5;const lim=actx.createDynamicsCompressor();lim.threshold.value=-3;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.12;lim.knee.value=0;
+      master.connect(hp).connect(comp).connect(lim).connect(actx.destination);
       dryBus=actx.createGain();dryBus.connect(master);
       const conv=actx.createConvolver();conv.buffer=irFromPrep()||makeIR(2.6);
       wetBus=actx.createGain();wetBus.gain.value=.5;wetBus.connect(conv).connect(master);
@@ -2527,20 +2528,24 @@ function AC(kind){                                   // kind: "mus" for music/dr
     if(actx.state==="suspended")actx.resume();
     applyVol();
     return actx;
-  }catch(e){return null}
+  }catch(e){try{console.warn("audio init failed",e)}catch(_){}return null}
 }
+let voiceN=0,voiceT=0;   // note-voice limiter: a burst of notes never piles up past what the mix can carry
+function voiceOK(){const n=performance.now();if(n-voiceT>1500){voiceT=n;voiceN=0}return ++voiceN<=40}
 function applyVol(){if(actx&&master){master.gain.cancelScheduledValues(actx.currentTime);master.gain.setTargetAtTime(S.sound?.9*S.vol:0,actx.currentTime,.05)}}
 function send(node,wet){node.connect(dryBus);if(wet){const g=actx.createGain();g.gain.value=wet;node.connect(g).connect(wetBus)}}
 function env(g,t,peak,attack,dur){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+attack);g.gain.exponentialRampToValueAtTime(.0001,t+dur)}
 function pluck(f,t,vol,dur=1.5,wet=.4){            // soft marimba-like note
+  if(!voiceOK())return;const hum=1+(Math.random()-.5)*.007;
   [[1,1,dur],[2,.3,dur*.5],[4.02,.14,.18]].forEach(([m,a,d])=>{
-    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m*hum;
     env(g,t,vol*a,.005,d);o.connect(g);send(g,wet);o.start(t);o.stop(t+d+.05);
   });
 }
 function bell(f,t,vol,dur=2.4,wet=.6){               // glassy bell, inharmonic partials
+  if(!voiceOK())return;const hum=1+(Math.random()-.5)*.007;
   [[1,1,1],[2.76,.35,.5],[5.4,.12,.25]].forEach(([m,a,d])=>{
-    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m;
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f*m*hum;
     env(g,t,vol*a,.008,dur*d);o.connect(g);send(g,wet);o.start(t);o.stop(t+dur*d+.05);
   });
 }
@@ -2564,7 +2569,7 @@ function crackle(t,dur,vol){                         // paper rustle
   g.gain.setValueAtTime(0,t+dur);
   s.connect(hp).connect(g);send(g,.18);s.start(t,Math.random()*1.5);s.stop(t+dur+.02);
 }
-const ROOT={Africa:293.66,Americas:392,Asia:329.63,Europe:261.63,Oceania:349.23};
+const ROOT={Africa:293.66,Americas:293.66,Asia:293.66,Europe:293.66,Oceania:587.33};   // one key for the whole game: D major pentatonic (D E F# A B), the same as the Race music
 const PENT=[0,2,4,7,9,12,14,16,19];
 const note=(r,i)=>(ROOT[r]||ROOT.Europe)*Math.pow(2,PENT[i]/12);   // areas such as the Pacific Islands borrow a continent's scale
 
@@ -2579,18 +2584,18 @@ function sndHit(region,first){
   if(first)bell(note(region,8)*up,t+.44,.035,2.8);
 }
 function sndHeat(w){   // Hot & cold: the warmer the guess, the higher and brighter the note
-  buzz(8+Math.round(w*28));const c=AC();if(!c)return;const t=c.currentTime+.01,f=196*Math.pow(2,w*1.9);
+  buzz(8+Math.round(w*28));const c=AC();if(!c)return;const t=c.currentTime+.01,f=293.66*Math.pow(2,PENT[Math.round(w*8)]/12);
   pluck(f,t,.05+.06*w,1.2);
   if(w>.55){bell(f*2,t+.05,.02+.03*w,1.6);if(w>.8)bell(f*3,t+.1,.03,1.8)}
 }
-function sndBorder(){buzz([18,40,18,40,18]);const c=AC();if(!c)return;const t=c.currentTime+.01;bell(784,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
+function sndBorder(){buzz([18,40,18,40,18]);const c=AC();if(!c)return;const t=c.currentTime+.01;bell(739.99,t,.045,1.8);bell(1174.66,t+.13,.05,2.2)}
 function sndKey(){const c=AC();if(!c)return;const n=performance.now();if(n-sndKeyT<45)return;sndKeyT=n;blip(c.currentTime,2300+Math.random()*400,1800,.03,.012,.05)}
 function sndAccept(){const c=AC();if(!c)return;pluck(659.25,c.currentTime,.05,.7,.3)}
 function sndThump(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,130,55,.16,.07,.1);noise(t,.07,{type:"lowpass",f0:600,q:.7,vol:.03,wet:.1})}
 function sndTheme(dark){
   const c=AC();if(!c)return;const t=c.currentTime;
   if(dark){noise(t,.6,{f0:400,f1:3200,q:1.1,vol:.02,attack:.4,wet:.5});[1318.5,1760,2093].forEach((f,i)=>bell(f,t+.25+i*.09,.014,1.8))}
-  else{noise(t,.55,{f0:3200,f1:500,q:1,vol:.02,attack:.05,wet:.4});pluck(783.99,t+.2,.04,1.2);pluck(1046.5,t+.3,.03,1.2)}
+  else{noise(t,.55,{f0:3200,f1:500,q:1,vol:.02,attack:.05,wet:.4});pluck(739.99,t+.2,.04,1.2);pluck(1174.66,t+.3,.03,1.2)}
 }
 function unlockAudio(c){if(!c)return;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0)}catch(e){}}
 let audioQ=[],sndChipTm=null;
@@ -2615,10 +2620,10 @@ function audioGesture(){
   if(actx.state!=="running")actx.resume().then(audioFlush,()=>{});
 }/* the opening is all in one key (C major pentatonic): the page sound, the drops, the spin plucks and the closing chord share it.
    Each drop is tuned: the water "plop" slides down onto the bell's own pitch, so it never fights the note. v (0..1) varies speed, loudness and a few cents of tuning per drop. */
-function sndIntroDrop(f,v){const c=AC();if(!c)return;const t=c.currentTime;v=v==null?.5:v;f=(f||523.25)*Math.pow(2,(v-.5)*.016);
+function sndIntroDrop(f,v){const c=AC();if(!c)return;const t=c.currentTime;v=v==null?.5:v;f=(f||587.33)*Math.pow(2,(v-.5)*.016);
   blip(t,f*(2.7+v*.9),f,.15+(1-v)*.1,.16+v*.05);blip(t+.05,f*4,f*2,.1,.05+v*.03);bell(f,t+.02,.04+v*.025,1.5+(1-v)*.6);noise(t,.3,{type:"lowpass",f0:900,f1:300,q:.6,vol:.035,wet:.4})}
-function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done){noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.01,attack:.3,wet:.5});bell(1046.5,t+.05,.012,2.2,.7)}else{const j=.85+Math.random()*.3;noise(t,.2,{type:"bandpass",f0:700*j,f1:2400*j,q:.9,vol:.014,wet:.3})}}
-function sndIntroFall(){const c=AC();if(!c)return;const t=c.currentTime;crackle(t,.3,.03);bell(261.63,t+.04,.02,1.8,.7);noise(t,.43,{f0:2600,f1:700,q:.8,vol:.026,attack:.25,wet:.3})}   // the tap: a paper rustle and a low C that the drops then play over
+function sndBrush(done){const c=AC();if(!c)return;const t=c.currentTime;if(done){noise(t,.7,{type:"highpass",f0:2800,f1:6500,q:.5,vol:.01,attack:.3,wet:.5});bell(1174.66,t+.05,.012,2.2,.7)}else{const j=.85+Math.random()*.3;noise(t,.2,{type:"bandpass",f0:700*j,f1:2400*j,q:.9,vol:.014,wet:.3})}}
+function sndIntroFall(){const c=AC();if(!c)return;const t=c.currentTime;crackle(t,.3,.03);bell(293.66,t+.04,.02,1.8,.7);noise(t,.43,{f0:2600,f1:700,q:.8,vol:.026,attack:.25,wet:.3})}   // the tap: a paper rustle and a low C that the drops then play over
 function sndDrop(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1100,380,.16,.07);blip(t+.07,1800,700,.1,.025)}
 function sndBloom(fast){
   const c=AC();if(!c)return;const t=c.currentTime,k=fast?.45:1;
@@ -2628,7 +2633,7 @@ function sndBloom(fast){
 }
 function sndMiss(){buzz([30,50,30]);const c=AC();if(!c)return;const t=c.currentTime;blip(t,230,150,.22,.06,.2);noise(t,.08,{type:"lowpass",f0:700,q:.7,vol:.03,wet:.1});if(sndStreakPrev>=3)blip(t+.12,340,170,.34,.04,.3);sndStreakPrev=0}   // a broken streak slides down
 function sndOcean(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,520,250,.2,.05,.45);noise(t,.3,{f0:500,f1:250,q:.8,vol:.012,wet:.5})}
-function sndShow(){const c=AC();if(!c)return;const t=c.currentTime;[784,659.25,523.25].forEach((f,i)=>bell(f,t+i*.16,.04,2.2))}
+function sndShow(){const c=AC();if(!c)return;const t=c.currentTime;[739.99,659.25,587.33].forEach((f,i)=>bell(f,t+i*.16,.04,2.2))}
 function sndFly(sec){const c=AC();if(!c)return;noise(c.currentTime,Math.max(.6,sec),{f0:260,f1:1100,q:.9,vol:.022,attack:sec*.45,wet:.5})}
 function sndCard(open){const c=AC();if(!c)return;crackle(c.currentTime,open?.2:.11,open?.03:.016)}
 function sndTick(){const c=AC();if(!c)return;const t=c.currentTime;blip(t,1500,1100,.05,.03,.2)}
@@ -5373,7 +5378,7 @@ function introSpin(){
     const seq=[0,2,4,3,5,4,2,3,1,5,4,2];
     for(let k=1;k<12;k++){const a=k*45/540,tk=1-Math.pow(1-a,1/3);   // a pluck every 45 degrees: they thin out as the globe slows
       introLater(()=>{const c=AC();if(c&&c.state==="running")pluck(note("Europe",seq[k]),c.currentTime+.02,Math.max(.025,.075-k*.005),1.6,.6)},tk*D)}
-    introLater(()=>{const c=AC();if(c&&c.state==="running"){const t=c.currentTime+.02;[523.25,659.25,783.99].forEach((f,i)=>bell(f,t+i*.07,.03,2.8,.7))}},D-120);
+    introLater(()=>{const c=AC();if(c&&c.state==="running"){const t=c.currentTime+.02;[587.33,739.99,880].forEach((f,i)=>bell(f,t+i*.07,.03,2.8,.7))}},D-120);
   },INTRO_HOLD);
   introLater(()=>introHandoff(false),INTRO_HOLD+D+350);
 }

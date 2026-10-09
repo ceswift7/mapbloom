@@ -168,7 +168,7 @@ function introSpin(){
     const seq=[0,2,4,3,5,4,2,3,1,5,4,2];
     for(let k=1;k<12;k++){const a=k*45/540,tk=1-Math.pow(1-a,1/3);   // a pluck every 45 degrees: they thin out as the globe slows
       introLater(()=>{const c=AC();if(c&&c.state==="running")pluck(note("Europe",seq[k]),c.currentTime+.02,Math.max(.025,.075-k*.005),1.6,.6)},tk*D)}
-    introLater(()=>{const c=AC();if(c&&c.state==="running"){const t=c.currentTime+.02;[523.25,659.25,783.99].forEach((f,i)=>bell(f,t+i*.07,.03,2.8,.7))}},D-120);
+    introLater(()=>{const c=AC();if(c&&c.state==="running"){const t=c.currentTime+.02;[587.33,739.99,880].forEach((f,i)=>bell(f,t+i*.07,.03,2.8,.7))}},D-120);
   },INTRO_HOLD);
   introLater(()=>introHandoff(false),INTRO_HOLD+D+350);
 }

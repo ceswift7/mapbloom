@@ -6,11 +6,12 @@
 const CLOUD={sb:null,user:null,profile:null,loading:null,pushT:0,pushing:false,status:"",synced:false};
 const cloudOn=()=>!!(MB_CLOUD.url&&MB_CLOUD.key);
 const CLOUD_SDK="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+const CLOUD_SDK_SRI="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o";
 function cloudLoad(){
   if(CLOUD.loading)return CLOUD.loading;
   CLOUD.loading=new Promise((res,rej)=>{
     if(window.supabase)return res(window.supabase);
-    const s=document.createElement("script");s.src=CLOUD_SDK;s.onload=()=>res(window.supabase);s.onerror=()=>{s.remove();rej(new Error("offline"))};document.head.append(s);
+    const s=document.createElement("script");s.src=CLOUD_SDK;s.integrity=CLOUD_SDK_SRI;s.crossOrigin="anonymous";s.onload=()=>res(window.supabase);s.onerror=()=>{s.remove();rej(new Error("offline"))};document.head.append(s);
   }).then(lib=>{
     const sb=lib.createClient(MB_CLOUD.url,MB_CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"mb-auth"}});
     CLOUD.sb=sb;
@@ -89,7 +90,7 @@ async function cloudAfterSignIn(){
   }catch(e){CLOUD.status=cloudMsg(e)}
 }
 function cloudPushSoon(){
-  if(!CLOUD.user||!CLOUD.profile)return;
+  if(!CLOUD.user||!CLOUD.profile||!CLOUD.synced)return;   // never push before this device has merged with the cloud copy
   clearTimeout(CLOUD.pushT);CLOUD.pushT=setTimeout(()=>cloudPush(),6000);
 }
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&CLOUD.pushT){clearTimeout(CLOUD.pushT);CLOUD.pushT=0;cloudPush()}});
@@ -109,7 +110,7 @@ function cloudRecordRows(){
   return out.slice(0,80);
 }
 async function cloudPush(force){
-  const sb=CLOUD.sb;if(!sb||!CLOUD.user||!CLOUD.profile||CLOUD.pushing)return;
+  const sb=CLOUD.sb;if(!sb||!CLOUD.user||!CLOUD.profile||!CLOUD.synced||CLOUD.pushing)return;
   CLOUD.pushing=true;CLOUD.pushT=0;
   try{
     const blob=cloudBlob();

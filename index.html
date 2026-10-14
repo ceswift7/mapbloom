@@ -16,9 +16,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-simplify@3.0.3/dist/topojson-simplify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-simplify@3.0.3/dist/topojson-simplify.min.js" integrity="sha384-N6bxj5MaMGM2/SSPxsl+F9w7FJ+nGXCZnw611rBdM0UsnYGNpFWT7flhVpAeKfrO" crossorigin="anonymous"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -6193,13 +6193,14 @@ function showHotDailyResult(day){
     el("p",{style:"margin-top:10px"},`Streak: ${S.daily.hotStreak||0} day${(S.daily.hotStreak||0)===1?"":"s"}. A new mystery arrives tomorrow.`),
     el("div",{class:"row"},el("button",{class:"btn primary",onclick:ev=>{copyText(hotShare(day),ev.currentTarget)}},"Copy result"),el("button",{class:"btn",onclick:closeModal},"Close")));
   openModal();
-}/* ======================================================================
+}/* STORED SETTINGS: the live Supabase values are kept in config.cloud.js. To switch accounts and friends back on (when the custom domain and email sender are ready), copy the MB_CLOUD line from config.cloud.js over the one below and rebuild. */
+/* ======================================================================
    CLOUD SETTINGS: accounts, cloud save and friends are switched on by filling these two values in
    (Supabase project URL and the public "anon" key: Project Settings -> API). Both are safe to publish: the database is protected
    by the row level security in supabase/schema.sql. Never put the "service_role" key here.
    Left empty, the game is exactly as before: no sign-in, nothing leaves the device.
    ====================================================================== */
-const MB_CLOUD={url:"https://dzupkcjnjywohdjbvtnx.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6dXBrY2puanl3b2hkamJ2dG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1MDk3ODQsImV4cCI6MjEwNzA4NTc4NH0.BQf-cGcxwtHvmjvWWwcHsS1eLBYQtb1-UuSDajZmJnA"};
+const MB_CLOUD={url:"",key:""};
 /* ======================================================================
    ACCOUNT: email sign-in with a one-time code (or the link in the same email), a username, and a cloud copy of the save.
    Offline-first: nothing here loads until someone opens Account or Friends, and the game plays exactly the same signed out.
@@ -6208,11 +6209,12 @@ const MB_CLOUD={url:"https://dzupkcjnjywohdjbvtnx.supabase.co",key:"eyJhbGciOiJI
 const CLOUD={sb:null,user:null,profile:null,loading:null,pushT:0,pushing:false,status:"",synced:false};
 const cloudOn=()=>!!(MB_CLOUD.url&&MB_CLOUD.key);
 const CLOUD_SDK="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+const CLOUD_SDK_SRI="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o";
 function cloudLoad(){
   if(CLOUD.loading)return CLOUD.loading;
   CLOUD.loading=new Promise((res,rej)=>{
     if(window.supabase)return res(window.supabase);
-    const s=document.createElement("script");s.src=CLOUD_SDK;s.onload=()=>res(window.supabase);s.onerror=()=>{s.remove();rej(new Error("offline"))};document.head.append(s);
+    const s=document.createElement("script");s.src=CLOUD_SDK;s.integrity=CLOUD_SDK_SRI;s.crossOrigin="anonymous";s.onload=()=>res(window.supabase);s.onerror=()=>{s.remove();rej(new Error("offline"))};document.head.append(s);
   }).then(lib=>{
     const sb=lib.createClient(MB_CLOUD.url,MB_CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"mb-auth"}});
     CLOUD.sb=sb;
@@ -6291,7 +6293,7 @@ async function cloudAfterSignIn(){
   }catch(e){CLOUD.status=cloudMsg(e)}
 }
 function cloudPushSoon(){
-  if(!CLOUD.user||!CLOUD.profile)return;
+  if(!CLOUD.user||!CLOUD.profile||!CLOUD.synced)return;   // never push before this device has merged with the cloud copy
   clearTimeout(CLOUD.pushT);CLOUD.pushT=setTimeout(()=>cloudPush(),6000);
 }
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&CLOUD.pushT){clearTimeout(CLOUD.pushT);CLOUD.pushT=0;cloudPush()}});
@@ -6311,7 +6313,7 @@ function cloudRecordRows(){
   return out.slice(0,80);
 }
 async function cloudPush(force){
-  const sb=CLOUD.sb;if(!sb||!CLOUD.user||!CLOUD.profile||CLOUD.pushing)return;
+  const sb=CLOUD.sb;if(!sb||!CLOUD.user||!CLOUD.profile||!CLOUD.synced||CLOUD.pushing)return;
   CLOUD.pushing=true;CLOUD.pushT=0;
   try{
     const blob=cloudBlob();

@@ -102,6 +102,11 @@ revoke all on all tables in schema public from anon, authenticated;
 grant select on public.profiles to authenticated;
 grant select, insert, update on public.saves to authenticated;
 
+-- a cloud save is one JSON document; cap it so nobody can use the table as free storage
+do $$ begin
+  alter table public.saves add constraint saves_size check (pg_column_size(data) < 1000000);
+exception when duplicate_object then null; end $$;
+
 -- ---------- helpers ----------
 create or replace function public.is_friend(a uuid, b uuid) returns boolean
 language sql security definer set search_path = public stable as $$
@@ -118,7 +123,7 @@ declare u text := lower(trim(p));
 begin
   if auth.uid() is null then raise exception 'not signed in'; end if;
   if u !~ '^[a-z0-9_]{3,20}$' then raise exception 'Use 3 to 20 letters, numbers or underscores.'; end if;
-  if u ~ '(fuck|shit|cunt|nigg|fag|rape|nazi|whore|bitch|dick)' then raise exception 'Please pick a different name.'; end if;
+  if u ~ '(fuck|cunt|nigg|nazi|whore|bitch)' or u ~ '(^|_)(shit|fag|rape|dick)(s|_|$)' then raise exception 'Please pick a different name.'; end if;
   begin
     insert into public.profiles (id, username) values (auth.uid(), u)
     on conflict (id) do update set username = excluded.username;
@@ -320,7 +325,7 @@ end $$;
 revoke all on all functions in schema public from public, anon;
 grant execute on function
   public.claim_username(text), public.set_sharing(boolean), public.delete_account(),
-  public.find_user(text), public.send_request(text), public.respond_request(uuid, boolean), public.remove_friend(uuid),
+  public.send_request(text), public.respond_request(uuid, boolean), public.remove_friend(uuid),
   public.my_friends(), public.my_requests(), public.sync_stats(jsonb), public.sync_daily(jsonb), public.submit_records(jsonb),
   public.leaderboard(text), public.friends_daily(date), public.send_challenge(uuid, jsonb), public.my_challenges(),
   public.submit_challenge_result(uuid, int)
